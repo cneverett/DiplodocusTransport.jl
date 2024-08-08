@@ -35,7 +35,7 @@ end
 
 
 """
-    energy(f0,dp,meanp,dμ)
+    Energy(f0,ΔE,dμ,numberDensity)
 
 Returns the average TOTAL energy of a distribution function `f`. average energy is defined as the first moment of the distribution function. i.e. 
     ```math
@@ -52,16 +52,27 @@ function Energy(f::Array{Float32},ΔE::Vector{Float32},dμ::Vector{Float32},numb
     
 end
 
-function temperature(f0::Array{Float32},ΔEkin::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32)
+"""
+    Temperature(f,ΔEkin,dμ,numberDensity)
 
-    Ekin = transpose(ΔEkin) * f0 * dμ
+Returns the Temperature of a distribution function `f`. Average, kinetic energy is defined from the first moment of the distribution function minus the zeroth moment times the mass, i.e. ``p^0-m``: 
+    ```math
+    \\braket{Ekin} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu (p^0-m)f(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta Ekin_i \\Delta μ_j / n
+    ``` 
+where `ΔEkin` = ``\\Delta Ekin_i`` is a vector of the average "kinetric energy" value per bin (has dimensions of momentum squared), `dp` = ``\\Delta p_i``. `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
+"""
+function Temperature(f::Array{Float32},ΔEkin::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32)
+
+    Ekin = transpose(ΔEkin) * f * dμ
     Ekin /= numberDensity
 
     #  Ekin = 3/2 kB * T 
     # Ekin = E - mass 
     #println(Ekin)
-    Temperature = (Ekin) * 1836.1528f0 * 9.11e-31 * 3f8^2 / 1.38f-23 * (2/3)  # E = 3 kb T 
+    # units of Kelvin
+    Temperature = (Ekin) * (9.11e-31 * 3f8^2 / 1.38f-23) * (2/3)  # E = 3 kb T 
 
     return Temperature
     
 end
+

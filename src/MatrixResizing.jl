@@ -38,11 +38,11 @@ function FourDtoTwoD(matrix::Array{Float32,4})
 
 end
 
-function Utof_list!(f_list::Vector{Vector{Float32}},u::Vecotr{Float32})
+function Utof_list!(f_list::Vector{Vector{Float32}},u::Vector{Float32})
 
     j = 0
-    for i in 1:length(name_list)
-        k = nump_list[i]*numt_list[i]
+    for i in 1:length(f_list)
+        k = length(f_list[i]) # nump_list[i]*numt_list[i]
         f_list[i] .= @view(u[(1+j):(j+k)])
         j += k
     end

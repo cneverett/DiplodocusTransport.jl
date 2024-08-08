@@ -1,6 +1,8 @@
-function LoadMatricies(CollisionMatricies::Dict{String,Tuple},DataDirectory::String)
+function LoadMatricies(CollisionMatricies::Dict{Vector{String},Tuple},DataDirectory::String,Lists::Tuple)
 
-    for i in 1:length(interaction_list)
+    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
+
+    for i in eachindex(interaction_list)
 
         interaction = interaction_list[i]
 
@@ -23,45 +25,45 @@ function LoadMatricies(CollisionMatricies::Dict{String,Tuple},DataDirectory::Str
         numt3 = string(numt_list[name3_loc])
         numt4 = string(numt_list[name4_loc])
 
-        pl1 = string(pl_list[name1_loc])
-        pl2 = string(pl_list[name2_loc])
-        pl3 = string(pl_list[name3_loc])
-        pl4 = string(pl_list[name4_loc])
+        pl1 = string(Int(pl_list[name1_loc]))
+        pl2 = string(Int(pl_list[name2_loc]))
+        pl3 = string(Int(pl_list[name3_loc]))
+        pl4 = string(Int(pl_list[name4_loc]))
 
-        pu1 = string(pu_list[name1_loc])
-        pu2 = string(pu_list[name2_loc])
-        pu3 = string(pu_list[name3_loc])
-        pu4 = string(pu_list[name4_loc])
+        pu1 = string(Int(pu_list[name1_loc]))
+        pu2 = string(Int(pu_list[name2_loc]))
+        pu3 = string(Int(pu_list[name3_loc]))
+        pu4 = string(Int(pu_list[name4_loc]))
 
         filename = name1*name2*name3*name4*"#"*pl1*"#"*pu1*"#"*nump1*"#"*pl2*"#"*pu2*"#"*nump2*"#"*pl3*"#"*pu3*"#"*nump3*"#"*pl4*"#"*pu4*"#"*nump4*"#"*numt1*"#"*numt2*"#"*numt3*"#"*numt4*".jld2"
 
-        matricies = fload_Matrix(DataDirectory,filename)
+        matricies = BoltzmannCollisionIntegral.fload_Matrix(DataDirectory,filename)
 
         if interaction[1] == interaction[2] && interaction[3] == interaction[4]
-            SMatrix = SixDtoThreeD(matricies[1])
-            TMatrix = FourDtoTwoD(matricies[2])
+            SMatrix = SixDtoThreeD(Float32.(matricies[1]))
+            TMatrix = FourDtoTwoD(Float32.(matricies[2]))
             CollisionMatricies[interaction] = (SMatrix,TMatrix)
         end
     
         if interaction[1] == interaction[2] && interaction[3] != interaction[4]
-            SMatrix3 = SixDtoThreeD(matricies[1])
-            SMatrix4 = SixDtoThreeD(matricies[2])
-            TMatrix = FourDtoTwoD(matricies[3])
+            SMatrix3 = SixDtoThreeD(Float32.(matricies[1]))
+            SMatrix4 = SixDtoThreeD(Float32.(matricies[2]))
+            TMatrix = FourDtoTwoD(Float32.(matricies[3]))
             CollisionMatricies[interaction] = (SMatrix3,SMatrix4,TMatrix)
         end
     
         if interaction[1] != interaction[2] && interaction[3] == interaction[4]
-            SMatrix = SixDtoThreeD(matricies[1])
-            TMatrix1 = FourDtoTwoD(matricies[2])
-            TMatrix2 = FourDtoTwoD(matricies[3])
+            SMatrix = SixDtoThreeD(Float32.(matricies[1]))
+            TMatrix1 = FourDtoTwoD(Float32.(matricies[2]))
+            TMatrix2 = FourDtoTwoD(Float32.(matricies[3]))
             CollisionMatricies[interaction] = (SMatrix,TMatrix1,TMatrix2)
         end
     
         if interaction[1] != interaction[2] && interaction[3] != interaction[4]
-            SMatrix3 = SixDtoThreeD(matricies[1])
-            SMatrix4 = SixDtoThreeD(matricies[2])
-            TMatrix1 = FourDtoTwoD(matricies[3])
-            TMatrix2 = FourDtoTwoD(matricies[4])
+            SMatrix3 = SixDtoThreeD(Float32.(matricies[1]))
+            SMatrix4 = SixDtoThreeD(Float32.(matricies[2]))
+            TMatrix1 = FourDtoTwoD(Float32.(matricies[3]))
+            TMatrix2 = FourDtoTwoD(Float32.(matricies[4]))
             CollisionMatricies[interaction] = (SMatrix3,SMatrix4,TMatrix1,TMatrix2)
         end
 

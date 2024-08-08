@@ -1,6 +1,6 @@
-function BoltzmannEquationSolver(u0,timespan)
+function BoltzmannEquationSolver(u0,timespan,Lists)
 
-    deriv_cpu = BoltzmannEquation(u0);
+    deriv_cpu = BoltzmannEquation(Lists);
 
     prob = ODEProblem(deriv_cpu,u0,timespan)
 
@@ -16,12 +16,12 @@ function (g::BoltzmannEquation)(du,u,p,t)
     Utof_list!(g.f_list,u)
 
     # update changes due to S and T interactions
-    update_ΔSΔT!(g.ΔfS_list,g.ΔfT_list,CollisionMatricies,g.f_list)
+    update_ΔSΔT!(g,CollisionMatricies)
 
     # assign du
     j = 0
-    for i in 1:length(name_list)
-        k = nump_list[i]*numt_list[i]
+    for i in 1:length(g.f_list)
+        k = length(g.f_list[i]) # nump_list[i]*numt_list[i]
         @view(du[(1+j):(j+k)]) .= g.ΔfS_list[i] - g.ΔfT_list[i]
         j += k
     end
@@ -29,7 +29,13 @@ function (g::BoltzmannEquation)(du,u,p,t)
 
 end
 
-function update_ΔSΔT!(ΔfS_list,ΔfT_list,CollisionMatricies,f_list)
+function update_ΔSΔT!(g::BoltzmannEquation,CollisionMatricies)
+
+    f_list = g.f_list
+    interaction_list = g.interaction_list
+    name_list = g.name_list
+    ΔfS_list = g.ΔfS_list
+    ΔfT_list = g.ΔfT_list
 
     for i in eachindex(interaction_list)
         interaction = interaction_list[i]

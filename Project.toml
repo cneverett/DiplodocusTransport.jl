@@ -4,13 +4,19 @@ authors = ["Christopher Everett"]
 version = "1.0.0-DEV"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Bessels = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
 BoltzmannCollisionIntegral = "20179301-8dfd-43f5-a10b-08fddd2c788a"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
-BoltzmannCollisionIntegral = "1.1.0"
+BoltzmannCollisionIntegral = "1.1.4"
 CairoMakie = "0.12.5"
 DifferentialEquations = "7.13.0"
 julia = "1.10.4"
