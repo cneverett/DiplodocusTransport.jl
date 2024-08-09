@@ -195,11 +195,11 @@ function AllPlots(sol,num_species,Δp_list,Δμ_list,ΔE_list,meanp_list,meanμ_
     fig = Figure(size=(1000,1000))
 
     NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq,fig[1,1])
-    TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq,fig[1,2])
-    TotEnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq,fig[2,1])
-    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq,fig[3:4,1:2])
-    μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq,fig[5:6,1:2])
-    pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq,fig[7:8,1:2])
+    #TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq,fig[1,2])
+    TotEnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq,fig[1,2])
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq,fig[2:3,1:2])
+    μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq,fig[4:5,1:2])
+    pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq,fig[6:7,1:2])
 
     #p3 = TempPlot(sol,dμ,dEkin,outfreq)
     #p4 = PDistributionPlot(sol,meanp,dμ,TInit,outfreq,f0)
