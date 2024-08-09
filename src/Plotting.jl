@@ -76,10 +76,10 @@ end
 
 
 
-function PDistributionPlot_AllSpecies(sol,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq)
+function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq)
 
-    f_list = Vector{Vector{Float32}}(undef,length(mass_list))
-    for i in eachindex(f_list)
+    f_list = Vector{Vector{Float32}}(undef,num_species)
+    for i in 1:num_species
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
@@ -90,8 +90,9 @@ function PDistributionPlot_AllSpecies(sol,meanp_list,Δμ_list,tempInit_list,mas
     for i in eachindex(sol.t)
         if i%outfreq == 0
             Utof_list!(f_list,sol.u[i])
-            for j in eachindex(f_list)
+            for j in 1:num_species
                 my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+            # integrate distribution over μ
             distp = reshape(f_list[j],(nump_list[j],numt_list[j]))*Δμ_list[j]
             stairs!(ax,log10.(meanp_list[j]),log10.(distp),color=my_colors[i],step=:center)
             end
@@ -100,10 +101,10 @@ function PDistributionPlot_AllSpecies(sol,meanp_list,Δμ_list,tempInit_list,mas
 
     # expected distribution
     Utof_list!(f_list,sol.u[end]) # final distribution for normalisation
-    for j in eachindex(f_list)
+    for j in 1:num_species
         # MJ distribution for initial Temperature
         MJPoints = MaxwellJuttner(meanp_list[j],tempInit_list[j],mass_list[j])
-        #integrate initial distribution over μ
+        #integrate distribution over μ
         distp = reshape(f_list[j],(nump_list[j],numt_list[j]))*Δμ_list[j]
         # plot expected distribution (normlised by last output)
         scatterlines!(ax,log10.(meanp_list[j]),log10.((MJPoints/maximum(MJPoints)*maximum(distp))),color=:red,markersize = 0.0)
@@ -113,21 +114,38 @@ function PDistributionPlot_AllSpecies(sol,meanp_list,Δμ_list,tempInit_list,mas
 end
 
 
-function μDistributionPlot(sol,meanμ,dp,outfreq,f0)
-    p1=plot(legend=false,title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",xlims=(-1,1))
-    #initial distribution
-    distμ = (dp'*reshape(f0,(nump,numt)))' / sum(dp)
-    plot!(p1,[meanμ],[distμ],linewidth = 2, ls=:dot, lc=:red)
+function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq)
+
+    f_list = Vector{Vector{Float32}}(undef,num_species)
+    for i in eachindex(f_list)
+        f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
+    end
+
+    fig = Figure()
+    ax = Axis(fig[1,1],title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",limits=((-1,1),(nothing,nothing)))
+
     # time dependent
-    my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
-    for i in axes(sol.t)[1]
+    for i in eachindex(sol.t)
         if i%outfreq == 0
-        gamma = i/size(sol.t)[1]
-        distμ = (dp'*reshape(sol.u[i],(nump,numt)))'
-        plot!(p1,[meanμ],[distμ],linecolor=my_colors[i],seriestype=:stepmid)
+            Utof_list!(f_list,sol.u[i])
+            for j in eachindex(f_list)
+                my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+                # integrate distribution over p
+                distμ = (Δp_list[j]' * reshape(f_list[j],(nump_list[j],numt_list[j])))'
+                stairs!(ax,meanμ_list[j],distμ,color=my_colors[i],step=:center)
+            end
         end
-    end  
-    return p1
+    end
+
+    #initial distribution
+    Utof_list!(f_list,sol.u[1])
+    for j in 1:num_species
+        distμ = (Δp_list[j]' * reshape(f_list[j],(nump_list[j],numt_list[j])))'
+        println(typeof(distμ))
+        stairs!(ax,meanμ_list[j],distμ,color=:red,step=:center,linestyle=:dash)
+    end
+ 
+    return fig
 end
 
 #=
