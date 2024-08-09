@@ -4,9 +4,9 @@ function BoltzmannEquationSolver(u0,timespan,Lists)
 
     prob = ODEProblem(deriv_cpu,u0,timespan)
 
-    sol = solve(prob,ImplicitEuler(autodiff=false, linsolve = KrylovJL_GMRES()), maxiters = 1e4, isoutofdomain = (u,p,t)->any(x->x<0,u))
+    solution = solve(prob,ImplicitEuler(autodiff=false, linsolve = KrylovJL_GMRES()), maxiters = 1e4, isoutofdomain = (u,p,t)->any(x->x<0,u))
 
-    return sol
+    return solution
 
 end
 
