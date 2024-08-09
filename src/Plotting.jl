@@ -76,24 +76,42 @@ end
 
 
 
-function PDistributionPlot(sol,f_list,meanp_list,Δμ_list,TInit,outfreq,f0)
-    p1=plot(legend=false,title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",ylims=(-30,5))
-    # MJ distribution for initial Temperature
-    MJPoints = MaxwellJuttnerPoints(meanp,TInit)
-    distp = reshape(sol.u[end],(nump,numt))*dμ / sum(dμ)
-    plot!(p1,log10.(meanp),log10.((MJPoints/maximum(MJPoints)*maximum(distp))),linewidth = 2, ls=:dot, lc=:red)
+function PDistributionPlot_AllSpecies(sol,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq)
+
+    f_list = Vector{Vector{Float32}}(undef,length(mass_list))
+    for i in eachindex(f_list)
+        f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
+    end
+
+    fig = Figure()
+    ax = Axis(fig[1,1],title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+
     # time dependent
-    my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
-    for i in axes(sol.t)[1]
+    for i in eachindex(sol.t)
         if i%outfreq == 0
-        distp = reshape(sol.u[i],(nump,numt))*dμ
-        plot!(p1,[log10.(meanp)],[log10.(distp)],linecolor=my_colors[i],seriestype=:stepmid)
+            Utof_list!(f_list,sol.u[i])
+            for j in eachindex(f_list)
+                my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+            distp = reshape(f_list[j],(nump_list[j],numt_list[j]))*Δμ_list[j]
+            stairs!(ax,log10.(meanp_list[j]),log10.(distp),color=my_colors[i],step=:center)
+            end
         end
     end
-    return p1
+
+    # expected distribution
+    Utof_list!(f_list,sol.u[end]) # final distribution for normalisation
+    for j in eachindex(f_list)
+        # MJ distribution for initial Temperature
+        MJPoints = MaxwellJuttner(meanp_list[j],tempInit_list[j],mass_list[j])
+        #integrate initial distribution over μ
+        distp = reshape(f_list[j],(nump_list[j],numt_list[j]))*Δμ_list[j]
+        # plot expected distribution (normlised by last output)
+        scatterlines!(ax,log10.(meanp_list[j]),log10.((MJPoints/maximum(MJPoints)*maximum(distp))),color=:red,markersize = 0.0)
+    end
+
+    return fig
 end
 
-#=
 
 function μDistributionPlot(sol,meanμ,dp,outfreq,f0)
     p1=plot(legend=false,title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",xlims=(-1,1))
@@ -112,6 +130,7 @@ function μDistributionPlot(sol,meanμ,dp,outfreq,f0)
     return p1
 end
 
+#=
 
 function pμDistributionPlot(sol,meanμ,meanp,outfreq)
     p1=plot(legend=false,title="μ-Distribution as fun. of p",xlabel="p",ylabel="μ-Distribution",xlims=(-5,4),color=:gray,ylims=(-1,1))
