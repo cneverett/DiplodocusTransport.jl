@@ -8,11 +8,13 @@ using CairoMakie
 using DifferentialEquations
 using LoopVectorization
 using Bessels
+using Statistics
 
 #include("Setup.jl")
 include("StructsAndDictionaries.jl")
 include("MatrixResizing.jl")
 include("LoadMatricies.jl")
+include("DistributionFunctions.jl")
 include("InitialConditions.jl")
 include("Solver.jl")
 
