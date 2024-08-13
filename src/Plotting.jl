@@ -1,11 +1,21 @@
-function NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq,fig=Figure())
+"""
+    NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq;fig=nothing)
+
+Returns a plot of the relative number density (compaired to initial value) of each species as a function of time.
+"""
+function NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in 1:num_species
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig,title="Relative Number Density",xlabel="Time",ylabel="Frac. Change Num. Den.")
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="Relative Number Density",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Relative Number Density",xlabel="Time",ylabel="Frac. Change")
+    end
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
@@ -20,14 +30,25 @@ function NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump
     return fig
 end
 
-function TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq,fig=Figure())
+"""
+    TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq;fig=nothing)
+
+Returns a plot of the total momentum of each species as a function of time.
+"""
+function TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in 1:num_species
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig,title="Total Momentum",xlabel="Time",ylabel="Log10 Momentum")
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="Total Momentum",xlabel="Time",ylabel="Log10 Momentum")
+    else
+        ax = Axis(fig,title="Total Momentum",xlabel="Time",ylabel="Log10 Momentum")
+    end
+    
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
@@ -43,14 +64,24 @@ function TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_lis
     return fig
 end
 
-function TotEnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq,fig=Figure())
+"""
+    EnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq;fig=nothing)
+
+Returns a plot of the relative energy (compaired to initial value) of each species as a function of time.
+"""
+function EnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in 1:num_species
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig,title="Relative Energy",xlabel="Time",ylabel="Frac. Change Energy")
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="Relative Energy",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Relatvie Energy",xlabel="Time",ylabel="Frac. Change")
+    end
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
@@ -86,15 +117,24 @@ end
 =#
 
 
+"""
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq;fig=nothing)
 
-function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq,fig=Figure())
+Returns a plot of the momentum distribution (distribution integrated over angles) of each species as a function of time.
+"""
+function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in 1:num_species
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig,title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    else
+        ax = Axis(fig,title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    end
 
     # time dependent
     for i in eachindex(sol.t)
@@ -123,15 +163,24 @@ function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempI
     return fig
 end
 
+"""
+    μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq;fig=nothing)
 
-function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq,fig=Figure())
+Returns a plot of the μ distribution (distribution integrated over momenta) of each species as a function of time.
+"""
+function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in eachindex(f_list)
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig[1,1],title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",limits=((-1,1),(nothing,nothing)))
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",limits=((-1,1),(nothing,nothing)))
+    else
+        ax = Axis(fig[1,1],title="μ-Distribution",xlabel="μ",ylabel="μ-Distribution",limits=((-1,1),(nothing,nothing)))
+    end
 
     # time dependent
     for i in eachindex(sol.t)
@@ -157,15 +206,24 @@ function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump
 end
 
 
+"""
+    pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq;fig=nothing)
 
-function pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq,fig=Figure())
+Returns a plot of the μ distribution as a function of p of each species as a function of time.
+"""
+function pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq;fig=nothing)
 
     f_list = Vector{Vector{Float32}}(undef,num_species)
     for i in eachindex(f_list)
         f_list[i] = fill(Float32(0),nump_list[i]*numt_list[i])
     end
 
-    ax = Axis(fig[1,1],title="μ-Distribution as fun. of p",xlabel="p",ylabel="μ-Distribution",limits=((-5,4),(-1,1)))
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="μ-Distribution as fun. of p",xlabel="p",ylabel="μ-Distribution",limits=((-5,4),(-1,1)))
+    else
+        ax = Axis(fig,title="μ-Distribution as fun. of p",xlabel="p",ylabel="μ-Distribution",limits=((-5,4),(-1,1)))
+    end
 
     # time dependent
     for i in eachindex(sol.t)
@@ -189,30 +247,23 @@ function pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,n
 end
 
 
+"""
+    AllPlots(sol,num_species,Δp_list,Δμ_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,nump_list,numt_list,outfreq)
 
+Returns a collation of figures for analysing the output of the simulation.
+"""
 function AllPlots(sol,num_species,Δp_list,Δμ_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,nump_list,numt_list,outfreq)
 
-    fig = Figure(size=(1000,1000))
+    figure = Figure(size=(1000,1000))
 
-    NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq,fig[1,1])
+    NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump_list,numt_list,outfreq,fig=figure[1,1])
     #TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_list,nump_list,numt_list,outfreq,fig[1,2])
-    TotEnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq,fig[1,2])
-    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq,fig[2:3,1:2])
-    μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq,fig[4:5,1:2])
-    pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq,fig[6:7,1:2])
+    EnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engInit_list,nump_list,numt_list,outfreq,fig=figure[1,2])
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempInit_list,mass_list,nump_list,numt_list,outfreq,fig=figure[2:3,1:2])
+    μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump_list,numt_list,outfreq,fig=figure[4:5,1:2])
+    pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq,fig=figure[6:7,1:2])
 
-    #p3 = TempPlot(sol,dμ,dEkin,outfreq)
-    #p4 = PDistributionPlot(sol,meanp,dμ,TInit,outfreq,f0)
-    #p5 = TotEnergyPlot(sol,dμ,ΔE,outfreq,f0)
-    #p6 = μDistributionPlot(sol,meanμ,dp,outfreq,f0)
-    #p7 = pμDistributionPlot(sol,meanμ,meanp,outfreq)
-
-
-    #l = @layout [grid(2,2); a{1.0w,0.2h}; a{1.0w,0.2h}; a{1.0w,0.2h}]
-
-    #plot(p1, p2, p3, p5, p4,p6,p7, layout=l,size=(1000,1000), legend=false)
-
-    return fig
+    return figure
 
 end
 
