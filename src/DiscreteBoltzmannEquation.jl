@@ -1,4 +1,4 @@
-module AnisotropicBoltzmannEquation
+module DiscreteBoltzmannEquation
 
 export BoltzmannEquationSolver, InitialConditions, LoadMatricies
 
