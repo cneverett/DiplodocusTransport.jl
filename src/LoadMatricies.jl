@@ -25,19 +25,26 @@ function LoadMatricies(CollisionMatricies::Dict{Vector{String},Tuple},DataDirect
         numt3 = string(numt_list[name3_loc])
         numt4 = string(numt_list[name4_loc])
 
-        pl1 = string(Int(pl_list[name1_loc]))
-        pl2 = string(Int(pl_list[name2_loc]))
-        pl3 = string(Int(pl_list[name3_loc]))
-        pl4 = string(Int(pl_list[name4_loc]))
+        pl1 = string(pl_list[name1_loc])
+        pl2 = string(pl_list[name2_loc])
+        pl3 = string(pl_list[name3_loc])
+        pl4 = string(pl_list[name4_loc])
 
-        pu1 = string(Int(pu_list[name1_loc]))
-        pu2 = string(Int(pu_list[name2_loc]))
-        pu3 = string(Int(pu_list[name3_loc]))
-        pu4 = string(Int(pu_list[name4_loc]))
+        pu1 = string(pu_list[name1_loc])
+        pu2 = string(pu_list[name2_loc])
+        pu3 = string(pu_list[name3_loc])
+        pu4 = string(pu_list[name4_loc])
 
         filename = name1*name2*name3*name4*"#"*pl1*"#"*pu1*"#"*nump1*"#"*pl2*"#"*pu2*"#"*nump2*"#"*pl3*"#"*pu3*"#"*nump3*"#"*pl4*"#"*pu4*"#"*nump4*"#"*numt1*"#"*numt2*"#"*numt3*"#"*numt4*".jld2"
 
+        Parameters = (name1,name2,name3,name4,p3l,p3u,nump3,p4l,p4u,nump4,p1l,p1u,nump1,p2l,p2u,nump2,numt3,numt4,numt1,numt2)
+
+        println(filename)
+
         matricies = BoltzmannCollisionIntegral.fload_Matrix(DataDirectory,filename)
+
+        # print conversion statistic
+        BoltzmannCollisionIntegral.DoesConservere(matricies[1],matricies[2],matricies[3],matricies[4],Parameters)
 
         if interaction[1] == interaction[2] && interaction[3] == interaction[4]
             SMatrix = SixDtoThreeD(Float32.(matricies[1]))
