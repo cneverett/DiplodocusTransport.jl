@@ -1,10 +1,10 @@
-function BoltzmannEquationSolver(u0,timespan,Lists)
+function BoltzmannEquationSolver(u0,timespan,Lists; method = ROCK4()#= Rodas3P(autodiff=false,linsolve = KrylovJL_GMRES()) =##=ImplicitEuler(autodiff=false, linsolve = KrylovJL_GMRES())=#)
 
     deriv_cpu = BoltzmannEquation(Lists);
 
     prob = ODEProblem(deriv_cpu,u0,timespan)
 
-    solution = solve(prob,ImplicitEuler(autodiff=false, linsolve = KrylovJL_GMRES()), maxiters = 1e4, isoutofdomain = (u,p,t)->any(x->x<0,u))
+    @time solution = solve(prob,method, maxiters = 1e4, isoutofdomain = (u,p,t)->any(x->x<0,u))
 
     return solution
 
@@ -12,10 +12,13 @@ end
 
 function (g::BoltzmannEquation)(du,u,p,t)
 
-    # update f_list based on current u TO FIX
-    Utof_list!(g.f_list,u)
+    # limit u
+    #@. u = u*(u>1e-20)
 
-    # update changes due to S and T interactions
+    # update f_list based on current u
+    u_to_f_list!(g.f_list,u)
+
+    # update changes due to Binary S and T interactions
     update_ΔSΔT!(g,CollisionMatricies)
 
     # assign du
@@ -25,6 +28,13 @@ function (g::BoltzmannEquation)(du,u,p,t)
         @view(du[(1+j):(j+k)]) .= g.ΔfS_list[i] - g.ΔfT_list[i]
         j += k
     end
+
+    #limit du    
+    #dt = (t-g.t)
+    #@. du = du*(abs(du)>=1e-15)
+
+    #update t
+    #g.t = t
 
 
 end
@@ -98,4 +108,3 @@ function update_ΔSΔT!(g::BoltzmannEquation,CollisionMatricies)
 end
 
 
-#update_ΔSΔT!(BoltzmannEquation.ΔfS_list,BoltmannEquation.ΔfT_list,CollisionMatricies,f_list)

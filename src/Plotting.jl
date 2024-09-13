@@ -19,7 +19,7 @@ function NumPlot_AllSpecies(sol,num_species,Δp_list,Δμ_list,numInit_list,nump
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in eachindex(f_list)
                 num = NumberDensity(reshape(f_list[j],(nump_list[j],numt_list[j])),Δp_list[j],Δμ_list[j])
                 scatter!(ax,sol.t[i],num/numInit_list[j]-1,marker = :circle,colormap = :viridis, colorrange = [1, length(f_list)+1],color = j)
@@ -52,7 +52,7 @@ function TotMomentumPlot_AllSpecies(sol,num_species,Δp_list,meanp_list,Δμ_lis
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in eachindex(f_list)
                 f_reshape = reshape(f_list[j],(nump_list[j],numt_list[j]))
                 num = NumberDensity(f_reshape,Δp_list[j],Δμ_list[j])
@@ -85,7 +85,7 @@ function EnergyPlot_AllSpecies(sol,num_species,ΔE_list,Δp_list,Δμ_list,engIn
 
     for i in eachindex(sol.t)
         if i%outfreq == 0
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in eachindex(f_list)
                 f_reshape = reshape(f_list[j],(nump_list[j],numt_list[j]))
                 num = NumberDensity(f_reshape,Δp_list[j],Δμ_list[j])
@@ -139,7 +139,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempI
     # time dependent
     for i in eachindex(sol.t)
         if i%outfreq == 0
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in 1:num_species
                 my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
             # integrate distribution over μ
@@ -150,7 +150,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,meanp_list,Δμ_list,tempI
     end
 
     # expected distribution
-    Utof_list!(f_list,sol.u[end]) # final distribution for normalisation
+    u_to_f_list!(f_list,sol.u[end]) # final distribution for normalisation
     for j in 1:num_species
         # MJ distribution for initial Temperature
         MJPoints = MaxwellJuttner(meanp_list[j],tempInit_list[j],mass_list[j])
@@ -185,7 +185,7 @@ function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump
     # time dependent
     for i in eachindex(sol.t)
         if i%outfreq == 0
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in 1:num_species
                 my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
                 # integrate distribution over p
@@ -196,7 +196,7 @@ function μDistributionPlot_AllSpecies(sol,num_species,meanμ_list,Δp_list,nump
     end
 
     #initial distribution
-    Utof_list!(f_list,sol.u[1])
+    u_to_f_list!(f_list,sol.u[1])
     for j in 1:num_species
         distμ = (Δp_list[j]' * reshape(f_list[j],(nump_list[j],numt_list[j])))'
         stairs!(ax,meanμ_list[j],distμ,color=:red,step=:center,linestyle=:dash)
@@ -229,7 +229,7 @@ function pμDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,n
     for i in eachindex(sol.t)
         if i%outfreq == 0
             my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
-            Utof_list!(f_list,sol.u[i])
+            u_to_f_list!(f_list,sol.u[i])
             for j in 1:num_species
                 for k in 1:size(meanp_list[j])[1]
                     distμ = reshape(f_list[j],(nump_list[j],numt_list[j]))[k,:]

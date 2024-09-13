@@ -60,10 +60,11 @@ function LoadMatricies(CollisionMatricies::Dict{Vector{String},Tuple},DataDirect
 
         println(filename)
 
-        matricies = BoltzmannCollisionIntegral.fload_Matrix(DataDirectory,filename)
-
-        # print conversion statistic
-        #BoltzmannCollisionIntegral.DoesConserve(matricies[1],matricies[2],matricies[3],matricies[4],Parameters)
+        if numt1 == numt2 == numt3 == numt4 == 1 # ISO
+            matricies = BoltzmannCollisionIntegral.fload_Matrix_ISO(DataDirectory,filename)
+        else # AXI
+            matricies = BoltzmannCollisionIntegral.fload_Matrix(DataDirectory,filename)
+        end
 
         if interaction[1] == interaction[2] && interaction[3] == interaction[4]
             # print conversion statistic
@@ -71,6 +72,7 @@ function LoadMatricies(CollisionMatricies::Dict{Vector{String},Tuple},DataDirect
             SCorrection!(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
             println("Scorrected:")
             BoltzmannCollisionIntegral.DoesConserve(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
+            
             SMatrix = SixDtoThreeD(Float32.(matricies[1]))
             TMatrix = FourDtoTwoD(Float32.(matricies[2]))
             CollisionMatricies[interaction] = (SMatrix,TMatrix)

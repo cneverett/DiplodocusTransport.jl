@@ -5,7 +5,6 @@ CollisionMatricies = Dict{Vector{String},Tuple}()
 mutable struct BoltzmannEquation <: Function
 
     t::Float32                  # the last timestep time to calculate Δt
-    #diff_coeff::Float32         # the diffusion coefficient for the system
 
     f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
 
