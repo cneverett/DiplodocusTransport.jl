@@ -1,3 +1,7 @@
 /Manifest.toml
 
 Setup_test.jl
+
+*.pdf
+*.png
+*.mp4
