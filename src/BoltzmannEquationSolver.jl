@@ -1,6 +1,6 @@
-module DiscreteBoltzmannEquation
+module BoltzmannEquationSolver
 
-export BoltzmannEquationSolver, InitialConditions, LoadMatricies
+export Solver, InitialConditions, LoadMatricies
 
 using JLD2
 using BoltzmannCollisionIntegral

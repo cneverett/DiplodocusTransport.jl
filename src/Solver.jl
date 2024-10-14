@@ -1,4 +1,4 @@
-function BoltzmannEquationSolver(f1D0,timespan,Lists,dt; method=Euler() #==ImplicitEuler(autodiff=false)=#,save_dt=dt)
+function Solver(f1D0,timespan,Lists,dt; method=Euler() #==ImplicitEuler(autodiff=false)=#,save_dt=dt)
 
     deriv_cpu = BoltzmannEquation(f1D0,Lists);
 
