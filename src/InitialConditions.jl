@@ -126,7 +126,7 @@ function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;
     mass = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[species_index]))
 
     u0_2D_species .= MaxwellJuttner(meanp,T,Float32(mass))
-
+    
     # set values and normlaise to initial number density (in m^{-3})
     num = Δp' * u0_2D_species * Δμ
     u0_2D_species *= num_Init/num
@@ -144,6 +144,8 @@ function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;
         # f(p) = 2*f(p,μ)
         u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / numt_list[species_index]
     end
+
+    return u0_species
 
 end
 

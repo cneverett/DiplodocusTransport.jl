@@ -10,7 +10,7 @@ where `dp` = ``\\Delta p_i`` is a vector of momentum intervals and `dμ` = ``\\D
 function NumberDensity(u::Vector{Float32},nump,numt,dp::Vector{Float32},dμ::Vector{Float32};mode="AXI")
 
     if mode=="AXI"
-        f = copy(reshape(u,(nump,numt)))
+        f = reshape(u,(nump,numt))
         #for i in axes(f,1), j in axes(f,2)
         #    f[i,j] /= dp[i] * dμ[j]
         #end
@@ -39,7 +39,7 @@ function Momentum(u::Vector{Float32},nump,numt,dp::Vector{Float32},meanp::Vector
     dpmeanp = dp .* meanp
     
     if mode=="AXI"
-        f = copy(reshape(u,(nump,numt)))
+        f = reshape(u,(nump,numt))
         #for i in axes(f,1), j in axes(f,2)
         #    f[i,j] /= dp[i] * dμ[j]
         #end
@@ -68,7 +68,7 @@ function Energy(u::Vector{Float32},nump,numt,ΔE::Vector{Float32},dp::Vector{Flo
 
 
     if mode=="AXI"
-        f = copy(reshape(u,(nump,numt)))
+        f = reshape(u,(nump,numt))
         #for i in axes(f,1), j in axes(f,2)
         #    f[i,j] /= dp[i] * dμ[j]
         #end
@@ -85,52 +85,31 @@ function Energy(u::Vector{Float32},nump,numt,ΔE::Vector{Float32},dp::Vector{Flo
 end
 
 """
-    Temperature(f,ΔEkin,dμ,numberDensity)
-
-Returns the Temperature of a distribution function `f`. Average, kinetic energy is defined from the first moment of the distribution function minus the zeroth moment times the mass, i.e. ``p^0-m``: 
-    ```math
-    \\braket{Ekin} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu (p^0-m)f(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta Ekin_i \\Delta μ_j / n
-    ``` 
-where `ΔEkin` = ``\\Delta Ekin_i`` is a vector of the average "kinetric energy" value per bin (has dimensions of momentum squared), `dp` = ``\\Delta p_i``. `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
-"""
-function Temperature(u::Vector{Float32},nump,numt,ΔEkin::Vector{Float32},dp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
-
-    if mode=="AXI"
-        f = copy(reshape(u,(nump,numt)))
-        #for i in axes(f,1), j in axes(f,2)
-        #    f[i,j] /= dp[i] * dμ[j]
-        #end
-        Ekin = transpose(ΔEkin) * f * dμ
-    elseif mode=="ISO"
-        f = u
-        Ekin = transpose(ΔEkin) * f * 2 # 2 is total range of dμ
-    end
-
-    Ekin /= numberDensity
-
-    #  Ekin = 3/2 kB * T 
-    # Ekin = E - mass 
-    #println(Ekin)
-    # units of Kelvin
-    Temperature = (Ekin) * (9.11e-31 * 3f8^2 / 1.38f-23) * (2/3)  # E = 3 kb T 
-
-    return Temperature
-    
-end
-
-"""
     FourFlow(u,dp,du,dE,du2)
 
-Returns the four flow vector Ua from the flattened axysmmetric distribution function f1D.
+Returns the four-flow vector Ua 'vector{Float64}' from the flattened axysmmetric distribution function f1D.
 """
-function FourFlow(f1D::Vector{Float32},nump,numt,dp::Vector{Float64},du::Vector{Float64},dE::Vector{Float64},du2::Vector{Float64})
+function FourFlow(f1D::Vector{Float32},nump,numt,pr,ur,m)
 
     f2D = zeros(Float64,nump,numt)
-    @. f2D = Float64(reshape(f1D,(nump,numt)))
+    f2D = Float64.(reshape(f1D,(nump,numt)))
+
+    du = zeros(Float64,numt)
+    du2 = zeros(Float64,numt)
+    dp = zeros(Float64,nump)
+    dE = BoltzmannCollisionIntegral.deltaEVector(pr,m)
+
+    for i in 1:numt
+        du[i] = ur[i+1]-ur[i]
+        du2[i] = (ur[i+1]^2-ur[i]^2)/2
+    end
+    for i in 1:nump 
+        dp[i] = (pr[i+1]-pr[i])
+    end
 
     Na = zeros(Float64,4)
-    Na[1] = dp' * f2 * du
-    Na[4] = dE' * f2 * du2
+    Na[1] = dp' * f2D * du
+    Na[4] = dE' * f2D * du2
 
     return Na
 
@@ -146,7 +125,7 @@ function HydroFourVelocity(Na::Vector{Float64})
     metric[3,3] = 1
     metric[4,4] = 1
 
-    sqrtNa2 = sqrt(Na'*metric*Na)
+    sqrtNa2 = sqrt(abs(Na'*metric*Na))
     Ua .= Na/sqrtNa2
 
     return Ua
@@ -164,16 +143,112 @@ function ProjectionTensor(Ua::Vector{Float64})
     metric[4,4] = 1
 
     for i in 1:4, j in 1:4
-        Δab[i,j] = metric[i,j] - Ua[i]*Ua[j]
+        Δab[i,j] = metric[i,j] + Ua[i]*Ua[j]
     end
 
     return Δab
 
 end
 
-function StressEnergyTensor()
+function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
+
+    f2D = zeros(Float64,nump,numt)
+    f2D = Float64.(reshape(f1D,(nump,numt)))
+
+    du = zeros(Float64,numt)
+    dp2 = zeros(Float64,nump)
+    du2 = zeros(Float64,numt)
+    du3 = zeros(Float64,numt)
+    duplusu3 = zeros(Float64,numt)
+    dpfunc = zeros(Float64,nump)
+    dE = BoltzmannCollisionIntegral.deltaEVector(pr,m)
 
     Tab = zeros(Float64,4,4)
 
+    for i in 1:numt
+        du[i] = ur[i+1]-ur[i]
+        du2[i] = (ur[i+1]^2-ur[i]^2)/2
+        du3[i] = (ur[i+1]^3-ur[i]^3)/3
+        duplusu3[i] = ur[i+1]-ur[i] - (ur[i+1]^3-ur[i]^3)/3
+    end
+    for i in 1:nump 
+        dp2[i] = (pr[i+1]^2-pr[i]^2)/2
+
+        if pr[i+1]/m < 1e-3
+            dpfunc[i] = 2/3 * pr[i+1]^3/m - 1/5 * pr[i+1]^5/m^3
+            dpfunc[i] -= 2/3 * pr[i]^3/m - 1/5 * pr[i]^5/m^3
+        else
+            dpfunc[i] = pr[i+1]*sqrt(pr[i+1]^2+m^2) - m^2*atanh(pr[i+1]/sqrt(pr[i+1]^2+m^2))
+            dpfunc[i] -= pr[i]*sqrt(pr[i]^2+m^2) - m^2*atanh(pr[i]/sqrt(pr[i]^2+m^2))
+        end
+
+    end
+
+    Tab[1,1] = dE' * f2D * du
+
+    Tab[2,2] = 1/4 * dpfunc' * f2D * duplusu3
+    Tab[3,3] = Tab[2,2]
+
+    Tab[4,4] = 1/2 * dpfunc' * f2D * du3 
+
+    Tab[1,4] = dp2' * f2D * du2
+    Tab[4,1] = Tab[1,4]
+    
     return Tab
 end
+
+function ScalarNumberDensity(Na,Ua)
+
+    metric = zeros(Float64,4,4)
+    metric[1,1] = -1
+    metric[2,2] = 1
+    metric[3,3] = 1
+    metric[4,4] = 1
+
+    n = -Na'*metric*Ua
+    return n
+
+end
+
+function ScalarEnergyDensity(Tab,Ua,n)
+
+    metric = zeros(Float64,4,4)
+    metric[1,1] = -1
+    metric[2,2] = 1
+    metric[3,3] = 1
+    metric[4,4] = 1
+
+    en = (metric * Ua)' * Tab * (metric * Ua)
+
+    e = en/n 
+
+    return e
+
+end
+
+function ScalarPressure(Tab,Δab)
+
+    metric = zeros(Float64,4,4)
+    metric[1,1] = -1
+    metric[2,2] = 1
+    metric[3,3] = 1
+    metric[4,4] = 1
+
+    p = (1/3) * sum(Tab .* (metric * Δab * metric))
+
+    return p
+
+end
+
+function ScalarTemperature(p,n)
+
+    kb = 1.38f-23
+    c = 3f8
+    mEle = 9.11e-31
+    T = p/(n*kb) * mEle * c^2
+
+    return T
+
+end
+
+
