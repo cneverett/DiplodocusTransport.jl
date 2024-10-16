@@ -11,6 +11,7 @@ function NumberDensity(u::Vector{Float32},nump,numt,dp::Vector{Float32},dμ::Vec
 
     if mode=="AXI"
         f = reshape(u,(nump,numt))
+        # unscale by dp*dμ 
         #for i in axes(f,1), j in axes(f,2)
         #    f[i,j] /= dp[i] * dμ[j]
         #end
@@ -107,6 +108,11 @@ function FourFlow(f1D::Vector{Float32},nump,numt,pr,ur,m)
         dp[i] = (pr[i+1]-pr[i])
     end
 
+    # unscale by dp*du 
+    for i in axes(f2D,1), j in axes(f2D,2)
+        f2D[i,j] /= dp[i] * du[j]
+    end
+
     Na = zeros(Float64,4)
     Na[1] = dp' * f2D * du
     Na[4] = dE' * f2D * du2
@@ -155,6 +161,7 @@ function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
     f2D = zeros(Float64,nump,numt)
     f2D = Float64.(reshape(f1D,(nump,numt)))
 
+    dp = zeros(Float64,nump)
     du = zeros(Float64,numt)
     dp2 = zeros(Float64,nump)
     du2 = zeros(Float64,numt)
@@ -162,6 +169,8 @@ function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
     duplusu3 = zeros(Float64,numt)
     dpfunc = zeros(Float64,nump)
     dE = BoltzmannCollisionIntegral.deltaEVector(pr,m)
+
+    pr64 = Float64.(pr)
 
     Tab = zeros(Float64,4,4)
 
@@ -172,16 +181,21 @@ function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
         duplusu3[i] = ur[i+1]-ur[i] - (ur[i+1]^3-ur[i]^3)/3
     end
     for i in 1:nump 
+        dp[i] = (pr[i+1]-pr[i])
         dp2[i] = (pr[i+1]^2-pr[i]^2)/2
-
         if pr[i+1]/m < 1e-3
             dpfunc[i] = 2/3 * pr[i+1]^3/m - 1/5 * pr[i+1]^5/m^3
             dpfunc[i] -= 2/3 * pr[i]^3/m - 1/5 * pr[i]^5/m^3
         else
-            dpfunc[i] = pr[i+1]*sqrt(pr[i+1]^2+m^2) - m^2*atanh(pr[i+1]/sqrt(pr[i+1]^2+m^2))
-            dpfunc[i] -= pr[i]*sqrt(pr[i]^2+m^2) - m^2*atanh(pr[i]/sqrt(pr[i]^2+m^2))
+            dpfunc[i] = pr64[i+1]*sqrt(pr64[i+1]^2+m^2) - m^2*atanh(pr64[i+1]/sqrt(pr64[i+1]^2+m^2))
+            dpfunc[i] -= pr64[i]*sqrt(pr64[i]^2+m^2) - m^2*atanh(pr64[i]/sqrt(pr64[i]^2+m^2))
         end
 
+    end
+
+    # unscale by dp*du
+    for i in axes(f2D,1), j in axes(f2D,2)
+        f2D[i,j] /= dp[i] * du[j]
     end
 
     Tab[1,1] = dE' * f2D * du
@@ -205,7 +219,12 @@ function ScalarNumberDensity(Na,Ua)
     metric[3,3] = 1
     metric[4,4] = 1
 
-    n = -Na'*metric*Ua
+    if Na[1] == 0
+        n = 0
+    else
+        n = -Na'*metric*Ua
+    end
+
     return n
 
 end
@@ -220,7 +239,11 @@ function ScalarEnergyDensity(Tab,Ua,n)
 
     en = (metric * Ua)' * Tab * (metric * Ua)
 
-    e = en/n 
+    if n == 0
+        e = 0
+    else
+        e = en/n
+    end
 
     return e
 

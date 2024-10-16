@@ -136,7 +136,7 @@ function (g::BoltzmannEquation)(df1D,f1D,p,t)
     end
 
     if isempty(g.interaction_list_Sync) == false
-        update_ΔS_Sync!(g,CollisionMatriciesSync,u)
+        update_ΔS_Sync!(g,CollisionMatriciesSync,f1D)
         @. df1D += g.ΔfS_list
     end
 
