@@ -183,12 +183,16 @@ function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
     for i in 1:nump 
         dp[i] = (pr[i+1]-pr[i])
         dp2[i] = (pr[i+1]^2-pr[i]^2)/2
-        if pr[i+1]/m < 1e-3
-            dpfunc[i] = 2/3 * pr[i+1]^3/m - 1/5 * pr[i+1]^5/m^3
-            dpfunc[i] -= 2/3 * pr[i]^3/m - 1/5 * pr[i]^5/m^3
+        if m == 0e0
+            dpfunc[i] = pr64[i+1]^2 - pr64[i]^2
         else
-            dpfunc[i] = pr64[i+1]*sqrt(pr64[i+1]^2+m^2) - m^2*atanh(pr64[i+1]/sqrt(pr64[i+1]^2+m^2))
-            dpfunc[i] -= pr64[i]*sqrt(pr64[i]^2+m^2) - m^2*atanh(pr64[i]/sqrt(pr64[i]^2+m^2))
+            if pr[i+1]/m < 1e-3
+                dpfunc[i] = 2/3 * pr[i+1]^3/m - 1/5 * pr[i+1]^5/m^3
+                dpfunc[i] -= 2/3 * pr[i]^3/m - 1/5 * pr[i]^5/m^3
+            else
+                dpfunc[i] = pr64[i+1]*sqrt(pr64[i+1]^2+m^2) - m^2*atanh(pr64[i+1]/sqrt(pr64[i+1]^2+m^2))
+                dpfunc[i] -= pr64[i]*sqrt(pr64[i]^2+m^2) - m^2*atanh(pr64[i]/sqrt(pr64[i]^2+m^2))
+            end
         end
 
     end
