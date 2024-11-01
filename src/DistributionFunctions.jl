@@ -1,4 +1,4 @@
-function MaxwellJuttner(meanp::Vector{Float32},T::Float32,mass::Float32;n::Float32=1f6)
+function MaxwellJuttner_Distribution(meanp::Vector{Float32},T::Float32,mass::Float32;n::Float32=1f6)
     # Generates the height of the MJ distribution at positions of the mean momentum per bin
 
     mEle = 9.11e-31
