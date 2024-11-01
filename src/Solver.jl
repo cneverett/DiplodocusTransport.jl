@@ -179,8 +179,17 @@ function update_ΔSΔT_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D
             SMatrix = matricies[1]
             TMatrix = matricies[2]
   
-            @tullio threads=false g.ΔfS_list.x[name3_loc][i] += SMatrix[i,j,k] * f1D.x[name2_loc][j] * f1D.x[name1_loc][k] 
-            g.ΔfT_list.x[name1_loc] .+= f1D.x[name2_loc] .* (TMatrix * f1D.x[name1_loc])
+            # 3D Smatrix
+            #@tullio threads=false g.ΔfS_list.x[name3_loc][i] += SMatrix[i,j,k] * f1D.x[name1_loc][j] * f1D.x[name2_loc][k] 
+
+            # 2D SMatrix
+            mul!(g.ΔfS_mul_step.x[i],SMatrix,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i],g.nump_list[name3_loc]*g.numt_list[name3_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name3_loc],temp_reshape,f1D.x[name1_loc])
+            g.ΔfS_list.x[name3_loc] .+= g.ΔfS_list_temp.x[name3_loc]
+            # TMatrix
+            mul!(g.ΔfT_list_temp.x[name1_loc],TMatrix,f1D.x[name2_loc])
+            g.ΔfT_list.x[name1_loc] .+= f1D.x[name1_loc] .* g.ΔfT_list_temp.x[name1_loc]
             
         end
     
@@ -201,17 +210,46 @@ function update_ΔSΔT_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D
             ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
             ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
         end
-    
+        =#
         if (name1 != name2) && (name3 != name4)
+
             SMatrix3 = matricies[1]
             SMatrix4 = matricies[2]
             TMatrix1 = matricies[3]
             TMatrix2 = matricies[4]
-            ΔS_list[name3_loc] .= (SMatrix3 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔS_list[name4_loc] .= (SMatrix4 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
-            ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
-        end=#
+
+            # 3D SMatrix
+            # @tullio doesn't seem to work with different sized PartitionedArrays
+            #@tullio threads=false g.ΔfS_list.x[name3_loc][i] += SMatrix3[i,j,k] * f1D.x[name1_loc][j] * f1D.x[name2_loc][k]
+            #@tullio threads=false g.ΔfS_list.x[name4_loc][i] += SMatrix4[i,j,k] * f1D.x[name2_loc][j] * f1D.x[name1_loc][k] 
+            #=@turbo for i in axes(SMatrix3,1), j in axes(SMatrix3,2), k in axes(SMatrix3,3)
+                g.ΔfS_list.x[name3_loc][i] += SMatrix3[i,j,k] * f1D.x[name1_loc][j] * f1D.x[name2_loc][k]
+            end
+            @turbo for i in axes(SMatrix4,1), j in axes(SMatrix4,2), k in axes(SMatrix4,3)
+                g.ΔfS_list.x[name4_loc][i] += SMatrix4[i,j,k] * f1D.x[name1_loc][j] * f1D.x[name2_loc][k]
+            end
+            g.ΔfT_list.x[name1_loc] .+= f1D.x[name1_loc] .* (TMatrix1 * f1D.x[name2_loc])
+            g.ΔfT_list.x[name2_loc] .+= f1D.x[name2_loc] .* (TMatrix2 * f1D.x[name1_loc])
+            =#
+
+            # 2D SMatrix
+            # SMatrix3
+            mul!(g.ΔfS_mul_step.x[i][1],SMatrix3,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i][1],g.nump_list[name3_loc]*g.numt_list[name3_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name3_loc],temp_reshape,f1D.x[name1_loc])
+            g.ΔfS_list.x[name3_loc] .+= g.ΔfS_list_temp.x[name3_loc]
+            # SMatrix4
+            mul!(g.ΔfS_mul_step.x[i][2],SMatrix4,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i][2],g.nump_list[name4_loc]*g.numt_list[name4_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name4_loc],temp_reshape,f1D.x[name1_loc])
+            g.ΔfS_list.x[name4_loc] .+= g.ΔfS_list_temp.x[name4_loc]
+            # TMatrix1
+            mul!(g.ΔfT_list_temp.x[name1_loc],TMatrix1,f1D.x[name2_loc])
+            g.ΔfT_list.x[name1_loc] .+= f1D.x[name1_loc] .* g.ΔfT_list_temp.x[name1_loc]
+            # TMatrix2
+            mul!(g.ΔfT_list_temp.x[name2_loc],TMatrix2,f1D.x[name1_loc])
+            g.ΔfT_list.x[name2_loc] .+= f1D.x[name2_loc] .* g.ΔfT_list_temp.x[name2_loc]
+        end
 
     end
 
@@ -244,7 +282,10 @@ function update_ΔS_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D)
         if (name1 == name2) && (name3 == name4)
             SMatrix = matricies[1]
   
-            @tullio threads=false g.ΔfS_list.x[name3_loc][i] += SMatrix[i,j,k] * f1D.x[name2_loc][j] * f1D.x[name1_loc][k] 
+            mul!(g.ΔfS_mul_step.x[i],SMatrix,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i],g.nump_list[name3_loc]*g.numt_list[name3_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name3_loc],temp_reshape,f1D.x[name1_loc])
+            g.ΔfS_list.x[name3_loc] .+= g.ΔfS_list_temp.x[name3_loc]
             
         end
     
@@ -265,17 +306,21 @@ function update_ΔS_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D)
             ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
             ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
         end
+        =#
     
         if (name1 != name2) && (name3 != name4)
             SMatrix3 = matricies[1]
             SMatrix4 = matricies[2]
-            TMatrix1 = matricies[3]
-            TMatrix2 = matricies[4]
-            ΔS_list[name3_loc] .= (SMatrix3 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔS_list[name4_loc] .= (SMatrix4 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
-            ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
-        end=#
+            # SMatrix3
+            mul!(g.ΔfS_mul_step.x[i][1],SMatrix3,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i][1],g.nump_list[name3_loc]*g.numt_list[name3_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name3_loc],temp_reshape,f1D.x[name1_loc])
+            g.ΔfS_list.x[name3_loc] .+= g.ΔfS_list_temp.x[name3_loc]
+            # SMatrix4
+            mul!(g.ΔfS_mul_step.x[i][2],SMatrix4,f1D.x[name2_loc])
+            temp_reshape = reshape(g.ΔfS_mul_step.x[i][2],g.nump_list[name4_loc]*g.numt_list[name4_loc],g.nump_list[name1_loc]*g.numt_list[name1_loc])
+            mul!(g.ΔfS_list_temp.x[name4_loc],temp_reshape,f1D.x[name1_loc])
+        end
 
     end
 
@@ -304,7 +349,8 @@ function update_ΔT_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D)
         if (name1 == name2) && (name3 == name4)
             TMatrix = matricies[2]
   
-            g.ΔfT_list.x[name1_loc] .+= f1D.x[name2_loc] .* (TMatrix * f1D.x[name1_loc])
+            mul!(g.ΔfT_list_temp.x[name1_loc],TMatrix,f1D.x[name2_loc])
+            g.ΔfT_list.x[name1_loc] .+= f1D.x[name1_loc] .* g.ΔfT_list_temp.x[name1_loc]
             
         end
     
@@ -325,17 +371,18 @@ function update_ΔT_Binary!(g::BoltzmannEquation,CollisionMatriciesBinary,f1D)
             ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
             ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
         end
+        =#
     
         if (name1 != name2) && (name3 != name4)
-            SMatrix3 = matricies[1]
-            SMatrix4 = matricies[2]
             TMatrix1 = matricies[3]
             TMatrix2 = matricies[4]
-            ΔS_list[name3_loc] .= (SMatrix3 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔS_list[name4_loc] .= (SMatrix4 * f_list[name2_loc])' * f_list[name1_loc]
-            ΔT_list[name1_loc] .= (TMatrix1 * f_list[name2_loc]) .* f_list[name1_loc]
-            ΔT_list[name2_loc] .= (TMatrix2 * f_list[name1_loc]) .* f_list[name2_loc]
-        end=#
+            # TMatrix1
+            mul!(g.ΔfT_list_temp.x[name1_loc],TMatrix1,f1D.x[name2_loc])
+            g.ΔfT_list.x[name1_loc] .+= f1D.x[name1_loc] .* g.ΔfT_list_temp.x[name1_loc]
+            # TMatrix2
+            mul!(g.ΔfT_list_temp.x[name2_loc],TMatrix2,f1D.x[name1_loc])
+            g.ΔfT_list.x[name2_loc] .+= f1D.x[name2_loc] .* g.ΔfT_list_temp.x[name2_loc]
+        end
 
     end
 
@@ -354,14 +401,14 @@ function update_ΔS_Sync!(g::BoltzmannEquation,CollisionMatriciesSync,f1D)
 
     for i in eachindex(g.interaction_list_Sync)
         interaction = g.interaction_list_Sync[i]
-        matrix = CollisionMatriciesSync[interaction]
+        SMatrix = CollisionMatriciesSync[interaction]
         name1_loc = findfirst(==("Pho"),g.name_list)
         name2 = interaction[1]
         name2_loc = findfirst(==(name2),g.name_list)
 
-        SMatrix = matrix
+        mul!(g.ΔfS_list_temp.x[name1_loc],SMatrix,f1D.x[name2_loc])
   
-        g.ΔfS_list.x[name1_loc] .+= (SMatrix * f1D.x[name2_loc])
+        g.ΔfS_list.x[name1_loc] .+= g.ΔfS_list_temp.x[name1_loc]
         
     end
 

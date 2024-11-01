@@ -14,6 +14,9 @@ mutable struct BoltzmannEquation <: Function
 
     ΔfS_list::ArrayPartition       # change in distribution function due to SMatrix
     ΔfT_list::ArrayPartition       # change in distribution function due to TMatrix
+    ΔfS_list_temp::ArrayPartition       # temporary array for change in distribution function due to SMatrix
+    ΔfS_mul_step::ArrayPartition       # temporary array the matrix multiplication step for ΔfS
+    ΔfT_list_temp::ArrayPartition       # temporary array forchange in distribution function due to TMatrix
 
     name_list::Vector{String}   # list of particle names
     nump_list::Vector{Int64}    # list of momentum bins for each particle
@@ -44,6 +47,34 @@ mutable struct BoltzmannEquation <: Function
         # initialize vectors for SMatrix and TMatrix changed so distribution functions for  indvidual species
         self.ΔfS_list = fill!(similar(f1D0),Float32(0))
         self.ΔfT_list = fill!(similar(f1D0),Float32(0))
+        self.ΔfS_list_temp = fill!(similar(f1D0),Float32(0))
+        self.ΔfT_list_temp = fill!(similar(f1D0),Float32(0))
+
+        # setup temportray arrays for multiplication step in ΔfS
+        temp = ();
+        for i in eachindex(self.interaction_list_Binary)
+            interaction = self.interaction_list_Binary[i]
+            matricies = CollisionMatriciesBinary[interaction]
+            name1 = interaction[1]
+            name2 = interaction[2]
+            name3 = interaction[3]
+            name4 = interaction[4]
+
+            if (name1 == name2) && (name3 == name4)
+                temp = temp...,zeros(Float32,size(matricies[1],1))
+            end
+            if (name1 == name2) && (name3 != name4)
+                temp = temp...,(zeros(Float32,size(matricies[1],1),size(matricies[2],1)))
+            end
+            if (name1 != name2) && (name3 == name4)
+                temp = temp...,zeros(Float32,size(matricies[1],1))
+            end
+            if (name1 != name2) && (name3 != name4)
+                temp = temp...,(zeros(Float32,size(matricies[1],1),size(matricies[2],1)))
+            end
+
+        end
+        self.ΔfS_mul_step = ArrayPartition(temp)
 
 
         return self

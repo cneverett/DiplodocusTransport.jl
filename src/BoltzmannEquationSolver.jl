@@ -4,6 +4,7 @@ export Solver, InitialConditions, LoadMatricies
 
 using JLD2
 using BoltzmannCollisionIntegral
+using LinearAlgebra
 using CairoMakie
 using DifferentialEquations
 using ProgressLogging
