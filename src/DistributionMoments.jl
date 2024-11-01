@@ -1,91 +1,4 @@
 """
-    numberDensity(u,dp,dμ;mode="AXI")
-
-Returns the average number density of a distribution function `u` output from solver. Number density is defined as the zeroth moment of the distribution function. i.e. 
-    ```math
-    n = \\int \\mathrm{d}p\\mathrm{d}\\mu f(p,μ) = \\sum_{i,j} f_{ij} \\Delta p_i \\Delta μ_j
-    ``` 
-where `dp` = ``\\Delta p_i`` is a vector of momentum intervals and `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals.
-"""
-function NumberDensity(u::Vector{Float32},nump,numt,dp::Vector{Float32},dμ::Vector{Float32};mode="AXI")
-
-    if mode=="AXI"
-        f = reshape(u,(nump,numt))
-        # unscale by dp*dμ 
-        #for i in axes(f,1), j in axes(f,2)
-        #    f[i,j] /= dp[i] * dμ[j]
-        #end
-        n = dp' * f * dμ
-    elseif mode=="ISO"
-        f = u
-        n = dp' * f * 2 # 2 is total range of dμ
-    end  
-    
-    return n
-    
-end
-
-"""
-    momentum(f0,dp,meanp,dμ;mode="AXI")
-
-Returns the average momentum of a distribution function `u` output from solver. average momentum is defined as the first moment of the distribution function. i.e. 
-    ```math
-    \\braket{p} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu pf(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta p_i\\braket{p}_i \\Delta μ_j / n
-    ``` 
-where `dp` = ``\\Delta p_i`` is a vector of momentum intervals, `meanp` = ``\\braket{p}_i`` is a vector of the average momentum value per bin, `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
-"""
-function Momentum(u::Vector{Float32},nump,numt,dp::Vector{Float32},meanp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
-
-    
-    dpmeanp = dp .* meanp
-    
-    if mode=="AXI"
-        f = reshape(u,(nump,numt))
-        #for i in axes(f,1), j in axes(f,2)
-        #    f[i,j] /= dp[i] * dμ[j]
-        #end
-        momentum = dpmeanp' * f * dμ
-    elseif mode=="ISO"
-        f = u
-        momentum = dpmeanp' * f * 2 # 2 is total range of dμ
-    end
-   
-    momentum /= numberDensity
-
-    return momentum
-end
-
-
-"""
-    Energy(f0,ΔE,dμ,numberDensity)
-
-Returns the average TOTAL energy of a distribution function `u` output from solver. average energy is defined as the first moment of the distribution function. i.e. 
-    ```math
-    \\braket{p} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu p^0f(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta E_i \\Delta μ_j / n
-    ``` 
-where `ΔE` = ``\\Delta E_i`` is a vector of the average "energy" value per bin (has dimensions of momentum squared), `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
-"""
-function Energy(u::Vector{Float32},nump,numt,ΔE::Vector{Float32},dp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
-
-
-    if mode=="AXI"
-        f = reshape(u,(nump,numt))
-        #for i in axes(f,1), j in axes(f,2)
-        #    f[i,j] /= dp[i] * dμ[j]
-        #end
-        energy = ΔE' * f * dμ
-    elseif mode=="ISO"
-        f = u
-        energy = ΔE' * f * 2 # 2 is total range of dμ
-    end
-
-    energy /= numberDensity
-
-    return energy
-    
-end
-
-"""
     FourFlow(u,dp,du,dE,du2)
 
 Returns the four-flow vector Ua 'vector{Float64}' from the flattened axysmmetric distribution function f1D.
@@ -277,5 +190,95 @@ function ScalarTemperature(p,n)
     return T
 
 end
+
+# Obselete functions ======== #
+# =========================== #
+
+    """
+        numberDensity(u,dp,dμ;mode="AXI")
+
+    Returns the average number density of a distribution function `u` output from solver. Number density is defined as the zeroth moment of the distribution function. i.e. 
+        ```math
+        n = \\int \\mathrm{d}p\\mathrm{d}\\mu f(p,μ) = \\sum_{i,j} f_{ij} \\Delta p_i \\Delta μ_j
+        ``` 
+    where `dp` = ``\\Delta p_i`` is a vector of momentum intervals and `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals.
+    """
+    function NumberDensity(u::Vector{Float32},nump,numt,dp::Vector{Float32},dμ::Vector{Float32};mode="AXI")
+
+        if mode=="AXI"
+            f = reshape(u,(nump,numt))
+            # unscale by dp*dμ 
+            #for i in axes(f,1), j in axes(f,2)
+            #    f[i,j] /= dp[i] * dμ[j]
+            #end
+            n = dp' * f * dμ
+        elseif mode=="ISO"
+            f = u
+            n = dp' * f * 2 # 2 is total range of dμ
+        end  
+        
+        return n
+        
+    end
+
+    """
+        momentum(f0,dp,meanp,dμ;mode="AXI")
+
+    Returns the average momentum of a distribution function `u` output from solver. average momentum is defined as the first moment of the distribution function. i.e. 
+        ```math
+        \\braket{p} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu pf(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta p_i\\braket{p}_i \\Delta μ_j / n
+        ``` 
+    where `dp` = ``\\Delta p_i`` is a vector of momentum intervals, `meanp` = ``\\braket{p}_i`` is a vector of the average momentum value per bin, `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
+    """
+    function Momentum(u::Vector{Float32},nump,numt,dp::Vector{Float32},meanp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
+
+        
+        dpmeanp = dp .* meanp
+        
+        if mode=="AXI"
+            f = reshape(u,(nump,numt))
+            #for i in axes(f,1), j in axes(f,2)
+            #    f[i,j] /= dp[i] * dμ[j]
+            #end
+            momentum = dpmeanp' * f * dμ
+        elseif mode=="ISO"
+            f = u
+            momentum = dpmeanp' * f * 2 # 2 is total range of dμ
+        end
+    
+        momentum /= numberDensity
+
+        return momentum
+    end
+
+
+    """
+        Energy(f0,ΔE,dμ,numberDensity)
+
+    Returns the average TOTAL energy of a distribution function `u` output from solver. average energy is defined as the first moment of the distribution function. i.e. 
+        ```math
+        \\braket{p} = \\frac{\\int \\mathrm{d}p\\mathrm{d}\\mu p^0f(p,μ)}{n} = \\sum_{i,j} f_{ij} \\Delta E_i \\Delta μ_j / n
+        ``` 
+    where `ΔE` = ``\\Delta E_i`` is a vector of the average "energy" value per bin (has dimensions of momentum squared), `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
+    """
+    function Energy(u::Vector{Float32},nump,numt,ΔE::Vector{Float32},dp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
+
+
+        if mode=="AXI"
+            f = reshape(u,(nump,numt))
+            for i in axes(f,1), j in axes(f,2)
+                f[i,j] /= dp[i] * dμ[j]
+            end
+            energy = ΔE' * f * dμ
+        elseif mode=="ISO"
+            f = u
+            energy = ΔE' * f * 2 # 2 is total range of dμ
+        end
+
+        energy /= numberDensity
+
+        return energy
+        
+    end
 
 
