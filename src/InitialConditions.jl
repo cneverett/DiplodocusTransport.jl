@@ -34,9 +34,9 @@ end
 """
     Initial_PowerLaw(Lists,species,pmin,pmax,index,num_Init)
 
-A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [-E^(1-index)/(1-index)]/[p] where [denote evalution at the cell bounds.
+A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evalution at the cell bounds.
 """
-function Initial_PowerLaw(Lists,species::String,pmin::Float32,pmax::Float32,index::Float32,num_Init::Float32)
+function Initial_PowerLaw(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
 
     (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
 
@@ -48,22 +48,30 @@ function Initial_PowerLaw(Lists,species::String,pmin::Float32,pmax::Float32,inde
     pl = pl_list[species_index]
     nump = nump_list[species_index]
     numt = numt_list[species_index]
-    dp = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.prange(pl,pu,nump))
+    pr = BoltzmannCollisionIntegral.prange(pl,pu,nump)
+    dp = BoltzmannCollisionIntegral.deltaVector(pr)
     du = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.trange(numt))
     mass = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[species_index]))
 
-    pmin_index = location_p(pu,pl,nump,pmin)
-    println(pmin_index)
-    pmax_index = location_p(pu,pl,nump,pmax)
-    println(pmax_index)
-    prange = BoltzmannCollisionIntegral.prange(pl,pu,nump)
+    type = zero(T)
+    if typeof(type)==Float32
+        pmin_index = location_p(pu,pl,nump,pmin)
+        pmax_index = location_p(pu,pl,nump,pmax)
+        umin_index = location_t(numt,umin)
+        umax_index = location_t(numt,umax)
+    elseif typeof(type)==Int64
+        pmin_index = pmin
+        pmax_index = pmax
+        umin_index = umin
+        umax_index = umax
+    end
+    
 
     # power law averaged over cell width.
-    for i in pmin_index:pmax_index
-        #u0_2D_species[i,:] .= (prange[i+1]^(1-index)-prange[i]^(1-index))/((1-index)*(prange[i+1]-prange[i]))
-        u0_2D_species[i,:] .= sqrt(mass^2+prange[i+1]^2)^(1-index) - sqrt(mass^2+prange[i]^2)^(1-index)
-        u0_2D_species[i,:] ./= 1-index
-        u0_2D_species[i,:] ./= (prange[i+1]-prange[i])
+    for i in pmin_index:pmax_index, j in umin_index:umax_index
+        u0_2D_species[i,j] = sqrt(mass^2+pr[i+1]^2)^(1-index) - sqrt(mass^2+pr[i]^2)^(1-index)
+        u0_2D_species[i,j] /= 1-index
+        u0_2D_species[i,j] /= (pr[i+1]-pr[i])
     end
     # set values and normlaise to initial number density (in m^{-3})
     num = dp' * u0_2D_species * du
@@ -151,7 +159,7 @@ function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;
     du = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.trange(numt))
     mass = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[species_index]))
 
-    u0_2D_species .= MaxwellJuttner(meanp,T,Float32(mass))
+    u0_2D_species .= MaxwellJuttner_Distribution(meanp,T,Float32(mass))
     
     # set values and normlaise to initial number density (in m^{-3})
     num = dp' * u0_2D_species * du
