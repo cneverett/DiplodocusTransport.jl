@@ -27,6 +27,9 @@ function PhaseSpaceFactors_Binary_Undo!(p3val::Vector{Float64},t3val::Vector{Flo
             if TMatrix1 != 0f0
                 TMatrix1[ll,kk,jj,ii] /= (t2val[ii+1]-t2val[ii])*(p2val[jj+1]-p2val[jj]) # dp2dmu2
             end
+            if TMatrix2 != 0f0
+                TMatrix2[jj,ii,ll,kk] /= (t1val[kk+1]-t1val[kk])*(p1val[ll+1]-p1val[ll]) # dp2dmu2 
+            end
         end
     end
 
@@ -38,9 +41,6 @@ function PhaseSpaceFactors_Binary_Undo!(p3val::Vector{Float64},t3val::Vector{Flo
                 SMatrix4[nn,mm,ll,kk,jj,ii] *= (t4val[mm+1]-t4val[mm])*(p4val[nn+1]-p4val[nn]) # dmu3
                 SMatrix4[nn,mm,ll,kk,jj,ii] /= (t1val[kk+1]-t1val[kk])*(p1val[ll+1]-p1val[ll]) # dp1dmu1
                 SMatrix4[nn,mm,ll,kk,jj,ii] /= (t2val[ii+1]-t2val[ii])*(p2val[jj+1]-p2val[jj]) # dp2dmu2
-            end
-            if TMatrix2 != 0f0
-                TMatrix2[ll,kk,jj,ii] /= (t1val[ii+1]-t1val[ii])*(p1val[jj+1]-p1val[jj]) # dp2dmu2
             end
         end
     end
