@@ -64,13 +64,13 @@ mutable struct BoltzmannEquation <: Function
                 temp = temp...,zeros(Float32,size(matricies[1],1))
             end
             if (name1 == name2) && (name3 != name4)
-                temp = temp...,(zeros(Float32,size(matricies[1],1),size(matricies[2],1)))
+                temp = temp...,(zeros(Float32,size(matricies[1],1)),zeros(Float32,size(matricies[2],1)))
             end
             if (name1 != name2) && (name3 == name4)
                 temp = temp...,zeros(Float32,size(matricies[1],1))
             end
             if (name1 != name2) && (name3 != name4)
-                temp = temp...,(zeros(Float32,size(matricies[1],1),size(matricies[2],1)))
+                temp = temp...,(zeros(Float32,size(matricies[1],1)),zeros(Float32,size(matricies[2],1)))
             end
 
         end

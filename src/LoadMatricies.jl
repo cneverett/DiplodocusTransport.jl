@@ -102,14 +102,32 @@ function LoadMatricies_Binary(CollisionMatriciesBinary::Dict{Vector{String},Tupl
         end
     
         if interaction[1] == interaction[2] && interaction[3] != interaction[4]
-            SMatrix3 = SixDtoThreeD(Float32.(matricies[1]))
-            SMatrix4 = SixDtoThreeD(Float32.(matricies[2]))
+
+            # print conversion statistic
+            BoltzmannCollisionIntegral.DoesConserve(matricies[1],matricies[2],matricies[3],zeros(size(matricies[3])),Parameters)
+            #SCorrection!(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
+            #println("Scorrected:")
+            #BoltzmannCollisionIntegral.DoesConserve(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
+
+            PhaseSpaceFactors_Binary_Undo!(pr3,tr3,pr4,tr4,pr1,tr1,pr2,tr2,SMatrix3=matricies[1],SMatrix4=matricies[2],TMatrix1=matricies[3])
+
+            SMatrix3 = SixDtoTwoD(Float32.(matricies[1]))
+            SMatrix4 = SixDtoTwoD(Float32.(matricies[2]))
             TMatrix = FourDtoTwoD(Float32.(matricies[3]))
             CollisionMatriciesBinary[interaction] = (SMatrix3,SMatrix4,TMatrix)
         end
     
         if interaction[1] != interaction[2] && interaction[3] == interaction[4]
-            SMatrix = SixDtoThreeD(Float32.(matricies[1]))
+
+            # print conversion statistic
+            BoltzmannCollisionIntegral.DoesConserve(matricies[1],zeros(size(matricies[1])),matricies[2],matricies[3],Parameters)
+            #SCorrection!(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
+            #println("Scorrected:")
+            #BoltzmannCollisionIntegral.DoesConserve(matricies[1],zeros(size(matricies[1])),matricies[2],zeros(size(matricies[2])),Parameters)
+
+            PhaseSpaceFactors_Binary_Undo!(pr3,tr3,pr4,tr4,pr1,tr1,pr2,tr2,SMatrix3=matricies[1],TMatrix1=matricies[2],TMatrix2=matricies[3])
+
+            SMatrix = SixDtoTwoD(Float32.(matricies[1]))
             TMatrix1 = FourDtoTwoD(Float32.(matricies[2]))
             TMatrix2 = FourDtoTwoD(Float32.(matricies[3]))
             CollisionMatriciesBinary[interaction] = (SMatrix,TMatrix1,TMatrix2)
@@ -120,8 +138,8 @@ function LoadMatricies_Binary(CollisionMatriciesBinary::Dict{Vector{String},Tupl
 
             PhaseSpaceFactors_Binary_Undo!(pr3,tr3,pr4,tr4,pr1,tr1,pr2,tr2,SMatrix3=matricies[1],SMatrix4=matricies[2],TMatrix1=matricies[3],TMatrix2=matricies[4])
 
-            SMatrix3 = SixDtoThreeD(Float32.(matricies[1]))
-            SMatrix4 = SixDtoThreeD(Float32.(matricies[2]))
+            SMatrix3 = SixDtoTwoD(Float32.(matricies[1]))
+            SMatrix4 = SixDtoTwoD(Float32.(matricies[2]))
             TMatrix1 = FourDtoTwoD(Float32.(matricies[3]))
             TMatrix2 = FourDtoTwoD(Float32.(matricies[4]))
             CollisionMatriciesBinary[interaction] = (SMatrix3,SMatrix4,TMatrix1,TMatrix2)
