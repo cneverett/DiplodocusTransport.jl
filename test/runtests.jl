@@ -1,6 +1,6 @@
-using AnisotropicBoltzmannEquation
+using BoltzmannEquationSolver
 using Test
 
-@testset "AnisotropicBoltzmannEquation.jl" begin
+@testset "BoltzmannEquationSolver.jl" begin
     # Write your tests here.
 end
