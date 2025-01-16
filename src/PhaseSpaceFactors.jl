@@ -12,7 +12,7 @@ function PhaseSpaceFactors_Binary_Undo!(p3val::Vector{Float64},t3val::Vector{Flo
     # Function that applies the correct phase space factors to SMatrix and TMatrix derived from Stotal and Ttotal arrays such that the symmetries can be applied.
 
     if SMatrix3 == 0f0 && SMatrix4 == 0f0 && TMatrix1 == 0f0 && TMatrix2 == 0f0
-        error("No Matricies to apply phase space factors to.")
+        error("No Matrices to apply phase space factors to.")
     end
 
     # === SMatrix3 === #

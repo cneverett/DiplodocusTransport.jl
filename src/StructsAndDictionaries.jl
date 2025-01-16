@@ -1,6 +1,7 @@
-# Empty dictionary for storing binary collision matricies by inteaction name
-CollisionMatriciesBinary = Dict{Vector{String},Tuple}()
-CollisionMatriciesSync = Dict{Vector{String},Array{Float32,2}}()
+# Empty dictionary for storing binary collision matrices by inteaction name
+Matrices_BinaryInteraction = Dict{Vector{String},Tuple}()
+Matrices_Synchrotron = Dict{Vector{String},Array{Float32,2}}()
+Matrices_Force = Dict{Vector{String},Array{Float32,2}}()
 
 # Struct for storing the Boltzmann equation and its solution
 mutable struct BoltzmannEquation <: Function
@@ -9,14 +10,14 @@ mutable struct BoltzmannEquation <: Function
 
     #f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
     f1DA::ArrayPartition  # advanced distribution function 
-    f1DR::ArrayPartition  # retarded distributin function
+    f1DR::ArrayPartition  # retarded distribution function
     state::Bool
 
     ΔfS_list::ArrayPartition       # change in distribution function due to SMatrix
     ΔfT_list::ArrayPartition       # change in distribution function due to TMatrix
     ΔfS_list_temp::ArrayPartition       # temporary array for change in distribution function due to SMatrix
     ΔfS_mul_step::ArrayPartition       # temporary array the matrix multiplication step for ΔfS
-    ΔfT_list_temp::ArrayPartition       # temporary array forchange in distribution function due to TMatrix
+    ΔfT_list_temp::ArrayPartition       # temporary array for change in distribution function due to TMatrix
 
     name_list::Vector{String}   # list of particle names
     nump_list::Vector{Int64}    # list of momentum bins for each particle
@@ -35,7 +36,7 @@ mutable struct BoltzmannEquation <: Function
         self.t = Float32(0)
         #self.diff_coeff = diff_coeff
 
-        # initialize distribution function vectors for indvidual species
+        # initialize distribution function vectors for individual species
         num_species = length(self.name_list)
         #self.f_list = Vector{Vector{Float32}}(undef,num_species)
         #for i in 1:num_species
@@ -44,7 +45,7 @@ mutable struct BoltzmannEquation <: Function
         self.f1DA = fill!(similar(f1D0),Float32(0))
         self.f1DR = fill!(similar(f1D0),Float32(0))
 
-        # initialize vectors for SMatrix and TMatrix changed so distribution functions for  indvidual species
+        # initialize vectors for SMatrix and TMatrix changed so distribution functions for  individual species
         self.ΔfS_list = fill!(similar(f1D0),Float32(0))
         self.ΔfT_list = fill!(similar(f1D0),Float32(0))
         self.ΔfS_list_temp = fill!(similar(f1D0),Float32(0))
@@ -54,23 +55,23 @@ mutable struct BoltzmannEquation <: Function
         temp = ();
         for i in eachindex(self.interaction_list_Binary)
             interaction = self.interaction_list_Binary[i]
-            matricies = CollisionMatriciesBinary[interaction]
+            matrices = Matrices_BinaryInteraction[interaction]
             name1 = interaction[1]
             name2 = interaction[2]
             name3 = interaction[3]
             name4 = interaction[4]
 
             if (name1 == name2) && (name3 == name4)
-                temp = temp...,zeros(Float32,size(matricies[1],1))
+                temp = temp...,zeros(Float32,size(matrices[1],1))
             end
             if (name1 == name2) && (name3 != name4)
-                temp = temp...,(zeros(Float32,size(matricies[1],1)),zeros(Float32,size(matricies[2],1)))
+                temp = temp...,(zeros(Float32,size(matrices[1],1)),zeros(Float32,size(matrices[2],1)))
             end
             if (name1 != name2) && (name3 == name4)
-                temp = temp...,zeros(Float32,size(matricies[1],1))
+                temp = temp...,zeros(Float32,size(matrices[1],1))
             end
             if (name1 != name2) && (name3 != name4)
-                temp = temp...,(zeros(Float32,size(matricies[1],1)),zeros(Float32,size(matricies[2],1)))
+                temp = temp...,(zeros(Float32,size(matrices[1],1)),zeros(Float32,size(matrices[2],1)))
             end
 
         end
