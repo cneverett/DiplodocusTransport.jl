@@ -1,4 +1,4 @@
-function Solver(f1D0,timespan,Lists,dt; method=Euler() #==ImplicitEuler(autodiff=false)=#,save_dt=dt)
+function Solver(f1D0,timespan,Lists,dt; method=Euler() #= method=ImplicitEuler(autodiff=false) =#,save_dt=dt)
 
     deriv_cpu = BoltzmannEquation(f1D0,Lists);
 
@@ -147,6 +147,16 @@ function (g::BoltzmannEquation)(df1D,f1D,p,t)
     #update t
     
     #g.state = !(g.state)
+
+    # leapfrog in time 
+        if t==0
+            @. g.f1DR = f1D
+        end
+
+        @. df1D *= 2
+        @. df1D += g.f1DR - f1D
+        # set f i-1 for next time step   
+        @. g.f1DR = f1D
 
 
 end

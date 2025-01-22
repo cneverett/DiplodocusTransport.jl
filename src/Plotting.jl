@@ -239,10 +239,10 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
     #lines!(ax,log10.(meanp_list[2]),line_points,color=:red)
     #line_points = log10.(meanp_list[2].^(1/3))
     #lines!(ax,log10.(meanp_list[2]),line_points,color=:blue)
-    line_points = log10.(meanp_list[2].^(-2)).+7
-    lines!(ax,log10.(meanp_list[2]),line_points,color=:red)
-    line_points = log10.(meanp_list[2].^(-1/2)).-3
-    lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
+    #line_points = log10.(meanp_list[2].^(-2)).+7
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:red)
+    #line_points = log10.(meanp_list[2].^(-1/2)).-3
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
     #line_points = log10.(meanp_list[2].^(-3/2))
     #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
 
