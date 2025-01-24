@@ -18,10 +18,13 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
+Bessels = "0.2"
+BenchmarkTools = "1"
 BoltzmannCollisionIntegral = "2.0.2"
 CairoMakie = "0.12.14, 0.13"
 DifferentialEquations = "7.14.0"
 DocumenterTools = "0.1.20"
+JLD2 = "0.5"
 LinearAlgebra = "1.10.0"
 Tullio = "0.3.7"
 julia = "1.11"
