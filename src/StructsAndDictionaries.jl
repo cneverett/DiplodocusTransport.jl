@@ -1,4 +1,4 @@
-# Empty dictionary for storing binary collision matrices by inteaction name
+# Empty dictionary for storing binary collision matrices by interaction name
 Matrices_BinaryInteraction = Dict{Vector{String},Tuple}()
 Matrices_Synchrotron = Dict{Vector{String},Array{Float32,2}}()
 Matrices_Force = Dict{Vector{String},Array{Float32,2}}()
@@ -6,7 +6,7 @@ Matrices_Force = Dict{Vector{String},Array{Float32,2}}()
 # Struct for storing the Boltzmann equation and its solution
 mutable struct BoltzmannEquation <: Function
 
-    t::Float32                  # the last timestep time to calculate Δt
+    t::Float32                  # the last time step time to calculate Δt
 
     #f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
     f1DA::ArrayPartition  # advanced distribution function 
