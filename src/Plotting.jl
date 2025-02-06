@@ -1,9 +1,9 @@
 """
-    FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,nump_list,numt_list;fig=nothing)
+    FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
 
 Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
 """
-function FracNumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,nump_list,numt_list,mass_list;mode="AXI",fig=nothing)
+function FracNumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure(size=(600,300))
@@ -15,7 +15,7 @@ function FracNumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,num
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num = ScalarNumberDensity(Na,Ua)
 
@@ -27,11 +27,11 @@ function FracNumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,num
 end
 
 """
-    NumPlot_AllSpecies(sol,num_species,dp_list,du_list,nump_list,numt_list;fig=nothing)
+    NumPlot_AllSpecies(sol,num_species,dp_list,du_list,p_num_list,u_num_list;fig=nothing)
 
 Returns a plot of the number density of each species as a function of time.
 """
-function NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,nump_list,numt_list,mass_list;mode="AXI",fig=nothing)
+function NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure(size=(600,300))
@@ -40,26 +40,37 @@ function NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,nump_list,numt_list,
         ax = Axis(fig,title="Number Density",xlabel="Time",ylabel=L"$\log_{10}$ Number Density $[\mathrm{m}^3]$")
     end
 
+    num = zeros(Float64,num_species)
+
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
-            num = ScalarNumberDensity(Na,Ua)
+            num[j] = ScalarNumberDensity(Na,Ua)
 
-            scatter!(ax,sol.t[i],log10(num),marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+            if num[j] != 0
+                scatter!(ax,sol.t[i],log10(num[j]),marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+            end 
+    
         end
+
+        num_tot = sum(num)
+        if num_tot != 0
+            scatter!(ax,sol.t[i],log10(num_tot),marker = :circle,color = :white)
+        end
+
     end
 
     return fig
 end
 
 """
-    FracEnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,engInit_list,nump_list,numt_list;fig=nothing)
+    FracEnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,engInit_list,p_num_list,u_num_list;fig=nothing)
 
 Returns a plot of the relative energy (compaired to initial value) of each species as a function of time.
 """
-function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,nump_list,numt_list,mass_list;mode="AXI",fig=nothing)
+function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure(size=(600,300))
@@ -71,11 +82,11 @@ function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num = ScalarNumberDensity(Na,Ua)
 
-            Tab = StressEnergyTensor(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Tab = StressEnergyTensor(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
 
             eng = ScalarEnergyDensity(Tab,Ua,num)
 
@@ -86,11 +97,11 @@ function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,
 end
 
 """
-    EnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,numt_list;fig=nothing)
+    EnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,u_num_list;fig=nothing)
 
 Returns a plot of the energy of each species as a function of time.
 """
-function EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,nump_list,numt_list,mass_list;mode="AXI",fig=nothing)
+function EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure(size=(600,300))
@@ -99,25 +110,34 @@ function EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,nump_list,numt_li
         ax = Axis(fig,title="Relatvie Energy",xlabel="Time",ylabel=L"$\log_{10}$ Energy $[m_\text{Ele}c]$")
     end
 
+    eng = zeros(Float64,num_species)
+
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num = ScalarNumberDensity(Na,Ua)
 
-            Tab = StressEnergyTensor(sol.u[i].x[j],nump_list[j],numt_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Tab = StressEnergyTensor(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
 
-            eng = ScalarEnergyDensity(Tab,Ua,num)
+            eng[j] = ScalarEnergyDensity(Tab,Ua,num)
 
-            scatter!(ax,sol.t[i],log10(eng),marker=:circle,colormap=:viridis,colorrange=[1,num_species+1],color=j)
+            if eng[j] != 0
+                scatter!(ax,sol.t[i],log10(eng[j]),marker=:circle,colormap=:viridis,colorrange=[1,num_species+1],color=j)
+            end
+        end
+
+        eng_tot = sum(eng)
+        if eng_tot != 0
+            scatter!(ax,sol.t[i],log10(eng_tot),marker = :circle,color = :white)
         end
     end
     return fig
 end
 
 """
-    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,outfreq;fig=nothing)
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,outfreq;fig=nothing)
 
 Returns a plot of the momentum distribution (distribution integrated over angles) of each species as a function of time.
 
@@ -125,7 +145,7 @@ Returns a plot of the momentum distribution (distribution integrated over angles
 - `Flux`: Default false, if true and a photon population is present then that population is multiplied by the mean momentum, converting it from the momentum distribution to a flux i.e. ``F_\\nu``.
 - `MaxwellJuttner`: Default true, if true the expected thermal distribtuion is plotted.
 """
-function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,out_dt;mode="AXI",fig=nothing,animation=false,animation_end=0,time=0,MaxwellJuttner=true,Flux=false)
+function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing,animation=false,animation_end=0,time=0,MaxwellJuttner=true,Flux=false)
 
     if isnothing(fig)
         fig = Figure()
@@ -133,19 +153,19 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
         ax = Axis(fig[1,1],title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-20,5)))
     else
         if animation == true && length(sol.t) == 1
-            ax = Axis(fig[1,1],title="p-Distribution,   t=$(round(time,sigdigits=5))",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-20,5)))
+            ax = Axis(fig[1,1],title="p-Distribution,   t=$(round(time,sigdigits=5))",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-40,5)))
         elseif animation == true && length(sol.t) > 1
             ax = current_axis(fig)
             empty!(ax)
             ax.title = "P-Distribution,   t=$(round(time,sigdigits=5))"
         else
-            ax = Axis(fig,title="p-Distribution",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-20,5)))
+            ax = Axis(fig,title="p-Distribution",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-40,5)))
         end
     end
 
     max = -19
     min = -20
-    # time dependent, not inlcuding initial state
+    # time dependent, not including initial state
     count = 1
     for i in 2:size(sol.t)[1]
         if isapprox(sol.t[i],count*out_dt) # first output in that range
@@ -155,8 +175,8 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
                 my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
                 # integrate distribution over μ
                 if mode=="AXI"
-                    dist = zeros(Float32,(nump_list[j],numt_list[j]))
-                    dist .= reshape(sol.u[i].x[j],(nump_list[j],numt_list[j]))
+                    dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                    dist .= reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
                     # unscale by dp*du 
                     for k in axes(dist,1), l in axes(dist,2)
                         dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -170,8 +190,12 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
                 elseif mode=="ISO"
                     dist_p = sol.u[i].x[j] * 2
                 end
-                stairs!(ax,log10.(meanp_list[j]),log10.(dist_p),color=my_colors[i],step=:center)
-                maxlocal = maximum(replace!(log10.(dist_p),NaN=>-19))
+                #stairs!(ax,log10.(meanp_list[j]),log10.(dist_p),color=my_colors[i],step=:center)
+                stairs!(ax,log10.(meanp_list[j]),log10.(abs.(dist_p)),color=my_colors[i],step=:center)
+                #println(dist_p)
+                #stairs!(ax,log10.(meanp_list[j]),log10.(abs.(dist_p)),colormap = (:viridis,sol.t[i]/sol.t[end]),colorrange = [1,num_species+1], color = j,step=:center)
+                
+                maxlocal = maximum(replace!(log10.(abs.(dist_p)),NaN=>-19))
                 if maxlocal == NaN
                     maxlocal = -19
                 end
@@ -179,14 +203,14 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
             end
         end
     end
-    println(max)
+    #println(max)
 
     # initial distribution
     for j in 1:num_species
         # integrate distribution over u
         if mode=="AXI"
-            dist = zeros(Float32,(nump_list[j],numt_list[j]))
-                dist .= reshape(sol.u[1].x[j],(nump_list[j],numt_list[j]))
+            dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.u[1].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -211,8 +235,8 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
             MJPoints = MaxwellJuttner_Distribution(meanp_list[j],tempInit_list[j],mass_list[j])
             #integrate distribution over μ
             if mode=="AXI"
-                dist = zeros(Float32,(nump_list[j],numt_list[j]))
-                dist .= reshape(sol.u[end].x[j],(nump_list[j],numt_list[j]))
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.u[end].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -246,17 +270,17 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
     #line_points = log10.(meanp_list[2].^(-3/2))
     #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
 
-    ax.limits =((nothing,nothing),(-10,10)#= (min,max) =#)
+    ax.limits =((nothing,nothing),(-40,10)#= (min,max) =#)
 
     return fig
 end
 
 """
-    uDistributionPlot_AllSpecies(sol,num_species,meanμ_list,dp_list,nump_list,numt_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
+    uDistributionPlot_AllSpecies(sol,num_species,meanμ_list,dp_list,p_num_list,u_num_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
 
 Returns a plot of the u distribution (distribution integrated over momenta) of each species as a function of time.
 """
-function uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,nump_list,numt_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
+function uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
 
     if isnothing(fig)
         fig = Figure()
@@ -283,8 +307,8 @@ function uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list
             for j in 1:num_species
                 my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
                 # integrate distribution over p
-                dist = zeros(Float32,(nump_list[j],numt_list[j]))
-                dist .= reshape(sol.u[i].x[j],(nump_list[j],numt_list[j]))
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -297,8 +321,8 @@ function uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list
 
     #initial distribution
     for j in 1:num_species
-        dist = zeros(Float32,(nump_list[j],numt_list[j]))
-        dist .= reshape(sol.u[1].x[j],(nump_list[j],numt_list[j]))
+        dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+        dist .= reshape(sol.u[1].x[j],(p_num_list[j],u_num_list[j]))
         # unscale by dp*du 
         for k in axes(dist,1), l in axes(dist,2)
             dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -312,11 +336,11 @@ end
 
 
 """
-    puDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,nump_list,numt_list,outfreq;fig=nothing)
+    puDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,p_num_list,u_num_list,outfreq;fig=nothing)
 
 Returns a plot of the u distribution as a function of p of each species as a function of time.
 """
-function puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,nump_list,numt_list,out_dt;fig=nothing)
+function puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=nothing)
 
     if isnothing(fig)
         fig = Figure()
@@ -332,13 +356,13 @@ function puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_
             count += 1
             my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
             for j in 1:num_species
-                dist = zeros(Float32,(nump_list[j],numt_list[j]))
-                dist .= reshape(sol.u[i].x[j],(nump_list[j],numt_list[j]))
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
                 end
-                dist_sec = zeros(Float32,numt_list[j])
+                dist_sec = zeros(Float32,u_num_list[j])
                 for k in axes(dist,1)
                     dist_sec .= dist[k,:]                
                     minval = minimum(dist_sec)
@@ -356,11 +380,11 @@ end
 
 
 """
-    AllPlots(sol,num_species,dp_list,du_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,nump_list,numt_list,out_dt)
+    AllPlots(sol,num_species,dp_list,du_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt)
 
 Returns a collation of figures for analysing the output of the simulation.
 """
-function AllPlots(sol,num_species,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,nump_list,numt_list,out_dt;mode="AXI")
+function AllPlots(sol,num_species,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI")
 
     if mode=="AXI"
         figure = Figure(size=(1000,1000))
@@ -368,12 +392,12 @@ function AllPlots(sol,num_species,pr_list,ur_list,dp_list,du_list,meanp_list,mea
         figure = Figure(size=(1000,455))
     end
 
-    NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,nump_list,numt_list,mass_list,fig=figure[1,1],mode=mode)
-    EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,nump_list,numt_list,mass_list,fig=figure[1,2],mode=mode)
-    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,out_dt,fig=figure[2:3,1:2],mode=mode)
+    NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,p_num_list,u_num_list,mass_list,fig=figure[1,1],mode=mode)
+    EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,p_num_list,u_num_list,mass_list,fig=figure[1,2],mode=mode)
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt,fig=figure[2:3,1:2],mode=mode)
     if mode=="AXI"
-        uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,nump_list,numt_list,out_dt,fig=figure[4:5,1:2])
-        puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,nump_list,numt_list,out_dt,fig=figure[6:7,1:2])
+        uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,p_num_list,u_num_list,out_dt,fig=figure[4:5,1:2])
+        puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,p_num_list,u_num_list,out_dt,fig=figure[6:7,1:2])
     end
 
     return figure
@@ -381,11 +405,11 @@ function AllPlots(sol,num_species,pr_list,ur_list,dp_list,du_list,meanp_list,mea
 end
 
 """
-    PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,outfreq;fig=nothing)
+    PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,outfreq;fig=nothing)
 
 Returns a plot of the momentum distribution (distribution integrated over angles) of each species as a function of time.
 """
-function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,out_dt;mode="AXI",fig=nothing)
+function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure()
@@ -406,7 +430,7 @@ function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_lis
                 my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
                 # integrate distribution over μ
                 if mode=="AXI"
-                    distp = reshape(sol.u[i].x[j],(nump_list[j],numt_list[j]))
+                    distp = reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
                     distp = dropdims(sum(distp,dims=2),dims=2)
                     distp ./= dp_list[j]
                 elseif mode=="ISO"
@@ -423,7 +447,7 @@ function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_lis
     for j in 1:num_species
         # integrate distribution over μ
         if mode=="AXI"
-            distp = reshape(sol.u[1].x[j],(nump_list[j],numt_list[j]))
+            distp = reshape(sol.u[1].x[j],(p_num_list[j],u_num_list[j]))
             distp = dropdims(sum(distp,dims=2),dims=2)
             distp ./= dp_list[j]
         elseif mode=="ISO"
@@ -440,7 +464,7 @@ function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_lis
         MJPoints = MaxwellJuttner(meanp_list[j],tempInit_list[j],mass_list[j])
         #integrate distribution over μ
         if mode=="AXI"
-            distp = reshape(sol.u[end].x[j],(nump_list[j],numt_list[j]))
+            distp = reshape(sol.u[end].x[j],(p_num_list[j],u_num_list[j]))
             distp = dropdims(sum(distp,dims=2),dims=2)
             distp ./= dp_list[j]
         elseif mode=="ISO"
@@ -457,7 +481,7 @@ function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_lis
 end
 
 
-function PDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,out_dt;mode="AXI",fig=nothing)
+function PDistributionPlot_AllSpecies_Ani(filename,sol,num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure()
@@ -474,13 +498,13 @@ function PDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanp_list,dp
     itterator = range(1,nframes,step=1)
     record(fig,filename,itterator; framerate=framerate) do itter
         time = sol.t[itter]
-        PDistributionPlot_AllSpecies(sol[1:itter],num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,nump_list,numt_list,out_dt;mode="AXI",fig=fig,animation=true,animation_end=nframes,time=time,MaxwellJuttner=false)
+        PDistributionPlot_AllSpecies(sol[1:itter],num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=fig,animation=true,animation_end=nframes,time=time,MaxwellJuttner=false)
     end
     
 end
 
 
-function uDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanμ_list,dp_list,nump_list,numt_list,out_dt;mode="AXI",fig=nothing)
+function uDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanμ_list,dp_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
 
     if isnothing(fig)
         fig = Figure()
@@ -497,7 +521,7 @@ function uDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanμ_list,d
     itterator = range(1,nframes,step=1)
     record(fig,filename,itterator; framerate=framerate) do itter
         time = sol.t[itter]
-        uDistributionPlot_AllSpecies(sol[1:itter],num_species,meanμ_list,dp_list,du_list,nump_list,numt_list,out_dt;fig=fig,animation=true,animation_end=nframes,time=time)
+        uDistributionPlot_AllSpecies(sol[1:itter],num_species,meanμ_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=fig,animation=true,animation_end=nframes,time=time)
     end
     
 end

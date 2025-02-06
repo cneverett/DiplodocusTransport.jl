@@ -1,11 +1,11 @@
 function InitialConditions(Lists)
 
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
+    (name_list,p_num_list,u_num_list,p_up_list,p_low_list,interaction_list) = Lists
 
     num_species = length(name_list)
     f0_list2D = Vector{Array{Float32,2}}(undef,num_species)
     for i in 1:num_species
-        f0_list2D[i] = fill(Float32(0),nump_list[i],numt_list[i])
+        f0_list2D[i] = fill(Float32(0),p_num_list[i],u_num_list[i])
     end
 
     for i in eachindex(name_list)
@@ -14,14 +14,14 @@ function InitialConditions(Lists)
 
     f0_list = Vector{Vector{Float32}}(undef,num_species)
     for i in 1:num_species
-        f0_list[i] = reshape(f0_list2D[i],nump_list[i]*numt_list[i])
+        f0_list[i] = reshape(f0_list2D[i],p_num_list[i]*u_num_list[i])
     end
 
-    u0 = zeros(Float32,sum(nump_list.*numt_list))
+    u0 = zeros(Float32,sum(p_num_list.*u_num_list))
 
     f_list_to_u!(u0,f0_list)
 
-    #test = reshape(u0,(nump_list[1],numt_list[1]))
+    #test = reshape(u0,(p_num_list[1],u_num_list[1]))
     
     #test[40:41,:] .= 1f3
 
@@ -38,27 +38,29 @@ A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E
 """
 function Initial_PowerLaw(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
 
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
+    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
 
     species_index = findfirst(==(species),name_list)
-    u0_2D_species = zeros(Float32,nump_list[species_index],numt_list[species_index])
+    u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
 
     # Set initial conditions goes here
-    pu = pu_list[species_index]
-    pl = pl_list[species_index]
-    nump = nump_list[species_index]
-    numt = numt_list[species_index]
-    pr = BoltzmannCollisionIntegral.prange(pl,pu,nump)
-    dp = BoltzmannCollisionIntegral.deltaVector(pr)
-    du = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.trange(numt))
-    mass = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[species_index]))
+    pu = p_up_list[species_index]
+    pl = p_low_list[species_index]
+    p_num = p_num_list[species_index]
+    p_grid = p_grid_list[species_index]
+    u_num = u_num_list[species_index]
+    u_grid = u_grid_list[species_index]
+    pr = BCI.bounds(pl,pu,p_num,p_grid)
+    dp = BCI.deltaVector(pr)
+    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
+    mass = getfield(BCI,Symbol("mu"*name_list[species_index]))
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = location_p(pu,pl,nump,pmin)
-        pmax_index = location_p(pu,pl,nump,pmax)
-        umin_index = location_t(numt,umin)
-        umax_index = location_t(numt,umax)
+        pmin_index = location(pl,pu,p_num,pmin,p_grid)
+        pmax_index = location(pl,pu,p_num,pmax,p_grid)
+        umin_index = location(BCI.u_low,BCI.u_up,u_num,umin,u_grid)
+        umax_index = location(BCI.u_low,BCI.u_up,u_num,umax,u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -84,29 +86,31 @@ function Initial_PowerLaw(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,
 
     u0_2D_species = Float32.(u0_2D_species)
 
-    u0_species = reshape(u0_2D_species,nump*numt)
+    u0_species = reshape(u0_2D_species,p_num*u_num)
 
     return u0_species
 end
 
 function Initial_Constant(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32;mode="AXI") where T <: Union{Float32,Int64}
 
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
+    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
 
     species_index = findfirst(==(species),name_list)
-    u0_2D_species = zeros(Float32,nump_list[species_index],numt_list[species_index])
+    u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
 
-    pu = pu_list[species_index]
-    pl = pl_list[species_index]
-    nump = nump_list[species_index]
-    numt = numt_list[species_index]
+    pu = p_up_list[species_index]
+    pl = p_low_list[species_index]
+    p_grid = p_grid_list[species_index]
+    p_num = p_num_list[species_index]
+    u_grid = u_grid_list[species_index]
+    u_num = u_num_list[species_index]
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = location_p(pu,pl,nump,pmin)
-        pmax_index = location_p(pu,pl,nump,pmax)
-        umin_index = location_t(numt,umin)
-        umax_index = location_t(numt,umax)
+        pmin_index = BCI.location(pl,pu,p_num,pmin,p_grid)
+        pmax_index = BCI.location(pl,pu,p_num,pmax,p_grid)
+        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,umin,u_grid)
+        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,umax,u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -114,8 +118,8 @@ function Initial_Constant(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,
         umax_index = umax
     end
 
-    dp = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.prange(pl,pu,nump))
-    du = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.trange(numt))
+    dp = BCI.deltaVector(BCI.bounds(pl,pu,p_num,p_grid))
+    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
 
     # set values and normlaise to initial number density (in m^{-3})
     for i in pmin_index:pmax_index, j in umin_index:umax_index
@@ -133,10 +137,10 @@ function Initial_Constant(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,
     end
 
     if mode=="AXI"
-        u0_species = reshape(u0_2D_species,nump*numt)
+        u0_species = reshape(u0_2D_species,p_num*u_num)
     elseif mode=="ISO"
         # f(p) = 2*f(p,μ)
-        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / numt_list[species_index]
+        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
     end
 
     return u0_species
@@ -144,20 +148,22 @@ end
 
 function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;mode="AXI")
     
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list) = Lists
+    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
 
     species_index = findfirst(==(species),name_list)
-    pu = pu_list[species_index]
-    pl = pl_list[species_index]
-    nump = nump_list[species_index]
-    numt = numt_list[species_index]
+    pu = p_up_list[species_index]
+    pl = p_low_list[species_index]
+    p_grid = p_grid_list[species_index]
+    p_num = p_num_list[species_index]
+    u_num = u_num_list[species_index]
+    u_grid = u_grid_list[species_index]
 
-    u0_2D_species = zeros(Float64,nump_list[species_index],numt_list[species_index])
+    u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
 
-    meanp = BoltzmannCollisionIntegral.meanVector(BoltzmannCollisionIntegral.prange(pl,pu,nump))
-    dp = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.prange(pl,pu,nump))
-    du = BoltzmannCollisionIntegral.deltaVector(BoltzmannCollisionIntegral.trange(numt))
-    mass = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[species_index]))
+    meanp = BCI.meanVector(BCI.bounds(pl,pu,p_num,p_grid))
+    dp = BCI.deltaVector(BCI.bounds(pl,pu,p_num,p_grid))
+    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
+    mass = getfield(BCI,Symbol("mu"*name_list[species_index]))
 
     u0_2D_species .= MaxwellJuttner_Distribution(Float32.(meanp),T,Float32(mass))
     
@@ -173,24 +179,13 @@ function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;
     u0_2D_species = Float32.(u0_2D_species)
 
     if mode=="AXI"
-        u0_species = reshape(u0_2D_species,nump_list[species_index]*numt_list[species_index])
+        u0_species = reshape(u0_2D_species,p_num_list[species_index]*u_num_list[species_index])
     elseif mode=="ISO"
         # f(p) = 2*f(p,μ)
-        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / numt_list[species_index]
+        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
     end
 
     return u0_species
 
 end
 
-function location_p(u::Float32,l::Float32,num::Int64,val::Float32)
-    # function for generating poisition in array. Bins MUST be uniform, val in log10
-    logp = val
-    loc = logp != l ? ceil(Int64,Float32(num)*(logp-l)/(u-l)) : Int64(1) 
-    return 1 <= loc <= num ? loc : loc>num ? num+1 : 1 # assignes 1 for under, num+1 for over and loc for in range
-end
-
-function location_t(numt::Int64,val::Float64)
-    # function for generating poisition in array. Bins MUST be uniform
-    return val != tl ? ceil(Int64,Float64(numt)*(val-tl)/(tu-tl)) : Int64(1) 
-end

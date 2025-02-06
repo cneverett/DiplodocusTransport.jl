@@ -1,9 +1,9 @@
 module BoltzmannEquationSolver
 
-export Solver, InitialConditions, LoadMatrices
+export Solver, InitialConditions, LoadMatrices, Big_Matrices
 
 using JLD2
-using BoltzmannCollisionIntegral
+import BoltzmannCollisionIntegral as BCI
 using LinearAlgebra
 using CairoMakie
 using DifferentialEquations
@@ -19,6 +19,7 @@ using RecursiveArrayTools
 include("StructsAndDictionaries.jl")
 include("PhaseSpaceFactors.jl")
 include("MatrixResizing.jl")
+include("AllocateMatrices.jl")
 include("LoadMatrices.jl")
 include("DistributionFunctions.jl")
 include("DistributionMoments.jl")

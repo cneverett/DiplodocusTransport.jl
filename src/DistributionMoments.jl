@@ -1,23 +1,23 @@
 """
     FourFlow(u,dp,du,dE,du2)
 
-Returns the four-flow vector Ua 'vector{Float64}' from the flattened axysmmetric distribution function f1D.
+Returns the four-flow vector Ua 'vector{Float64}' from the flattened axisymmetric distribution function f1D.
 """
-function FourFlow(f1D::Vector{Float32},nump,numt,pr,ur,m)
+function FourFlow(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
 
-    f2D = zeros(Float64,nump,numt)
-    f2D = Float64.(reshape(f1D,(nump,numt)))
+    f2D = zeros(Float64,p_num,u_num)
+    f2D = Float64.(reshape(f1D,(p_num,u_num)))
 
-    du = zeros(Float64,numt)
-    du2 = zeros(Float64,numt)
-    dp = zeros(Float64,nump)
-    dE = BoltzmannCollisionIntegral.deltaEVector(pr,m)
+    du = zeros(Float64,u_num)
+    du2 = zeros(Float64,u_num)
+    dp = zeros(Float64,p_num)
+    dE = BCI.deltaEVector(pr,m)
 
-    for i in 1:numt
+    for i in 1:u_num
         du[i] = ur[i+1]-ur[i]
         du2[i] = (ur[i+1]^2-ur[i]^2)/2
     end
-    for i in 1:nump 
+    for i in 1:p_num 
         dp[i] = (pr[i+1]-pr[i])
     end
 
@@ -69,31 +69,31 @@ function ProjectionTensor(Ua::Vector{Float64})
 
 end
 
-function StressEnergyTensor(f1D::Vector{Float32},nump,numt,pr,ur,m)
+function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
 
-    f2D = zeros(Float64,nump,numt)
-    f2D = Float64.(reshape(f1D,(nump,numt)))
+    f2D = zeros(Float64,p_num,u_num)
+    f2D = Float64.(reshape(f1D,(p_num,u_num)))
 
-    dp = zeros(Float64,nump)
-    du = zeros(Float64,numt)
-    dp2 = zeros(Float64,nump)
-    du2 = zeros(Float64,numt)
-    du3 = zeros(Float64,numt)
-    duplusu3 = zeros(Float64,numt)
-    dpfunc = zeros(Float64,nump)
-    dE = BoltzmannCollisionIntegral.deltaEVector(pr,m)
+    dp = zeros(Float64,p_num)
+    du = zeros(Float64,u_num)
+    dp2 = zeros(Float64,p_num)
+    du2 = zeros(Float64,u_num)
+    du3 = zeros(Float64,u_num)
+    duplusu3 = zeros(Float64,u_num)
+    dpfunc = zeros(Float64,p_num)
+    dE = BCI.deltaEVector(pr,m)
 
     pr64 = Float64.(pr)
 
     Tab = zeros(Float64,4,4)
 
-    for i in 1:numt
+    for i in 1:u_num
         du[i] = ur[i+1]-ur[i]
         du2[i] = (ur[i+1]^2-ur[i]^2)/2
         du3[i] = (ur[i+1]^3-ur[i]^3)/3
         duplusu3[i] = ur[i+1]-ur[i] - (ur[i+1]^3-ur[i]^3)/3
     end
-    for i in 1:nump 
+    for i in 1:p_num 
         dp[i] = (pr[i+1]-pr[i])
         dp2[i] = (pr[i+1]^2-pr[i]^2)/2
         if m == 0e0
@@ -203,10 +203,10 @@ end
         ``` 
     where `dp` = ``\\Delta p_i`` is a vector of momentum intervals and `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals.
     """
-    function NumberDensity(u::Vector{Float32},nump,numt,dp::Vector{Float32},dμ::Vector{Float32};mode="AXI")
+    function NumberDensity(u::Vector{Float32},p_num,u_num,dp::Vector{Float32},dμ::Vector{Float32};mode="AXI")
 
         if mode=="AXI"
-            f = reshape(u,(nump,numt))
+            f = reshape(u,(p_num,u_num))
             # unscale by dp*dμ 
             #for i in axes(f,1), j in axes(f,2)
             #    f[i,j] /= dp[i] * dμ[j]
@@ -230,13 +230,13 @@ end
         ``` 
     where `dp` = ``\\Delta p_i`` is a vector of momentum intervals, `meanp` = ``\\braket{p}_i`` is a vector of the average momentum value per bin, `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
     """
-    function Momentum(u::Vector{Float32},nump,numt,dp::Vector{Float32},meanp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
+    function Momentum(u::Vector{Float32},p_num,u_num,dp::Vector{Float32},meanp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
 
         
         dpmeanp = dp .* meanp
         
         if mode=="AXI"
-            f = reshape(u,(nump,numt))
+            f = reshape(u,(p_num,u_num))
             #for i in axes(f,1), j in axes(f,2)
             #    f[i,j] /= dp[i] * dμ[j]
             #end
@@ -261,11 +261,11 @@ end
         ``` 
     where `ΔE` = ``\\Delta E_i`` is a vector of the average "energy" value per bin (has dimensions of momentum squared), `dμ` = ``\\Delta μ_j`` is a vector of cosine (momentum space) angle intervals, and `numberDensity` = ``n`` is the average number density calculated using the function [`numberDensity`](@ref).
     """
-    function Energy(u::Vector{Float32},nump,numt,ΔE::Vector{Float32},dp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
+    function Energy(u::Vector{Float32},p_num,u_num,ΔE::Vector{Float32},dp::Vector{Float32},dμ::Vector{Float32},numberDensity::Float32;mode="AXI")
 
 
         if mode=="AXI"
-            f = reshape(u,(nump,numt))
+            f = reshape(u,(p_num,u_num))
             for i in axes(f,1), j in axes(f,2)
                 f[i,j] /= dp[i] * dμ[j]
             end
