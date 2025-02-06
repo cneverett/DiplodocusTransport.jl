@@ -5,7 +5,7 @@ Returns a tuple of `Vector{Vector{Float32}}` of particle masses (normalised), an
 """
 function getGridValues(Lists)
 
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
 
     num_species = length(name_list);
     pr_list = Vector{Vector{Float32}}(undef,num_species);
@@ -18,13 +18,13 @@ function getGridValues(Lists)
     meanu_list = Vector{Vector{Float32}}(undef,num_species);
     mass_list = Vector{Float32}(undef,num_species);
     for i in eachindex(name_list)
-        mass_list[i] = getfield(BoltzmannCollisionIntegral,Symbol("mu"*name_list[i]));
-        pr_list[i] = BoltzmannCollisionIntegral.prange(pl_list[i],pu_list[i],nump_list[i]);
-        ur_list[i] = BoltzmannCollisionIntegral.trange(numt_list[i]);
-        dp_list[i] = BoltzmannCollisionIntegral.deltaVector(pr_list[i]);
-        du_list[i] = BoltzmannCollisionIntegral.deltaVector(ur_list[i]);    
-        meanp_list[i] = BoltzmannCollisionIntegral.meanVector(BoltzmannCollisionIntegral.prange(pl_list[i],pu_list[i],nump_list[i]));
-        meanu_list[i] = BoltzmannCollisionIntegral.meanVector(BoltzmannCollisionIntegral.trange(numt_list[i]));
+        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
+        pr_list[i] = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i]);
+        ur_list[i] = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i]);
+        dp_list[i] = BCI.deltaVector(pr_list[i]);
+        du_list[i] = BCI.deltaVector(ur_list[i]);    
+        meanp_list[i] = BCI.meanVector(pr_list[i]);
+        meanu_list[i] = BCI.meanVector(ur_list[i]);
     end
 
     return (mass_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list)
@@ -38,20 +38,20 @@ Returns a tuple of `Vector{Float32}` of initial number density, energy density, 
 """
 function getInitialScaling(sol,Lists,pr_list,ur_list,mass_list)
 
-    (name_list,nump_list,numt_list,pu_list,pl_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
 
     num_species = length(name_list);
     numInit_list = zeros(Float32,num_species);
     engInit_list = zeros(Float32,num_species);
     tempInit_list = zeros(Float32,num_species);
     for i in eachindex(name_list)
-        Na = FourFlow(sol.u[1].x[i],nump_list[i],numt_list[i],pr_list[i],ur_list[i],mass_list[i])
+        Na = FourFlow(sol.u[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
         #println(Na)
         Ua = HydroFourVelocity(Na)
         #println(Ua)
         Δab = ProjectionTensor(Ua)
         #println(Δab)
-        Tab = StressEnergyTensor(sol.u[1].x[i],nump_list[i],numt_list[i],pr_list[i],ur_list[i],mass_list[i])
+        Tab = StressEnergyTensor(sol.u[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
         #println(Tab)
 
         n = ScalarNumberDensity(Na,Ua)
