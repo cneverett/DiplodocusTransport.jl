@@ -1,8 +1,9 @@
-function Allocate_A_Binary(Lists)
+function Allocate_A_Binary(Lists::ListStruct)
 
     # allocates space for the BIG matrix A for all binary interactions
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    p_num_list = Lists.p_num_list
+    u_num_list = Lists.u_num_list
 
     n = sum(p_num_list.*u_num_list)
     m = n*n
@@ -26,11 +27,12 @@ function Allocate_A_Binary(Lists)
 
 end
 
-function Allocate_J_Binary(Lists)
+function Allocate_J_Binary(Lists::ListStruct)
 
     # allocates space for the BIG matrix A for all binary interactions
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    p_num_list = Lists.p_num_list
+    u_num_list = Lists.u_num_list
 
     n = sum(p_num_list.*u_num_list)
 
@@ -52,7 +54,11 @@ function Allocate_J_Binary(Lists)
 
 end
 
-function Fill_A_Binary!(A_Binary::Array{Float32},interaction::Vector{String},name_list,p_num_list,u_num_list;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+function Fill_A_Binary!(A_Binary::Array{Float32},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+
+    name_list = Lists.name_list
+    p_num_list = Lists.p_num_list
+    u_num_list = Lists.u_num_list
 
     # first find offsets of the different species in the big matrix A
 

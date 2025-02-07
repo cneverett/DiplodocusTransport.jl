@@ -1,10 +1,10 @@
-function Solver(f0,timespan,Lists,BigM::BigMatrices,dt; method=Euler() #= method=ImplicitEuler(autodiff=false) =#,save_dt=dt)
+function Solver(f0,timespan,Lists::ListStruct,BigM::BigMatrices,dt; method=Euler() #= method=ImplicitEuler(autodiff=false) =#,save_dt=dt)
 
     deriv_cpu = BoltzmannEquation(f0,Lists,BigM,dt);
 
     prob = ODEProblem(deriv_cpu,f0,timespan)
 
-    @time solution = solve(prob,method,tstops=timespan[1]:dt:timespan[2],saveat=save_dt, maxiters = 1e5,progress=true,progress_steps = round(timespan[2]/save_dt)#=, isoutofdomain = (u,p,t)->any(x->x<0,u)=#)
+    @time solution = solve(prob,method,dt=dt#= ,tstops=timespan[1]:dt:timespan[2] =#,saveat=save_dt, maxiters = 1e5,progress=true,progress_steps = round(timespan[2]/save_dt)#=, isoutofdomain = (u,p,t)->any(x->x<0,u)=#)
 
     return solution
 
@@ -18,7 +18,7 @@ function (g::BoltzmannEquation)(df,f,p,t)
     =#
 
     # limit u to be positive
-    @. f = f*(f>0f0)
+    @. f = f*(f>=0f0)
     fill!(df,Float32(0))
 
     # reset arrays
@@ -26,41 +26,47 @@ function (g::BoltzmannEquation)(df,f,p,t)
     fill!(g.J,Float32(0))
     
     # update changes due to Binary S and T interactions
-    if isempty(g.interaction_list_Binary) == false # no binary interactions to load
+    if isempty(g.Lists.interaction_list_Binary) == false # no binary interactions to load
     #    update_ΔSΔT_Binary!(g,Matrices_BinaryInteraction,f)
     #    @. df += g.ΔfS_list - g.ΔfT_list
-        update_Big_Binary!(g,g.BigM,f)
-        @. df = g.Δf
+        update_Big_Binary!(g,f)
+        #@. df = g.Δf
     end
 
-    if isempty(g.interaction_list_Emi) == false
-        update_ΔS_Sync!(g,Matrices_Synchrotron,f)
-        @. df += g.ΔfS_list
-    end
+    #if isempty(g.Lists.interaction_list_Emi) == false
+    #    update_ΔS_Sync!(g,Matrices_Synchrotron,f)
+    #    @. df += g.ΔfS_list
+    #end
 
     # explicit Stepping
-    #@. df = g.Δf
-
-    # implicit Stepping 
-    df .= (I-g.dt.*g.J)\g.Δf
-
-    # leapfrog in time 
-        if t==0
-            @. g.f1DR = f
+        @. df = g.Δf
+        if isapprox(t,0.0)
+            println(reshape(df.x[1],72,8)[30:72,:]')
         end
 
-        @. df *= 2
-        @. df += g.f1DR - f
-        # set f i-1 for next time step   
-        @. g.f1DR = f
+    # implicit Stepping 
+        #df .= (I-g.dt.*g.J)\g.Δf
+
+    # leapfrog in time 
+    #=     if isapprox(t,0.0) # explicit first step
+            @. df = g.Δf
+            println(reshape(df.x[1],72,8)[30:72,:]')
+        else
+            df .= (I-2*g.dt.*g.J)\(2*g.dt.*g.Δf .+ g.f1DR .- f)
+            @. df /= g.dt  
+        end
+        # set f i-1 for next time step 
+        @. g.f1DR = f =# 
+
+        
 
 
 end
 
-function update_Big_Binary!(g::BoltzmannEquation,BigM::BigMatrices,f)
+function update_Big_Binary!(g::BoltzmannEquation,f)
   
-    mul!(g.A_Binary_Reshape,BigM.A_Binary,f)
-    temp = reshape(g.A_Binary_Reshape,size(BigM.A_Binary,2),size(BigM.A_Binary,2))
+    mul!(g.A_Binary_Reshape,g.BigM.A_Binary,f)
+    temp = reshape(g.A_Binary_Reshape,size(g.BigM.A_Binary,2),size(g.BigM.A_Binary,2))
     g.J += 2*temp # assign jacobian elements
     mul!(g.Δf_temp,temp,f)
     g.Δf += g.Δf_temp 

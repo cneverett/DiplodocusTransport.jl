@@ -1,6 +1,8 @@
-function InitialConditions(Lists)
+function InitialConditions(Lists::ListStruct)
 
-    (name_list,p_num_list,u_num_list,p_up_list,p_low_list,interaction_list) = Lists
+    name_list = Lists.name_list
+    p_num_list = Lists.p_num_list
+    u_num_list = Lists.u_num_list
 
     num_species = length(name_list)
     f0_list2D = Vector{Array{Float32,2}}(undef,num_species)
@@ -36,9 +38,16 @@ end
 
 A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evalution at the cell bounds.
 """
-function Initial_PowerLaw(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
+function Initial_PowerLaw(Lists::ListStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
 
     species_index = findfirst(==(species),name_list)
     u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
@@ -91,9 +100,15 @@ function Initial_PowerLaw(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,
     return u0_species
 end
 
-function Initial_Constant(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32;mode="AXI") where T <: Union{Float32,Int64}
+function Initial_Constant(Lists::ListStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32;mode="AXI") where T <: Union{Float32,Int64}
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
 
     species_index = findfirst(==(species),name_list)
     u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
@@ -146,9 +161,15 @@ function Initial_Constant(Lists,species::String,pmin::T,pmax::T,umin::T,umax::T,
     return u0_species
 end
 
-function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;mode="AXI")
+function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_Init::Float32;mode="AXI")
     
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
 
     species_index = findfirst(==(species),name_list)
     pu = p_up_list[species_index]
@@ -167,7 +188,7 @@ function Initial_Temperature(Lists,species::String,T::Float32,num_Init::Float32;
 
     u0_2D_species .= MaxwellJuttner_Distribution(Float32.(meanp),T,Float32(mass))
     
-    # set values and normlaise to initial number density (in m^{-3})
+    # set values and normalise to initial number density (in m^{-3})
     num = dp' * u0_2D_species * du
     u0_2D_species *= num_Init/num
 

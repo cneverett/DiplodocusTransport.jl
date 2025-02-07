@@ -1,6 +1,13 @@
-function LoadMatrices_Binary(Matrices_BinaryInteraction::Dict{Vector{String},Tuple},DataDirectory::String,Lists::Tuple;mode="AXI")
+function LoadMatrices_Binary(Matrices_BinaryInteraction::Dict{Vector{String},Tuple},DataDirectory::String,Lists::ListStruct;mode="AXI")
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Emi) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
+    interaction_list_Binary = Lists.interaction_list_Binary
 
     if isempty(interaction_list_Binary) # no binary interactions to load
         return
@@ -218,9 +225,16 @@ function SCorrection!(SMatrix3::Array{T,6},SMatrix4::Array{T,6},TMatrix1::Array{
 end
 
 
-function LoadMatrices_Emi(Matrices_Synchrotron::Dict{Vector{String},Array{Float32,2}},DataDirectory::String,Lists::Tuple;mode="AXI")
+function LoadMatrices_Emi(Matrices_Synchrotron::Dict{Vector{String},Array{Float32,2}},DataDirectory::String,Lists::ListStruct;mode="AXI")
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Emi) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
+    interaction_list_Emi = Lists.interaction_list_Emi
 
     if isempty(interaction_list_Emi) # no sync interactions to load
         return
@@ -300,9 +314,16 @@ end
 
 #= ======================================================== =#
 
-function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,Lists::Tuple;mode="AXI")
+function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,Lists::ListStruct;mode="AXI")
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Emi) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
+    interaction_list_Binary = Lists.interaction_list_Binary
 
     if isempty(interaction_list_Binary) # no binary interactions to load
         return
@@ -413,7 +434,7 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,List
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],TMatrix1=matrices[2])
 
-            Fill_A_Binary!(BigM.A_Binary,interaction,name_list,p_num_list,u_num_list;SMatrix3=matrices[1],TMatrix1=matrices[2])
+            Fill_A_Binary!(BigM.A_Binary,interaction,Lists;SMatrix3=matrices[1],TMatrix1=matrices[2])
 
         end
     
@@ -427,7 +448,7 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,List
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
             
-            Fill_A_Binary!(BigM.A_Binary,interaction,name_list,p_num_list,u_num_list;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
+            Fill_A_Binary!(BigM.A_Binary,interaction,Lists;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
 
 
         end
@@ -442,7 +463,7 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,List
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
 
-            Fill_A_Binary!(BigM.A_Binary,interaction,name_list,p_num_list,u_num_list;SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
+            Fill_A_Binary!(BigM.A_Binary,interaction,Lists;SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
 
         end
     
@@ -451,7 +472,7 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,List
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
             
-            Fill_A_Binary!(BigM.A_Binary,interaction,name_list,p_num_list,u_num_list;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
+            Fill_A_Binary!(BigM.A_Binary,interaction,Lists;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
 
         end
 

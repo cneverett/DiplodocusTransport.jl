@@ -3,9 +3,15 @@
 
 Returns a tuple of `Vector{Vector{Float32}}` of particle masses (normalised), and momentum magnitude and angle cosine grid bounds, differences, and means for each particle species.
 """
-function getGridValues(Lists)
+function getGridValues(Lists::ListStruct)
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
 
     num_species = length(name_list);
     pr_list = Vector{Vector{Float32}}(undef,num_species);
@@ -36,9 +42,11 @@ end
 
 Returns a tuple of `Vector{Float32}` of initial number density, energy density, and temperature values for each particle species, given the output of a simulation `sol` and the input parameters `Lists`.    
 """
-function getInitialScaling(sol,Lists,pr_list,ur_list,mass_list)
+function getInitialScaling(sol,Lists::ListStruct,pr_list,ur_list,mass_list)
 
-    (name_list,p_up_list,p_low_list,p_grid_list,p_num_list,u_grid_list,u_num_list,interaction_list_Binary,interaction_list_Sync) = Lists
+    name_list = Lists.name_list
+    p_num_list = Lists.p_num_list
+    u_num_list = Lists.u_num_list
 
     num_species = length(name_list);
     numInit_list = zeros(Float32,num_species);
