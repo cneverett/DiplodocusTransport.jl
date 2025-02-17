@@ -53,13 +53,13 @@ function getInitialScaling(sol,Lists::ListStruct,pr_list,ur_list,mass_list)
     engInit_list = zeros(Float32,num_species);
     tempInit_list = zeros(Float32,num_species);
     for i in eachindex(name_list)
-        Na = FourFlow(sol.u[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
+        Na = FourFlow(sol.f[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
         #println(Na)
         Ua = HydroFourVelocity(Na)
         #println(Ua)
         Δab = ProjectionTensor(Ua)
         #println(Δab)
-        Tab = StressEnergyTensor(sol.u[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
+        Tab = StressEnergyTensor(sol.f[1].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
         #println(Tab)
 
         n = ScalarNumberDensity(Na,Ua)

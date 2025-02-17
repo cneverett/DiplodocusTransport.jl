@@ -45,7 +45,7 @@ function NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_lis
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num[j] = ScalarNumberDensity(Na,Ua)
 
@@ -82,7 +82,7 @@ function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num = ScalarNumberDensity(Na,Ua)
 
@@ -115,11 +115,11 @@ function EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_
     for i in eachindex(sol.t)
         for j in 1:num_species
 
-            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
             Ua = HydroFourVelocity(Na)
             num = ScalarNumberDensity(Na,Ua)
 
-            Tab = StressEnergyTensor(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Tab = StressEnergyTensor(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
 
             eng[j] = ScalarEnergyDensity(Tab,Ua,num)
 
@@ -176,7 +176,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
                 # integrate distribution over μ
                 if mode=="AXI"
                     dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
-                    dist .= reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
+                    dist .= reshape(sol.f[i].x[j],(p_num_list[j],u_num_list[j]))
                     # unscale by dp*du 
                     for k in axes(dist,1), l in axes(dist,2)
                         dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -191,7 +191,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
                     dist_p = sol.u[i].x[j] * 2
                 end
                 #stairs!(ax,log10.(meanp_list[j]),log10.(dist_p),color=my_colors[i],step=:center)
-                stairs!(ax,log10.(meanp_list[j]),log10.(abs.(dist_p)),color=my_colors[i],step=:center)
+                stairs!(ax,log10.(meanp_list[j]),sign.(dist_p).*(log10.(abs.(dist_p)).+45),color=my_colors[i],step=:center)
                 #println(dist_p)
                 #stairs!(ax,log10.(meanp_list[j]),log10.(abs.(dist_p)),colormap = (:viridis,sol.t[i]/sol.t[end]),colorrange = [1,num_species+1], color = j,step=:center)
                 
@@ -210,7 +210,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
         # integrate distribution over u
         if mode=="AXI"
             dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
-                dist .= reshape(sol.u[1].x[j],(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[1].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -236,7 +236,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
             #integrate distribution over μ
             if mode=="AXI"
                 dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
-                dist .= reshape(sol.u[end].x[j],(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[end].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -270,7 +270,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
     #line_points = log10.(meanp_list[2].^(-3/2))
     #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
 
-    ax.limits =((nothing,nothing),(-40,10)#= (min,max) =#)
+    ax.limits =((nothing,nothing),(-55,55)#= (min,max) =#)
 
     return fig
 end

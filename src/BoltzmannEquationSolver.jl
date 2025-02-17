@@ -1,6 +1,6 @@
 module BoltzmannEquationSolver
 
-export Solver, InitialConditions, LoadMatrices, Big_Matrices
+export Solver, InitialConditions, LoadMatrices, BigMatrices, SpaceTimeStruct, FluxMatricesCoordinate, FluxMatricesForce
 
 using JLD2
 import BoltzmannCollisionIntegral as BCI
@@ -15,7 +15,7 @@ using Bessels
 using Statistics
 using RecursiveArrayTools
 
-#include("Setup.jl")
+include("Types.jl")
 include("StructsAndDictionaries.jl")
 include("PhaseSpaceFactors.jl")
 include("MatrixResizing.jl")
@@ -25,6 +25,17 @@ include("DistributionFunctions.jl")
 include("DistributionMoments.jl")
 include("InitialConditions.jl")
 include("ValuesOnTheGrid.jl")
+
+# Fluxes
+include("Fluxes/FluxStructs.jl")
+include("Fluxes/FluxMatrices.jl")
+include("Fluxes/FluxFunctionsCoordinate.jl")
+
+# Stepping 
+include("SteppingStructs.jl")
+include("SteppingMethods.jl")
+
+# Solver
 include("Solver.jl")
 
 # post-processing

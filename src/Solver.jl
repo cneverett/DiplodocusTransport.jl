@@ -1,12 +1,62 @@
-function Solver(f0,timespan,Lists::ListStruct,BigM::BigMatrices,dt; method=Euler() #= method=ImplicitEuler(autodiff=false) =#,save_dt=dt)
+function Solver(f0,timespan,Lists::ListStruct,BigM::BigMatrices,dt;method=DifferentialEquations.Euler() #= method=ImplicitEuler(autodiff=false) =#,save_dt=dt)
 
     deriv_cpu = BoltzmannEquation(f0,Lists,BigM,dt);
 
     prob = ODEProblem(deriv_cpu,f0,timespan)
 
-    @time solution = solve(prob,method,dt=dt#= ,tstops=timespan[1]:dt:timespan[2] =#,saveat=save_dt, maxiters = 1e5,progress=true,progress_steps = round(timespan[2]/save_dt)#=, isoutofdomain = (u,p,t)->any(x->x<0,u)=#)
+    @time solution = solve(prob,method,tstops=timespan[1]:dt:timespan[2],saveat=save_dt, maxiters = 1e5,progress=true,progress_steps = round(timespan[2]/save_dt)#=, isoutofdomain = (u,p,t)->any(x->x<0,u)=#)
 
     return solution
+
+end
+
+function Solver(f0,timespan,Lists::ListStruct,SpaceTime::SpaceTimeStruct,BigM::BigMatrices,FluxMC::FluxMatricesCoordinate,FluxMF::FluxMatricesForce,Method::SteppingMethod,Implicit::Bool;save_steps::Int=1)
+
+    problem = Method(f0,Lists,SpaceTime,BigM,FluxMC,FluxMF,Implicit);
+
+    @time solution = solve(problem,progress=true,progress_steps = round(timespan[2]/save_dt)#=, isoutofdomain = (u,p,t)->any(x->x<0,u)=#)
+
+    return solution
+
+end 
+
+
+function Solve(f1D0::fType,scheme::SteppingMethod;save_steps::Int=1)
+
+    f0 = copy(f1D0)
+    #method = prob.method
+    t_low = method.SpaceTime.t_low
+    t_up = method.SpaceTime.t_up
+    dt = method.SpaceTime.dt
+
+    tsteps = t_low:dt:t_up
+    nsteps = length(tsteps)
+    nsave = round(Int64,nsteps/save_steps)+1
+
+    tmp = copy(f0)
+    dtmp = similar(f0)
+
+    t = t_low
+
+    output = SolutionOutput(f0,t,nsave)
+
+    # save initial state
+    output.f[1] = copy(tmp)
+    output.t[1] = t
+    save_count = 2
+
+    for i in 2:nsteps
+        t = tsteps[i]
+        method(dtmp,tmp,t,dt)
+        @. tmp += dtmp
+        if (i-1)%save_steps == 0
+            output.f[save_count] = copy(tmp)
+            output.t[save_count] = t
+            save_count += 1
+        end
+    end 
+
+    return output
 
 end
 
@@ -40,12 +90,9 @@ function (g::BoltzmannEquation)(df,f,p,t)
 
     # explicit Stepping
         @. df = g.Δf
-        if isapprox(t,0.0)
-            println(reshape(df.x[1],72,8)[30:72,:]')
-        end
 
     # implicit Stepping 
-        #df .= (I-g.dt.*g.J)\g.Δf
+        #df .= (I-g.dt*g.J)\g.Δf
 
     # leapfrog in time 
     #=     if isapprox(t,0.0) # explicit first step
@@ -57,9 +104,6 @@ function (g::BoltzmannEquation)(df,f,p,t)
         end
         # set f i-1 for next time step 
         @. g.f1DR = f =# 
-
-        
-
 
 end
 

@@ -17,6 +17,17 @@ struct ListStruct
 
 end
 
+struct SpaceTimeStruct
+
+    dimensions::Int64
+    spacetime_coordinates::CoordinateType
+    momentum_coordinates::CoordinateType
+    forces::Vector{ForceType}
+    t_up::Float32
+    t_low::Float32
+    dt::Float32
+
+end
 
 mutable struct BigMatrices <: Function
     
@@ -44,14 +55,15 @@ end
 
 mutable struct FluxMatrices <: Function
 
-    A_Flux::Array{Float32,2}
-    B_Flux::Array{Float32,2}
-    C_Flux::Array{Float32,2}
-    D_Flux::Array{Float32,2}
+    Ap_Flux::Array{Float32,3}
+    Am_Flux::Array{Float32,3}
+    B_Flux::Array{Float32,3}
+    C_Flux::Array{Float32,3}
+    D_Flux::Array{Float32,3}
 
-    I_Flux::Array{Float32,2}
-    J_Flux::Array{Float32,2}
-    K_Flux::Array{Float32,2}
+    I_Flux::Array{Float32,3}
+    J_Flux::Array{Float32,3}
+    K_Flux::Array{Float32,3}
 
 end
 
@@ -111,3 +123,19 @@ mutable struct BoltzmannEquation <: Function
 
 end
 
+mutable struct SolutionOutput
+    
+    f
+    t::Vector{Float32}
+
+    function SolutionOutput(f0::fType,t::Float32,n_save::Int64)
+
+        self = new()
+        self.f = Vector{typeof(f0)}(undef,n_save)
+        self.t = Vector{Float32}(undef,n_save)
+
+        return self
+    
+    end
+
+end
