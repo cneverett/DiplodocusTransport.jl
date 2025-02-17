@@ -5,7 +5,7 @@ export Solver, InitialConditions, LoadMatrices, BigMatrices, SpaceTimeStruct, Fl
 using JLD2
 import BoltzmannCollisionIntegral as BCI
 using LinearAlgebra
-using ProgressLogging
+using ProgressMeter
 #using LoopVectorization
 #using Tullio
 #using TensorOperations

@@ -20,15 +20,19 @@ function (g::Euler)(df::fType,f::fType,t,dt)
     if g.Implicit
         # TOFIX add fluxes inside mul!
         mul!(g.df,g.A_Binary_Mul,f)
-
-        fill!(g.Jac,0f0)
         @. g.Jac = 2*g.A_Binary_Mul
-
-        df .= (I-dt*g.J)\g.df
+        g.df .= (I-dt*g.Jac)\g.df
+        @. df = dt*g.df
+        
     else
         # TOFIX add fluxes inside mul!
-        mul!(g.df_temp,g.A_Binary_Mul,f)
-        @. df = dt*g.df_temp
+        #mul!(g.df,g.A_Binary_Mul,f)
+        #@. df = dt*g.df
+
+        # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
+        temp = (dt*2*pi/2) .* g.A_Binary_Mul .- (@view(g.FluxMC.Ap_Flux[1,:,:]) .+ @view(g.FluxMC.Am_Flux[1,:,:]))
+        mul!(g.df,(@view(g.FluxMC.Ap_Flux[1,:,:])\temp),f)
+        @. df = g.df
     end
 
 end
@@ -36,9 +40,9 @@ end
 function update_Big_Binary!(g::SteppingMethod,f)
 
     # Thanks to Emma Godden for solving this bug
-    #temp = reshape(g.A_Binary_Mul,size(g.A_Binary_Mul,1)*size(g.A_Binary_Mul,2))
-    #mul!(temp,g.BigM.A_Binary,f) # temp is linked to A_Binary_Mul so it gets edited while maintaining is 2D shape
-    mul!(reshape(g.A_Binary_Mul,size(g.A_Binary_Mul,1)*size(g.A_Binary_Mul,2)),g.BigM.A_Binary,f)
+    temp = reshape(g.A_Binary_Mul,size(g.A_Binary_Mul,1)*size(g.A_Binary_Mul,2))
+    mul!(temp,g.BigM.A_Binary,f) # temp is linked to A_Binary_Mul so it gets edited while maintaining is 2D shape
+    #mul!(reshape(g.A_Binary_Mul,size(g.A_Binary_Mul,1)*size(g.A_Binary_Mul,2)),g.BigM.A_Binary,f)
 
     # below done in stepping method
     #if g.Implicit

@@ -1,7 +1,6 @@
-function Solve(f1D0::fType,scheme::SteppingMethod;save_steps::Int=1)
+function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=false)
 
     f0 = copy(f1D0)
-    #method = prob.method
     t_low = method.SpaceTime.t_low
     t_up = method.SpaceTime.t_up
     dt = method.SpaceTime.dt
@@ -22,6 +21,11 @@ function Solve(f1D0::fType,scheme::SteppingMethod;save_steps::Int=1)
     output.t[1] = t
     save_count = 2
 
+    # progress bar
+    if progress
+        p = Progress(nsteps-1)
+    end
+
     for i in 2:nsteps
         t = tsteps[i]
         method(dtmp,tmp,t,dt)
@@ -31,7 +35,13 @@ function Solve(f1D0::fType,scheme::SteppingMethod;save_steps::Int=1)
             output.t[save_count] = t
             save_count += 1
         end
-    end 
+        if progress
+            next!(p)
+        end
+    end
+    if progress
+        finish!(p)
+    end
 
     return output
 

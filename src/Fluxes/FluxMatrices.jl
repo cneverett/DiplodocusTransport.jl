@@ -114,6 +114,10 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::Lis
                 A_minus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,mass)
                 Ap_Flux[j,a,b] += A_plus
                 Am_Flux[j,a,b] -= A_minus
+
+                # normalisation
+                Ap_Flux[j,a,b] /= (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                Am_Flux[j,a,b] /= (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
             end
         end
     end
