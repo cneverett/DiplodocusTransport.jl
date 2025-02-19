@@ -1,7 +1,7 @@
 function (g::Euler)(df::fType,f::fType,t,dt)
 
-    # limit u to be positive
-    @. f = f*(f>=0f0)
+    # limit u to be positive, now done in solver
+    #@. f = f*(f>=0f0)
     fill!(df,Float32(0))
 
     # reset arrays
@@ -31,7 +31,6 @@ function (g::Euler)(df::fType,f::fType,t,dt)
 
         # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
         temp = (dt*2*pi/2) .* g.A_Binary_Mul .- (@view(g.FluxM.Ap_Flux[1,:,:]) .+ @view(g.FluxM.Am_Flux[1,:,:])) .+ @view(g.FluxM.K_Flux[1,:,:]) .+ @view(g.FluxM.J_Flux[1,:,:]) .+  @view(g.FluxM.I_Flux[1,:,:])
-        println(sum(temp))
         mul!(g.df,(@view(g.FluxM.Ap_Flux[1,:,:])\temp),f)
         @. df = g.df
     end

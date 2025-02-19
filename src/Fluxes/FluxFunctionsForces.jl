@@ -47,8 +47,10 @@ function JFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
     if m == 0 || Z == 0
         flux = 0f0
     else
-        flux = -(Z^4*q^4*μ0*B^2)/(48*pi^2*m^2*mEle^2) * (t0 - t1) * (-u + u^3) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2)/(m^2 * (p064 + sqrt(m^2 + p064^2))))
-        flux /= getfield(BCI,Symbol("σT"))*getfield(BCI,Symbol("c"))
+        flux = -(Z^4*q^4*μ0*B^2)/(48*pi^2*m^2*mEle^2)
+        flux /= (getfield(BCI,Symbol("σT"))*getfield(BCI,Symbol("c")))
+        flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) 
+        flux *= (-u + u^3) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2)/(m^2 * (p064 + sqrt(m^2 + p064^2))))
     end
 
     return Float32(flux)

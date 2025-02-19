@@ -357,7 +357,7 @@ function puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_
             my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
             for j in 1:num_species
                 dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
-                dist .= reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[i].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]

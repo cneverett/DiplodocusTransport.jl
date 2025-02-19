@@ -148,6 +148,8 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
 
     phi0 = 0f0
     phi1 = Float32(2*pi)
+
+    tmp = 0f0
     
     for i in 1:length(name_list)
         off = offset[i]
@@ -171,12 +173,12 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                     I_minus += IFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],u_r[l],u_r[l+1],phi0,phi1,name)
                 end
 
-                # outflow momentum boundaries
-                if bp > n_mom
-                    bp = n_mom
+                # outflow momentum boundaries These may not be correct
+                if bp > (l)*p_num_list[i]+off
+                    bp = (l)*p_num_list[i]+off
                 end
-                if bm < 1
-                    bm = 1
+                if bm < (l-1)*p_num_list[i]+1+off
+                    bm = (l-1)*p_num_list[i]+1+off
                 end
                 
                 #=
@@ -186,10 +188,21 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                     b-1        b        b+1  
                 =#
 
-                I_Flux[j,a,bp] += I_plus
-                I_Flux[j,a,bm] -= I_minus
-                I_Flux[j,a,b] -= I_plus
-                I_Flux[j,a,b] += I_minus
+                if b != bp
+                    I_Flux[j,a,bp] += I_plus
+                    I_Flux[j,a,b] -= I_plus
+                    tmp += I_Flux[j,a,bp]
+                end
+                if b != bm
+                    I_Flux[j,a,bm] -= I_minus
+                    I_Flux[j,a,b] += I_minus
+                    tmp += I_Flux[j,a,bm]
+                end
+                tmp += I_Flux[j,a,b]
+
+                if tmp != 0f0
+                    error("I_Flux not conservative")
+                end
             end
         end
     end
@@ -231,6 +244,8 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
 
     phi0 = 0f0
     phi1 = Float32(2*pi)
+
+    tmp = 0f0
     
     for i in 1:length(name_list)
         off = offset[i]
@@ -243,31 +258,40 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
-                bp = b+1
-                bm = b-1
+                bp = b+1*p_num_list[i]
+                bm = b-1*p_num_list[i]
 
                 J_plus = 0f0
                 J_minus = 0f0
 
                 for f in 1:length(forces)
                     J_plus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,name)
-                    J_minus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,name)
+                    J_minus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],phi0,phi1,name)
                 end
 
                 # Boundary conditions
-                if bp > n_mom
-                    J_Flux[j,a,1] += J_plus
-                else
-                    J_Flux[j,a,bp] += J_plus
+                if bp > k+off+p_num_list[i]*(u_num_list[i]-1)
+                    bp = k+off
                 end
-                if bm < 1
-                    J_Flux[j,a,n_mom] -= J_minus
-                else
-                    J_Flux[j,a,bm] -= J_minus
+                if bm < k+off
+                    bm = (u_num_list[i]-1)*p_num_list[i]+k+off
                 end
 
-                J_Flux[j,a,b] -= J_plus
-                J_Flux[j,a,b] += J_minus
+                if b != bp
+                    J_Flux[j,a,bp] += J_plus
+                    J_Flux[j,a,b] -= J_plus
+                    tmp += J_Flux[j,a,bp]
+                end
+                if b != bm
+                    J_Flux[j,a,bm] -= J_minus
+                    J_Flux[j,a,b] += J_minus
+                    tmp += J_Flux[j,a,bm]
+                end
+                tmp += J_Flux[j,a,b]
+
+                if tmp != 0f0
+                    error("J_Flux not conservative")
+                end
             end
         end
     end

@@ -27,14 +27,22 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
     end
 
     for i in 2:nsteps
+
         t = tsteps[i]
+
         method(dtmp,tmp,t,dt)
         @. tmp += dtmp
+
+        # removing values less than 0f0
+        @. tmp = tmp*(tmp>=0f0)
+
+        # saving state
         if (i-1)%save_steps == 0
             output.f[save_count] = copy(tmp)
             output.t[save_count] = t
             save_count += 1
         end
+        
         if progress
             next!(p)
         end
