@@ -6,8 +6,7 @@ mutable struct Euler <: SteppingMethod
 
     Lists::ListStruct
     BigM::BigMatrices
-    FluxMC::FluxMatricesCoordinate
-    FluxMF::FluxMatricesForce
+    FluxM::FluxMatrices
     SpaceTime::SpaceTimeStruct
 
     Implicit::Bool
@@ -17,14 +16,13 @@ mutable struct Euler <: SteppingMethod
     df::fType                       # change in distribution function
     df_temp::fType                  # change in distribution function
 
-    function Euler(f0,Lists::ListStruct,SpaceTime::SpaceTimeStruct,Big_Matrices::BigMatrices,Flux_Matrices_Coord::FluxMatricesCoordinate,Flux_Matrices_Force::FluxMatricesForce,Implicit::Bool)
+    function Euler(f0,Lists::ListStruct,SpaceTime::SpaceTimeStruct,Big_Matrices::BigMatrices,Flux_Matrices::FluxMatrices,Implicit::Bool)
 
         self = new()
 
         self.Lists = Lists
         self.BigM = Big_Matrices
-        self.FluxMC = Flux_Matrices_Coord
-        self.FluxMF = Flux_Matrices_Force
+        self.FluxM = Flux_Matrices
         self.SpaceTime = SpaceTime
 
         self.Implicit = Implicit  

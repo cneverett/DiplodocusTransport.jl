@@ -1,4 +1,4 @@
-function Allocate_Flux_Coordinate(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Allocate_Flux(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     p_num_list = Lists.p_num_list
     u_num_list = Lists.u_num_list
@@ -18,7 +18,7 @@ function Allocate_Flux_Coordinate(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
 end
 
-function Allocate_Flux_Force(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+#= function Allocate_Flux_Force(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     p_num_list = Lists.p_num_list
     u_num_list = Lists.u_num_list
@@ -33,9 +33,9 @@ function Allocate_Flux_Force(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     return (I_Flux,J_Flux,K_Flux)
 
-end
+end =#
 
-function Build_Flux_Coordinate(FluxM::FluxMatricesCoordinate,Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Build_Flux(FluxM::FluxMatrices,Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     # ensure empty to begin
     fill!(FluxM.Ap_Flux,0f0)
@@ -52,12 +52,6 @@ function Build_Flux_Coordinate(FluxM::FluxMatricesCoordinate,Lists::ListStruct,S
 
 end
 
-
-function Build_Flux_Force(FluxMatrices::FluxMatricesForce,Lists::ListStruct,SpaceTime::SpaceTimeStruct)
-
-end
-
-
 function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     spacetime_coords = SpaceTime.spacetime_coordinates
@@ -70,11 +64,6 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::Lis
     p_up_list = Lists.p_up_list
     p_grid_list = Lists.p_grid_list
     u_grid_list = Lists.u_grid_list
-
-    mass_list = Vector{Float32}(undef,length(name_list))
-    for i in eachindex(name_list)
-        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
-    end
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
@@ -100,7 +89,7 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::Lis
     
     for i in 1:length(name_list)
         off = offset[i]
-        mass = mass_list[i]
+        name = name_list[i]
         p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
         u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
 
@@ -110,8 +99,8 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::Lis
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
 
-                A_plus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,mass)
-                A_minus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,mass)
+                A_plus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
+                A_minus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
                 Ap_Flux[j,a,b] += A_plus
                 Am_Flux[j,a,b] -= A_minus
 
@@ -136,10 +125,7 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     p_grid_list = Lists.p_grid_list
     u_grid_list = Lists.u_grid_list
 
-    mass_list = Vector{Float32}(undef,length(name_list))
-    for i in eachindex(name_list)
-        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
-    end
+    forces = SpaceTime.forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
@@ -165,20 +151,25 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     
     for i in 1:length(name_list)
         off = offset[i]
-        mass = mass_list[i]
+        name = name_list[i]
         p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
         u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
 
         for j in 1:n_st
-            for k in 1:length(p_num_list[i]), l in 1:length(u_num_list[i])
+            for k in 1:p_num_list[i], l in 1:u_num_list[i]
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
-                bp = (l-1)*p_num_list[i]+(k+1)+off
-                bm = (l-1)*p_num_list[i]+(k-1)+off
+                bp = b+1
+                bm = b-1
 
-                I_plus = IFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,mass)
-                I_minus = IFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],u_r[l],u_r[l+1],phi0,phi1,mass)
+                I_plus = 0f0
+                I_minus = 0f0
+
+                for f in 1:length(forces)
+                    I_plus += IFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
+                    I_minus += IFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],u_r[l],u_r[l+1],phi0,phi1,name)
+                end
 
                 # outflow momentum boundaries
                 if bp > n_mom
@@ -187,11 +178,18 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                 if bm < 1
                     bm = 1
                 end
+                
+                #=
+                ________________________________
+                a |  -I_m  | I_m-I_p | I_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
 
                 I_Flux[j,a,bp] += I_plus
                 I_Flux[j,a,bm] -= I_minus
-                I_Flux[j,a,b] += I_plus
-                I_Flux[j,a,b] -= I_minus
+                I_Flux[j,a,b] -= I_plus
+                I_Flux[j,a,b] += I_minus
             end
         end
     end
@@ -210,10 +208,7 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     p_grid_list = Lists.p_grid_list
     u_grid_list = Lists.u_grid_list
 
-    mass_list = Vector{Float32}(undef,length(name_list))
-    for i in eachindex(name_list)
-        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
-    end
+    forces = SpaceTime.forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
@@ -239,33 +234,40 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     
     for i in 1:length(name_list)
         off = offset[i]
-        mass = mass_list[i]
+        name = name_list[i]
         p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
         u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
 
         for j in 1:n_st
-            for k in 1:length(p_num_list[i]), l in 1:length(u_num_list[i])
+            for k in 1:p_num_list[i], l in 1:u_num_list[i]
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
-                bp = (l-1+1)*p_num_list[i]+k+off
-                bm = (l-1-1)*p_num_list[i]+k+off
+                bp = b+1
+                bm = b-1
 
-                J_plus = JFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,mass)
-                J_minus = JFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,mass)
+                J_plus = 0f0
+                J_minus = 0f0
 
-                # outflow momentum boundaries
+                for f in 1:length(forces)
+                    J_plus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,name)
+                    J_minus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,name)
+                end
+
+                # Boundary conditions
                 if bp > n_mom
-                    bp = n_mom
+                    J_Flux[j,a,1] += J_plus
+                else
+                    J_Flux[j,a,bp] += J_plus
                 end
                 if bm < 1
-                    bm = 1
+                    J_Flux[j,a,n_mom] -= J_minus
+                else
+                    J_Flux[j,a,bm] -= J_minus
                 end
 
-                J_Flux[j,a,bp] += J_plus
-                J_Flux[j,a,bm] -= J_minus
-                J_Flux[j,a,b] += J_plus
-                J_Flux[j,a,b] -= J_minus
+                J_Flux[j,a,b] -= J_plus
+                J_Flux[j,a,b] += J_minus
             end
         end
     end
@@ -284,10 +286,7 @@ function Fill_K_Flux!(K_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     p_grid_list = Lists.p_grid_list
     u_grid_list = Lists.u_grid_list
 
-    mass_list = Vector{Float32}(undef,length(name_list))
-    for i in eachindex(name_list)
-        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
-    end
+    forces = SpaceTime.forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
@@ -313,18 +312,23 @@ function Fill_K_Flux!(K_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
     
     for i in 1:length(name_list)
         off = offset[i]
-        mass = mass_list[i]
+        name = name_list[i]
         p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
         u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
 
         for j in 1:n_st
-            for k in 1:length(p_num_list[i]), l in 1:length(u_num_list[i])
+            for k in 1:p_num_list[i], l in 1:u_num_list[i]
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
 
-                K_plus = KFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi1,mass)
-                K_minus = KFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,mass)
+                K_plus = 0f0
+                K_minus = 0f0
+
+                for f in 1:length(forces)
+                    K_plus += KFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi1,name)
+                    K_minus += KFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,name)
+                end
 
                 K_Flux[j,a,b] += K_plus
                 K_Flux[j,a,b] -= K_minus

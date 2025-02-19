@@ -30,8 +30,9 @@ function (g::Euler)(df::fType,f::fType,t,dt)
         #@. df = dt*g.df
 
         # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
-        temp = (dt*2*pi/2) .* g.A_Binary_Mul .- (@view(g.FluxMC.Ap_Flux[1,:,:]) .+ @view(g.FluxMC.Am_Flux[1,:,:]))
-        mul!(g.df,(@view(g.FluxMC.Ap_Flux[1,:,:])\temp),f)
+        temp = (dt*2*pi/2) .* g.A_Binary_Mul .- (@view(g.FluxM.Ap_Flux[1,:,:]) .+ @view(g.FluxM.Am_Flux[1,:,:])) .+ @view(g.FluxM.K_Flux[1,:,:]) .+ @view(g.FluxM.J_Flux[1,:,:]) .+  @view(g.FluxM.I_Flux[1,:,:])
+        println(sum(temp))
+        mul!(g.df,(@view(g.FluxM.Ap_Flux[1,:,:])\temp),f)
         @. df = g.df
     end
 

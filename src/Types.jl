@@ -11,7 +11,8 @@ struct Spherical <: SphericalType end
 abstract type CylindricalType <: CoordinateType end
 struct Cylindrical <: CylindricalType end
 # ForceType definitions
-abstract type Cylindrical_RicciType <: ForceType end
-struct Cylindrical_Ricci <: Cylindrical_RicciType end
-abstract type SynchrotronRadReactType <: ForceType end
-struct SynchrotronRadReact <: SynchrotronRadReactType end
+abstract type CoordinateForceType <: ForceType end
+struct CoordinateForce <: CoordinateForceType end
+
+abstract type SyncRadReactType <: ForceType end
+struct SyncRadReact <: SyncRadReactType end

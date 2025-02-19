@@ -55,16 +55,22 @@ end
 
 mutable struct FluxMatrices <: Function
 
-    Ap_Flux::Array{Float32,3}
-    Am_Flux::Array{Float32,3}
-    B_Flux::Array{Float32,3}
-    C_Flux::Array{Float32,3}
-    D_Flux::Array{Float32,3}
+    Ap_Flux::Array{Float32}
+    Am_Flux::Array{Float32}
+    I_Flux::Array{Float32}
+    J_Flux::Array{Float32}
+    K_Flux::Array{Float32}
 
-    I_Flux::Array{Float32,3}
-    J_Flux::Array{Float32,3}
-    K_Flux::Array{Float32,3}
+    function FluxMatrices(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+        self = new()
 
+        (self.Ap_Flux,self.Am_Flux,self.I_Flux,self.J_Flux,self.K_Flux) = Allocate_Flux(Lists,SpaceTime)
+
+        Build_Flux(self,Lists,SpaceTime)
+
+        return self
+
+    end
 end
 
 
