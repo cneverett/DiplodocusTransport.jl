@@ -5,8 +5,8 @@ figure_theme = Theme(backgroundcolor=(:black,0),
         fontsize = 20.0f0),
     Axis = (backgroundcolor=(:black,0),
         titlesize = 20.0f0,
-        xlabelsize = 16.0f0,
-        ylabelsize = 16.0f0,
+        xlabelsize = 20.0f0,
+        ylabelsize = 20.0f0,
         titlecolor=:white,
         ylabelcolor=:white,
         xlabelcolor=:white,
@@ -29,7 +29,7 @@ figure_theme = Theme(backgroundcolor=(:black,0),
         ),
     )
 set_theme!(merge(theme_latexfonts(),figure_theme))
-
+set_theme!()
 
 """
     FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
@@ -609,7 +609,8 @@ Returns a collation of figures for analysing the output of the simulation.
 """
 function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,filename)
 
-    fig = Figure(size=(1000,1000))
+    fig = Figure(size=(500*(num_species+1),1000))
+    #fig = Figure()
 
     # layout setup
     grid = fig[1,1] = GridLayout()
@@ -622,7 +623,7 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
     gce = grid[1,1][2,1:2] = GridLayout()
     #gcd = grid[1,1][3,1:2] = GridLayout()
 
-    gl = grid[3:2+num_species,3] = GridLayout()
+    gl = grid[3:2+num_species,2:3] = GridLayout()
 
     # colors for particles
     my_colors = [cgrad(:roma)[z] for z ∈ range(0.0, 1.0, length = num_species+1)]
@@ -650,19 +651,18 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
         # nice labels on heatmaps
         for (i, label) in enumerate(name_list)
             if i == 1
-            Box(grid[2,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),cornerradius = (10,10,0,0),tellheight=false,width=56)
-            Label(grid[2,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=20)
+            Box(grid[2,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),cornerradius = (10,10,0,0),tellheight=false,width=50)
+            Label(grid[2,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=24)
             else
-            Box(gpu[i,2], color = (my_colors[i],0.5))
-            Label(gpu[i,2], label, rotation = pi/2, tellheight = false)
+            Box(grid[i+1,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),cornerradius = (10,10,0,0),tellheight=false,width=56)
+            Label(grid[i+1,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=20)
             end
         end
 
         # col and row gaps
         colgap!(grid,1,20)
         rowgap!(gc,1,10)
-        rowgap!(grid,1,20)
-        colgap!(grid,3,-56)
+        colgap!(grid,3,-53)
         
         # set up non mutating axes 
         for j in 1:num_species
@@ -726,7 +726,10 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
                 replace!(dpu,-Inf32=>NaN)
 
                 if j == 1
-                    heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
+                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
+
+                    Colorbar(gl[1,1:2],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0))
+
                 elseif j == num_species || num_species == 1
                     ax2, hm = heatmap!(gpu[1,1][j-1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
                     ax2.xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$"
@@ -759,9 +762,6 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
                 end
 
                 autolimits!(axe)
-
-            #Colorbar(gpu[1,1][1:num_species],hm)
-
 
         end
 
