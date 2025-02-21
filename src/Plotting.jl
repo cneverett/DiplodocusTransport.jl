@@ -1,3 +1,36 @@
+
+figure_theme = Theme(backgroundcolor=(:black,0),
+    Figure = (backgroundcolor=(:black,0),
+        size=(600,600),
+        fontsize = 20.0f0),
+    Axis = (backgroundcolor=(:black,0),
+        titlesize = 20.0f0,
+        xlabelsize = 16.0f0,
+        ylabelsize = 16.0f0,
+        titlecolor=:white,
+        ylabelcolor=:white,
+        xlabelcolor=:white,
+        bottomspinecolor=RGBAf(200, 200, 200, 1.0),
+        leftspinecolor=RGBAf(200, 200, 200, 1.0),
+        rightspinecolor=RGBAf(200, 200, 200, 1.0),
+        topspinecolor=RGBAf(200, 200, 200, 1.0),
+        xgridcolor=RGBAf(100, 100, 100, 0.5),
+        ygridcolor=RGBAf(100, 100, 100, 0.5),
+        xgridwidth=0.5,
+        ygridwidth=0.5,
+        xminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        yminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        xminorgridwidth=0.5,
+        yminorgridwidth=0.5,
+        xtickcolor=RGBAf(200, 200, 200, 1.0),
+        ytickcolor=RGBAf(200, 200, 200, 1.0),
+        xticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        yticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        ),
+    )
+set_theme!(merge(theme_latexfonts(),figure_theme))
+
+
 """
     FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
 
@@ -526,33 +559,214 @@ function uDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanμ_list,d
     
 end
 
-figure_theme = Theme(backgroundcolor=(:black,0),
-    Figure = (backgroundcolor=(:black,0),
-        size=(600,600),
-        fontsize = 20.0f0),
-    Axis = (backgroundcolor=(:black,0),
-        titlesize = 20.0f0,
-        xlabelsize = 16.0f0,
-        ylabelsize = 16.0f0,
-        titlecolor=:white,
-        ylabelcolor=:white,
-        xlabelcolor=:white,
-        bottomspinecolor=RGBAf(200, 200, 200, 1.0),
-        leftspinecolor=RGBAf(200, 200, 200, 1.0),
-        rightspinecolor=RGBAf(200, 200, 200, 1.0),
-        topspinecolor=RGBAf(200, 200, 200, 1.0),
-        xgridcolor=RGBAf(100, 100, 100, 0.5),
-        ygridcolor=RGBAf(100, 100, 100, 0.5),
-        xgridwidth=0.5,
-        ygridwidth=0.5,
-        xminorgridcolor=RGBAf(100, 100, 100, 0.5),
-        yminorgridcolor=RGBAf(100, 100, 100, 0.5),
-        xminorgridwidth=0.5,
-        yminorgridwidth=0.5,
-        xtickcolor=RGBAf(200, 200, 200, 1.0),
-        ytickcolor=RGBAf(200, 200, 200, 1.0),
-        xticklabelcolor=RGBAf(200, 200, 200, 1.0),
-        yticklabelcolor=RGBAf(200, 200, 200, 1.0),
-        ),
-    )
-set_theme!(merge(theme_latexfonts(),figure_theme))
+
+"""
+    puDistributionPlot_AllSpecies_heatmap(sol,num_species,meanμ_list,meanp_list,p_num_list,u_num_list,outfreq;fig=nothing)
+
+Returns a plot of the u distribution as a function of p of each species as a function of time.
+"""
+function puDistributionPlot_AllSpecies_heatmap(sol,t_int,num_species,dp_list,du_list,p_num_list,u_num_list,pr_list,ur_list;fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        #ax = Axis(fig[1,1],title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"Angle Cosine",limits=((-5,4),(-1,1)))
+    else
+        ax = Axis(fig,title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"$ $Angle Cosine $ $",limits=((-5,4),(-1,1)))
+    end
+
+
+    for j in 1:num_species
+
+        ax  = Axis(fig[j,1])
+        if j == 1
+            ax.title = "p-Distribution,   t=$time"
+        end
+        dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+        dist .= reshape(sol.f[t_int].x[j],(p_num_list[j],u_num_list[j]))
+        # unscale by dp*du 
+        for k in axes(dist,1), l in axes(dist,2)
+            dist[k,l] /= dp_list[j][k] * du_list[j][l]
+        end
+
+        dist = log10.(dist)
+        replace!(dist,-Inf32=>NaN)
+
+    cmap = cgrad(:viridis,scale=:log10)
+    hm = heatmap!(ax,log10.(pr_list[j]),ur_list[j],dist, colormap = cmap)
+
+    Colorbar(fig[1:num_species,2],hm)
+
+    end
+
+    return fig
+end
+
+
+"""
+    AllPlots(sol,num_species,dp_list,du_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt)
+
+Returns a collation of figures for analysing the output of the simulation.
+"""
+function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,filename)
+
+    fig = Figure(size=(1000,1000))
+
+    # layout setup
+    grid = fig[1,1] = GridLayout()
+    gp = grid[1,2:3] = GridLayout()
+    gu = grid[2,1] = GridLayout()
+    gpu1 = grid[2,2:3] = GridLayout()
+    gpu = grid[2:1+num_species,2:3] = GridLayout()
+    gc = grid[1,1] = GridLayout()
+    gcn = grid[1,1][1,1:2] = GridLayout()
+    gce = grid[1,1][2,1:2] = GridLayout()
+    #gcd = grid[1,1][3,1:2] = GridLayout()
+
+    gl = grid[3:2+num_species,3] = GridLayout()
+
+    # colors for particles
+    my_colors = [cgrad(:roma)[z] for z ∈ range(0.0, 1.0, length = num_species+1)]
+    # colors for heatmaps
+    cmap = cgrad(:inferno,scale=:log10)
+
+    # set up axes
+        # u averaged distribution plot
+        #,limits=((nothing,nothing),(-45,20))
+        axp = Axis(gp[1,1],ylabel=L"$\log_{10}f(p)$",yaxisposition = :right,xticklabelsvisible = false,xticksvisible=false)
+        # p averaged distribution plot
+        axu = Axis(gu[1,1],xlabel=L"$\left(f(u)- \overline{f(u)}\right)/ \overline{f(u)}$",ylabel = L"$u$")
+        # number density plot
+        axn = Axis(gcn[1,1],ylabel=L"$\Delta n /n$",xticklabelsvisible = false,xticksvisible=false)
+        # energy density plot
+        axe = Axis(gce[1,1],ylabel=L"$\log_{10}(e)$",xticklabelsvisible = false,xticksvisible=false)
+
+        ax1 = Axis(gpu1[1,1])
+        ax1.ylabel= L"$u$"
+        ax1.limits = ((-5,4),(-1,1))
+        if num_species == 1
+            ax1.xlabel=L"$\log_{10}(p)$  $[m_\text{Ele}c]$"
+        end
+
+        # nice labels on heatmaps
+        for (i, label) in enumerate(name_list)
+            if i == 1
+            Box(grid[2,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),cornerradius = (10,10,0,0),tellheight=false,width=56)
+            Label(grid[2,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=20)
+            else
+            Box(gpu[i,2], color = (my_colors[i],0.5))
+            Label(gpu[i,2], label, rotation = pi/2, tellheight = false)
+            end
+        end
+
+        # col and row gaps
+        colgap!(grid,1,20)
+        rowgap!(gc,1,10)
+        rowgap!(grid,1,20)
+        colgap!(grid,3,-56)
+        
+        # set up non mutating axes 
+        for j in 1:num_species
+            if j == 1
+                d_null = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                fill!(d_null,NaN)
+                hm = heatmap!(ax1,log10.(pr_list[j]),ur_list[j],d_null, colormap = cmap) 
+                
+                hideydecorations!(ax1,grid=false)
+            end
+            if j == num_species && num_species != 1
+                ax2, hm = heatmap(gpu[1,1][j,1],log10.(pr_list[j]),ur_list[j],zeros(Float32,(p_num_list[j],u_num_list[j])), colormap = cmap)
+                ax2.xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$"
+            end
+            if j != 1 && j != num_species
+                ax3, hm = heatmap(gpu[1,1][j,1],log10.(pr_list[j]),ur_list[j],zeros(Float32,(p_num_list[j],u_num_list[j])), colormap = cmap)
+            end
+        end
+
+        linkxaxes!(ax1,axp) 
+        linkyaxes!(ax1,axu)
+
+        # temporary arrays
+        num = zeros(Float32,num_species)
+        num0 = zeros(Float32,num_species)
+        eng = zeros(Float32,num_species)
+
+    # animation settings
+    #nframes = 100 #length(sol.t)
+    #framerate = 5
+    #itterator = range(1,nframes,step=1)
+    #record(fig,filename,itterator; framerate=framerate) do itter
+        itter = 400
+        time = sol.t[itter]
+
+        #fig.title = "t = $time"
+
+        for j in 1:num_species
+            d = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            d .= reshape(sol.f[itter].x[j],(p_num_list[j],u_num_list[j]))
+            # unscale by dp*du 
+            for k in axes(d,1), l in axes(d,2)
+                d[k,l] /= (dp_list[j][k] * du_list[j][l])
+            end
+
+            # u averaged distribution plot
+                dp = log10.(d*du_list[j]) 
+                replace!(dp,-Inf32=>NaN)
+                empty!(axp) 
+                stairs!(axp,log10.(meanp_list[j]),dp,color=my_colors[j],step=:center,linewidth=2)
+                autolimits!(axp)
+
+            # p averaged distribution plot
+                du = (dp_list[j]' * d)'
+                empty!(axu)
+                stairs!(axu,([du[1]; du].-mean(du))./mean(du),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=2)
+                autolimits!(axu)
+
+            # distribution heat map
+                dpu = log10.(d)
+                replace!(dpu,-Inf32=>NaN)
+
+                if j == 1
+                    heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
+                elseif j == num_species || num_species == 1
+                    ax2, hm = heatmap!(gpu[1,1][j-1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
+                    ax2.xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$"
+                else
+                    ax3, hm = heatmap!(gpu[1,1][j,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-45,10))
+                end
+
+            # frac number density 
+                if itter ==1
+                    num0[j] = numInit_list[j]
+                else
+                    num0[j] = numInit_list[j]#num[j]
+                end
+                Na = FourFlow(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+                Ua = HydroFourVelocity(Na)
+                num = ScalarNumberDensity(Na,Ua)
+                if itter != 1
+                    scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
+                end
+
+                autolimits!(axn)
+
+            # energy plot
+                Tab = StressEnergyTensor(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+
+                eng[j] = ScalarEnergyDensity(Tab,Ua,num)
+
+                if eng[j] != 0
+                    scatter!(axe,sol.t[itter],log10(eng[j]),marker=:circle,colormap=:viridis,color = my_colors[j])
+                end
+
+                autolimits!(axe)
+
+            #Colorbar(gpu[1,1][1:num_species],hm)
+
+
+        end
+
+        
+    #end
+    return fig
+
+end
