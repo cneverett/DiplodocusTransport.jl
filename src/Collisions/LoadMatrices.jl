@@ -479,3 +479,105 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,List
     end # for
 
 end
+
+function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,Lists::ListStruct;mode="AXI")
+
+    name_list = Lists.name_list
+    p_up_list = Lists.p_up_list
+    p_low_list = Lists.p_low_list
+    p_grid_list = Lists.p_grid_list
+    p_num_list = Lists.p_num_list
+    u_grid_list = Lists.u_grid_list
+    u_num_list = Lists.u_num_list
+    interaction_list_Emi = Lists.interaction_list_Emi
+
+    if isempty(interaction_list_Emi) # no sync interactions to load
+        return
+    end
+
+    fill!(BigM.A_Emi,0f0);
+
+    for i in eachindex(interaction_list_Emi)
+
+        interaction = interaction_list_Emi[i]
+
+        name1 = "Pho"
+        name2 = interaction[1]
+        #= to be implimented
+        name1 = interaction[1]
+        name2 = interaction[2]
+        name3 = interaction[3]
+        =#
+
+        name1_loc = findfirst(==(name1),name_list)
+        name2_loc = findfirst(==(name2),name_list)
+        # name3_loc = findfirst(==(name3),name_list)
+
+        p1_grid = p_grid_list[name1_loc]
+        p2_grid = p_grid_list[name2_loc]
+        # p3_grid = p_grid_list[name3_loc]
+        u1_grid = u_grid_list[name1_loc]
+        u2_grid = u_grid_list[name2_loc]
+        # u3_grid = u_grid_list[name3_loc]
+
+        p1_num = p_num_list[name1_loc]
+        p2_num = p_num_list[name2_loc]
+        # p3_num = p_num_list[name3_loc]
+        u1_num = u_num_list[name1_loc]
+        u2_num = u_num_list[name2_loc]
+        # u3_num = u_num_list[name3_loc]
+
+        p1_num_st = string(p_num_list[name1_loc])
+        p2_num_st = string(p_num_list[name2_loc])
+        # p3_num_st = string(p_num_list[name3_loc])
+        u1_num_st = string(u_num_list[name1_loc])
+        u2_num_st = string(u_num_list[name2_loc])
+        # u3_num_st = string(u_num_list[name3_loc])
+
+        p1_low = p_low_list[name1_loc]
+        p2_low = p_low_list[name2_loc]
+        # p3_low = p_low_list[name3_loc]
+
+        p1_low_st = string(p_low_list[name1_loc])
+        p2_low_st = string(p_low_list[name2_loc])
+        # p3_low_st = string(p_low_list[name3_loc])
+
+        p1_up = p_up_list[name1_loc]
+        p2_up = p_up_list[name2_loc]
+        # p3_up = p_up_list[name3_loc]
+
+        p1_up_st = string(p_up_list[name1_loc])
+        p2_up_st = string(p_up_list[name2_loc])
+        # p3_up_st = string(p_up_list[name3_loc])
+
+        # p3_r::Vector{Float64} = BCI.bounds(p3_low,p3_up,p3_num,p3_grid)
+        p2_r::Vector{Float64} = BCI.bounds(p2_low,p2_up,p2_num,p2_grid)
+        p1_r::Vector{Float64} = BCI.bounds(p1_low,p1_up,p1_num,p1_grid)
+        # u3_r::Vector{Float64} = BCI.bounds(BCI.u_low,BCI.u_up,u3_num,u3_grid)
+        u2_r::Vector{Float64} = BCI.bounds(BCI.u_low,BCI.u_up,u2_num,u2_grid)
+        u1_r::Vector{Float64} = BCI.bounds(BCI.u_low,BCI.u_up,u1_num,u1_grid)
+
+        filename = "sync"*name2*"#"*p1_low_st*"-"*p1_up_st*p1_grid*p1_num_st*"#"*p2_low_st*"-"*p2_up_st*p2_grid*p2_num_st*"#"*u1_grid*u1_num_st*"#"*u2_grid*u2_num_st*".jld2";
+
+        println(filename)
+
+        if mode=="ISO" # ISO
+            Parameters = BCI.fload_Matrix_SyncISO(DataDirectory,filename)[1] # 1 is Parameters
+            matrix = BCI.fload_Matrix_SyncISO(DataDirectory,filename)[2] # 1 is Parameters
+        elseif mode=="AXI" # AXI
+            Parameters = BCI.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
+            matrix = BCI.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
+            matrix = BCI.fload_Matrix_Sync(DataDirectory,filename) # remove later
+        else
+            println("Mode not recognized")
+        end
+            
+        # some SMatrix values are greater than float32 precision!
+        PhaseSpaceFactors_Sync_Undo!(matrix,p1_r,u1_r,p2_r,u2_r)
+        SMatrix = Float32.(matrix) / 3f8 # NOTE THIS FACTOR OF C IS UNCONFIRMED
+
+        Fill_A_Emi!(BigM.A_Emi,interaction,Lists;SMatrix3=SMatrix)
+
+    end # for
+
+end

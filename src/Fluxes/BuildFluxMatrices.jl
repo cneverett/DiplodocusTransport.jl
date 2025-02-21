@@ -18,23 +18,6 @@ function Allocate_Flux(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
 end
 
-#= function Allocate_Flux_Force(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
-
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-
-    n_mom = sum(p_num_list.*u_num_list)
-
-    n_st = 1 # will change with more coordinates
-
-    I_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom) # boundary terms included in arrays
-    J_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom)
-    K_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom)
-
-    return (I_Flux,J_Flux,K_Flux)
-
-end =#
-
 function Build_Flux(FluxM::FluxMatrices,Lists::ListStruct,SpaceTime::SpaceTimeStruct)
 
     # ensure empty to begin
@@ -162,8 +145,10 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
-                bp = b+1
-                bm = b-1
+                kp = k+1
+                km = k-1
+                bp = (l-1)*p_num_list[i]+kp+off
+                bm = (l-1)*p_num_list[i]+km+off
 
                 I_plus = 0f0
                 I_minus = 0f0
@@ -174,11 +159,13 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                 end
 
                 # outflow momentum boundaries These may not be correct
-                if bp > (l)*p_num_list[i]+off
-                    bp = (l)*p_num_list[i]+off
+                if kp > p_num_list[i]
+                    kp = p_num_list[i]
+                    bp = (l-1)*p_num_list[i]+kp+off
                 end
-                if bm < (l-1)*p_num_list[i]+1+off
-                    bm = (l-1)*p_num_list[i]+1+off
+                if km < 1
+                    km = 1
+                    bm = (l-1)*p_num_list[i]+km+off
                 end
                 
                 #=
@@ -189,20 +176,20 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                 =#
 
                 if b != bp
-                    I_Flux[j,a,bp] += I_plus
-                    I_Flux[j,a,b] -= I_plus
+                    I_Flux[j,a,bp] += I_plus / (p_r[k+2]-p_r[k+1])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                    I_Flux[j,a,b] -= I_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
                     tmp += I_Flux[j,a,bp]
                 end
                 if b != bm
-                    I_Flux[j,a,bm] -= I_minus
-                    I_Flux[j,a,b] += I_minus
+                    I_Flux[j,a,bm] -= I_minus / (p_r[k]-p_r[k-1])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                    I_Flux[j,a,b] += I_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
                     tmp += I_Flux[j,a,bm]
                 end
                 tmp += I_Flux[j,a,b]
 
-                if tmp != 0f0
-                    error("I_Flux not conservative")
-                end
+                #if tmp != 0f0
+                #    error("I_Flux not conservative")
+                #end
             end
         end
     end
@@ -258,8 +245,10 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
 
                 a = (l-1)*p_num_list[i]+k+off
                 b = a
-                bp = b+1*p_num_list[i]
-                bm = b-1*p_num_list[i]
+                lp = l+1
+                lm = l-1
+                bp = (lp-1)*p_num_list[i]+k+off
+                bm = (lm-1)*p_num_list[i]+k+off
 
                 J_plus = 0f0
                 J_minus = 0f0
@@ -270,28 +259,30 @@ function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                 end
 
                 # Boundary conditions
-                if bp > k+off+p_num_list[i]*(u_num_list[i]-1)
-                    bp = k+off
+                if lp > u_num_list[i]
+                    lp = 1
+                    bp = (lp-1)*p_num_list[i]+k+off
                 end
-                if bm < k+off
-                    bm = (u_num_list[i]-1)*p_num_list[i]+k+off
+                if lm < 1
+                    lm = u_num_list[i]
+                    bm = (lm-1)*p_num_list[i]+k+off
                 end
 
                 if b != bp
-                    J_Flux[j,a,bp] += J_plus
-                    J_Flux[j,a,b] -= J_plus
+                    J_Flux[j,a,bp] += J_plus / (p_r[k+1]-p_r[k])*(u_r[lp+1]-u_r[lp])#*(phi1-phi0)
+                    J_Flux[j,a,b] -= J_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
                     tmp += J_Flux[j,a,bp]
                 end
                 if b != bm
-                    J_Flux[j,a,bm] -= J_minus
-                    J_Flux[j,a,b] += J_minus
+                    J_Flux[j,a,bm] -= J_minus / (p_r[k+1]-p_r[k])*(u_r[lm+1]-u_r[lm])#*(phi1-phi0)
+                    J_Flux[j,a,b] += J_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
                     tmp += J_Flux[j,a,bm]
                 end
                 tmp += J_Flux[j,a,b]
 
-                if tmp != 0f0
-                    error("J_Flux not conservative")
-                end
+                #if tmp != 0f0
+                #    error("J_Flux not conservative")
+                #end
             end
         end
     end
@@ -354,8 +345,8 @@ function Fill_K_Flux!(K_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                     K_minus += KFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,name)
                 end
 
-                K_Flux[j,a,b] += K_plus
-                K_Flux[j,a,b] -= K_minus
+                K_Flux[j,a,b] += K_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                K_Flux[j,a,b] -= K_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
             end
         end
     end

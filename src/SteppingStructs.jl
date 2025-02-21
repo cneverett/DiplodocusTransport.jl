@@ -15,6 +15,7 @@ mutable struct Euler <: SteppingMethod
     Jac::Array{Float32,2}           # jacobian for if Implicit==True
     df::fType                       # change in distribution function
     df_temp::fType                  # change in distribution function
+    temp::AbstractArray{Float32,2}
 
     function Euler(f0,Lists::ListStruct,SpaceTime::SpaceTimeStruct,Big_Matrices::BigMatrices,Flux_Matrices::FluxMatrices,Implicit::Bool)
 
@@ -33,6 +34,7 @@ mutable struct Euler <: SteppingMethod
         end
         self.df = fill!(similar(f0),Float32(0))
         self.df_temp = fill!(similar(f0),Float32(0))
+        self.temp = zeros(Float32,length(f0),length(f0))
 
         return self
     end
