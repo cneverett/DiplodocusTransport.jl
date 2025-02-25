@@ -7,7 +7,7 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
 
     tsteps = t_low:dt:t_up
     nsteps = length(tsteps)
-    nsave = round(Int64,nsteps/save_steps)+1
+    nsave = round(Int64,nsteps/save_steps)
 
     tmp = copy(f0)
     dtmp = similar(f0)
@@ -35,9 +35,11 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
 
         # removing values less than 0f0
         @. tmp = tmp*(tmp>=0f0)
+        # hackey fix for inf values
+        @. tmp = tmp*(tmp!=Inf)
 
         # saving state
-        if (i-1)%save_steps == 0
+        if (i-1)%save_steps == 0 && save_count < nsave
             output.f[save_count] = copy(tmp)
             output.t[save_count] = t
             save_count += 1

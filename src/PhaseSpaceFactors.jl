@@ -1,8 +1,8 @@
-function PhaseSpaceFactors_Sync_Undo!(SMatrix::Array{Float64,4},p1val::Vector{Float64},t1val::Vector{Float64},p2val::Vector{Float64},t2val::Vector{Float64})
+function PhaseSpaceFactors_Sync_Undo!(SMatrix::Array{Float64,4},p2val::Vector{Float64},t2val::Vector{Float64},p1val::Vector{Float64},t1val::Vector{Float64})
 
     for ii in axes(SMatrix,4), jj in axes(SMatrix,3), kk in axes(SMatrix,2), ll in axes(SMatrix,1)
-        SMatrix[ll,kk,jj,ii] /= (t2val[ii+1]-t2val[ii])*(p2val[jj+1]-p2val[jj]) #dp2dmu2
-        SMatrix[ll,kk,jj,ii] *= (t1val[kk+1]-t2val[kk])*(p1val[ll+1]-p1val[ll])
+        SMatrix[ll,kk,jj,ii] /= (t1val[ii+1]-t1val[ii])*(p1val[jj+1]-p1val[jj]) #dp2dmu2
+        SMatrix[ll,kk,jj,ii] *= (t2val[kk+1]-t2val[kk])*(p2val[ll+1]-p2val[ll])
     end
 
 end # function

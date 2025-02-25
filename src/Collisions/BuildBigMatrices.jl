@@ -26,7 +26,7 @@ function Allocate_A_Binary(Lists::ListStruct)
 
 end
 
-function Fill_A_Binary!(A_Binary::AbstractArray{Float32,3},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
 
     name_list = Lists.name_list
     p_num_list = Lists.p_num_list
@@ -164,7 +164,7 @@ function Fill_A_Emi!(A_Emi::AbstractArray{Float32,2},interaction::Vector{String}
     # absorption of name1 and emission of name2 not implemented with name1 == name2
 
     #SMatrix_to_A_Emi!(A_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
-    SMatrix_to_A_Emi!(A_Emi,SMatrix3,offset[name2_loc],offset[name1_loc])
+    SMatrix_to_A_Emi!(A_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
     #TMatrix_to_A_Emi!(A_Emi,TMatrix1,offset[name1_loc],offset[name1_loc])
 
     #SMatrix2 = nothing
@@ -175,7 +175,7 @@ function Fill_A_Emi!(A_Emi::AbstractArray{Float32,2},interaction::Vector{String}
 
 end
 
-function SMatrix_to_A_Binary!(A_Binary::Array{Float32},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
+function SMatrix_to_A_Binary!(A_Binary::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
 
     p3_num = size(SMatrix,1)-1 # ignore overflow bin
     u3_num = size(SMatrix,2)
@@ -239,24 +239,19 @@ function TMatrix_to_A_Binary!(A_Binary::Array{Float32},TMatrix::Array{Float64,4}
 
 end
 
-function SMatrix_to_A_Emi!(A_Emi::Array{Float32},SMatrix::Array{Float64,4},offset2::Int64,offset1::Int64)
+function SMatrix_to_A_Emi!(A_Emi::Array{Float32},SMatrix::Array{Float32,4},offset2::Int64,offset1::Int64)
 
-    p2_num = size(SMatrix,1)-1 # ignore overflow bin
+    p2_num = size(SMatrix,1)#-1 # ignore overflow bin
     u2_num = size(SMatrix,2)
     p1_num = size(SMatrix,3)  
     u1_num = size(SMatrix,4)
-
-    # sanity check 
-    if p1_num != p2_num || u1_num != u2_num
-        error("Error: SMatrix dimensions not as expected")
-    end
 
     for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:p2_num
 
         a = (j-1)*p2_num+i+offset2
         b = (l-1)*p1_num+k+offset1
 
-        A_Binary[a,b] += SMatrix[i,j,k,l]
+        A_Emi[a,b] += SMatrix[i,j,k,l]
 
     end
 

@@ -8,13 +8,8 @@ function (g::Euler)(df::fType,f::fType,t,dt)
     fill!(g.df,Float32(0))
     
     # update changes due to Binary S and T interactions
-    if isempty(g.Lists.interaction_list_Binary) == false 
-        update_Big_Binary!(g,f)
-    end
-
-    #if isempty(g.Lists.interaction_list_Emi) == false
-    #    update_ΔS_Sync!(g,Matrices_Synchrotron,f)
-    #    @. df += g.ΔfS_list
+    #if isempty(g.Lists.interaction_list_Binary) == false 
+    #    update_Big_Binary!(g,f)
     #end
 
     if g.Implicit
@@ -25,24 +20,33 @@ function (g::Euler)(df::fType,f::fType,t,dt)
         @. df = dt*g.df
         
     else
-        # TOFIX add fluxes inside mul!
-        #mul!(g.df,g.A_Binary_Mul,f)
-        #@. df = dt*g.df
-
         # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
         fill!(g.temp,Float32(0))
         if isempty(g.Lists.interaction_list_Binary) == false
-            @. g.temp += (dt*2*pi/2) * g.A_Binary_Mul 
+            update_Big_Binary!(g,f)
+            @. g.temp += ((dt/(1f0))*2*pi/2) * g.A_Binary_Mul 
         end
         if isempty(g.Lists.interaction_list_Emi) == false
-            @. g.temp += g.BigM.A_Emi
+            @. g.temp += ((dt/(1f0))*2*pi/2) * g.BigM.A_Emi
         end
-        @. g.temp -= (@view(g.FluxM.Ap_Flux[1,:,:]) + @view(g.FluxM.Am_Flux[1,:,:])) 
+        @. g.temp -= @view(g.FluxM.Ap_Flux[1,:,:])
+        @. g.temp -= @view(g.FluxM.Am_Flux[1,:,:])
         @. g.temp += @view(g.FluxM.K_Flux[1,:,:]) 
         @. g.temp += @view(g.FluxM.J_Flux[1,:,:]) 
         @. g.temp += @view(g.FluxM.I_Flux[1,:,:])
-        mul!(g.df,(@view(g.FluxM.Ap_Flux[1,:,:])\g.temp),f)
+
+        if isinf(sum(g.temp))
+            error("overflow in arrays")
+            #@. g.temp = g.temp*(g.temp!=Inf)
+        end
+
+        # improve allocations with LU decomp??
+        g.df_temp .= @view(g.FluxM.Ap_Flux[1,:,:]) * ones(Float32,size(g.temp,1)) # make vector as diagonal
+        g.temp ./= g.df_temp
+        #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
+        mul!(g.df,g.temp,f)
         @. df = g.df
+
     end
 
 end
@@ -60,5 +64,7 @@ function update_Big_Binary!(g::SteppingMethod,f)
     #end
     #mul!(g.df_temp,temp,f)
     #@. g.df += g.df_temp 
+
+    return nothing
 
 end

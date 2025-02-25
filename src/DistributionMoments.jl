@@ -22,13 +22,16 @@ function FourFlow(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     end
 
     # unscale by dp*du 
-    for i in axes(f2D,1), j in axes(f2D,2)
-        f2D[i,j] /= dp[i] * du[j]
-    end
+    #for i in axes(f2D,1), j in axes(f2D,2)
+    #    f2D[i,j] /= dp[i] * du[j]
+    #end
 
     Na = zeros(Float64,4)
-    Na[1] = dp' * f2D * du
-    Na[4] = dE' * f2D * du2
+    #Na[1] = dp' * f2D * du
+    #Na[4] = dE' * f2D * du2
+    # unscale by dp*du
+    Na[1] = (dp./dp)' * f2D * (du./du)
+    Na[4] = (dE./dp)' * f2D * (du2./du)
 
     return Na
 
@@ -111,18 +114,23 @@ function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     end
 
     # unscale by dp*du
-    for i in axes(f2D,1), j in axes(f2D,2)
-        f2D[i,j] /= dp[i] * du[j]
-    end
+    #for i in axes(f2D,1), j in axes(f2D,2)
+    #    f2D[i,j] /= dp[i] * du[j]
+    #end
 
-    Tab[1,1] = dE' * f2D * du
+    #Tab[1,1] = dE' * f2D * du
+    #Tab[2,2] = 1/4 * dpfunc' * f2D * duplusu3
+    #Tab[3,3] = Tab[2,2]
+    #Tab[4,4] = 1/2 * dpfunc' * f2D * du3 
+    #Tab[1,4] = dp2' * f2D * du2
+    #Tab[4,1] = Tab[1,4]
 
-    Tab[2,2] = 1/4 * dpfunc' * f2D * duplusu3
+    # unscale by dp*du
+    Tab[1,1] = (dE./dp)' * f2D * (du./du)
+    Tab[2,2] = 1/4 * (dpfunc./dp)' * f2D * (duplusu3./du)
     Tab[3,3] = Tab[2,2]
-
-    Tab[4,4] = 1/2 * dpfunc' * f2D * du3 
-
-    Tab[1,4] = dp2' * f2D * du2
+    Tab[4,4] = 1/2 * (dpfunc./dp)' * f2D * (du3./du) 
+    Tab[1,4] = (dp2./dp)' * f2D * (du2./du)
     Tab[4,1] = Tab[1,4]
     
     return Tab

@@ -559,6 +559,8 @@ function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,Lists::
 
         filename = "sync"*name2*"#"*p1_low_st*"-"*p1_up_st*p1_grid*p1_num_st*"#"*p2_low_st*"-"*p2_up_st*p2_grid*p2_num_st*"#"*u1_grid*u1_num_st*"#"*u2_grid*u2_num_st*".jld2";
 
+        filename = "syncEle#-14.0#4.0#72#-5.0#4.0#72#8#8.jld2";
+
         println(filename)
 
         if mode=="ISO" # ISO
@@ -573,11 +575,12 @@ function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,Lists::
         end
             
         # some SMatrix values are greater than float32 precision!
-        PhaseSpaceFactors_Sync_Undo!(matrix,p1_r,u1_r,p2_r,u2_r)
+        PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
         SMatrix = Float32.(matrix) / 3f8 # NOTE THIS FACTOR OF C IS UNCONFIRMED
 
         Fill_A_Emi!(BigM.A_Emi,interaction,Lists;SMatrix3=SMatrix)
-
+    
+        #return matrix
     end # for
 
 end

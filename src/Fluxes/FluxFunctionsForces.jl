@@ -14,13 +14,13 @@ function IFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
     mEle = getfield(BCI,Symbol("mEle"))
 
     # TOFIX Variable B
-    B = 1f0
+    B = 1f-6
 
     if m == 0 || Z == 0
         return flux = 0f0
     else
         flux = (Z^4*q^4*μ0*B^2)/(72*pi^2*m^2*mEle^2) * 1/sqrt(m^2 + p64^2) * (p64 + p64^3) * (t0 - t1) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) *(phi0 - phi1)
-        flux /= getfield(BCI,Symbol("σT"))*getfield(BCI,Symbol("c"))
+        flux /= getfield(BCI,Symbol("σT"))#*getfield(BCI,Symbol("c"))
     end
 
     return Float32(flux)
@@ -42,15 +42,15 @@ function JFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
     mEle = getfield(BCI,Symbol("mEle"))
 
     # TOFIX Variable B
-    B = 1f0
+    B = 1f-6
 
     if m == 0 || Z == 0
         flux = 0f0
     else
         flux = -(Z^4*q^4*μ0*B^2)/(48*pi^2*m^2*mEle^2)
-        flux /= (getfield(BCI,Symbol("σT"))*getfield(BCI,Symbol("c")))
         flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) 
         flux *= (-u + u^3) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2)/(m^2 * (p064 + sqrt(m^2 + p064^2))))
+        flux /= getfield(BCI,Symbol("σT"))#*getfield(BCI,Symbol("c"))
     end
 
     return Float32(flux)
@@ -72,7 +72,7 @@ function KFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
     mEle = getfield(BCI,Symbol("mEle"))
 
     # TOFIX Variable B
-    B = 1f0
+    B = 1f-6
 
     # convert p to Float64 to ensure no floating point issues
     p064 = Float64(p0)

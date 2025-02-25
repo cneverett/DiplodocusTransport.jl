@@ -34,16 +34,18 @@ mutable struct BigMatrices <: Function
     A_Binary::Array{Float32,2}    # big matrix for binary interactions
 
     A_Emi::Array{Float32,2}  # big matrix for emission interactions
-    J_Emi::Array{Float32,2}  # big matrix for Jacobian of emission interactions
 
     A_Abs::Array{Float32,2}  # big matrix for emission interactions
-    J_Abs::Array{Float32,2}  # big matrix for Jacobian of emission interactions
 
     function BigMatrices(Lists::ListStruct)
         self = new()
 
-        self.A_Binary = Allocate_A_Binary(Lists)
-        #self.A_Emi = Allocate_A_Emi(Lists)
+        if isempty(Lists.interaction_list_Binary) == false
+            self.A_Binary = Allocate_A_Binary(Lists)
+        end
+        if isempty(Lists.interaction_list_Emi) == false
+            self.A_Emi = Allocate_A_Emi(Lists)
+        end
         #self.J_Emi = Allocate_J_Emi(Lists)
         #self.A_Abs = Allocate_A_Abs(Lists)
         #self.J_Abs = Allocate_J_Abs(Lists)
