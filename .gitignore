@@ -5,3 +5,6 @@ Setup_test.jl
 *.pdf
 *.png
 *.mp4
+
+# mathematica files
+*.nb
