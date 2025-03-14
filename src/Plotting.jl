@@ -30,7 +30,6 @@ figure_theme = Theme(backgroundcolor=(:black,0),
         ),
     )
 set_theme!(merge(theme_latexfonts(),figure_theme))
-set_theme!()
 
 """
     FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
@@ -201,7 +200,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
     min = -20
     # time dependent, not including initial state
     count = 1
-    for i in 2:size(sol.t)[1]
+    for i in 2:size(sol.t)[1]-1
         if isapprox(sol.t[i],count*out_dt) # first output in that range
             count += 1
             #println(sol.t[i])
@@ -270,7 +269,7 @@ function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_li
             #integrate distribution over μ
             if mode=="AXI"
                 dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
-                dist .= reshape(sol.f[end].x[j],(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[end-1].x[j],(p_num_list[j],u_num_list[j]))
                 # unscale by dp*du 
                 for k in axes(dist,1), l in axes(dist,2)
                     dist[k,l] /= dp_list[j][k] * du_list[j][l]
@@ -793,7 +792,7 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
             # u averaged distribution plot
 
                 if initial
-                    dp = log10.(dinitial[j]*du_list[j]) 
+                    dp = log10.(dinitial[j]*du_list[j])
                     replace!(dp,-Inf32=>NaN)
                     replace!(dp,Inf32=>NaN)
                     stairs!(axp,log10.(meanp_list[j]),dp,color=:white,step=:center,linewidth=3.0)
@@ -810,7 +809,7 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
                     scatterlines!(axp,log10.(meanp_list[j]),MJPoints,color=:blue,markersize = 0.0)
                 end
 
-                dp = log10.(dj*du_list[j]) 
+                dp = log10.(dj*du_list[j] .* dp_list[j] ) 
                 replace!(dp,-Inf32=>NaN)
                 replace!(dp,Inf32=>NaN)
                 stairs!(axp,log10.(meanp_list[j]),dp,color=my_colors[j],step=:center,linewidth=3.0)
@@ -881,6 +880,7 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
         end
 
         autolimits!(axp)
+        ylims!(axp,2,16)
         autolimits!(axu)
         autolimits!(axe)
         autolimits!(axn)
@@ -889,5 +889,71 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
     if isnothing(iframe) == false
         return fig
     end
+
+end
+
+
+function PDistPlot(sol,species::String,Lists::ListStruct,SpaceTime::SpaceTimeStruct,GridValues::GridValues;tnum=50,uDis=false)
+
+    fig = Figure()
+    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+
+    name_list = Lists.name_list
+
+    species_index = findfirst(x->x==species,name_list)
+
+    p_num = Lists.p_num_list[species_index]  
+    u_num = Lists.u_num_list[species_index]
+    dp = GridValues.dp_list[species_index]
+    du = GridValues.du_list[species_index]
+    meanp = GridValues.meanp_list[species_index]
+
+    d = zeros(Float32,p_num,u_num)
+    dj = zeros(Float32,p_num,2)
+
+    t_up = SpaceTime.t_up
+    t_low = SpaceTime.t_low
+
+    dt = SpaceTime.dt
+
+    logt = range(log10(dt),log10(t_up),length=tnum)
+
+    my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(logt)+1)]
+
+    logt_indicies = zeros(Int64,length(logt))
+
+    for i in 1:length(logt)
+        logt_indicies[i] = findmin(abs.(sol.t .- 10^logt[i]))[2]
+    end
+
+    for i in 1:length(logt_indicies)
+
+        t_index = logt_indicies[i]
+        #println(t_index)
+        t = sol.t[t_index]
+
+        d .= reshape(sol.f[t_index].x[species_index],(p_num,u_num))
+
+        @. d = d*(d!=Inf)
+
+        if uDis
+            dj .= log10.(d .* dp)[:,1:3:4]
+
+            scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=1.0,strokecolor = my_colors[i])
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[i])
+            #stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=3.0,linestyle=:dot,color = my_colors[i])
+        else
+            dj[:,1] .= log10.(d*du .* dp)
+
+            replace!(x -> x>=1f0 ? x : NaN, dj)
+
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[i])
+        end
+
+    end
+
+    Colorbar(fig[1,2],colormap = my_colors,limits=(logt[1],logt[end]))
+    
+    return fig
 
 end
