@@ -893,28 +893,32 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
 end
 
 
-function PDistPlot(sol,species::String,Lists::ListStruct,SpaceTime::SpaceTimeStruct,GridValues::GridValues;tnum=50,uDis=false)
+function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;tnum=50,uDis=false)
 
     fig = Figure()
     ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
 
-    name_list = Lists.name_list
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
 
     species_index = findfirst(x->x==species,name_list)
 
-    p_num = Lists.p_num_list[species_index]  
-    u_num = Lists.u_num_list[species_index]
-    dp = GridValues.dp_list[species_index]
-    du = GridValues.du_list[species_index]
-    meanp = GridValues.meanp_list[species_index]
+    p_num = Momentum.px_num_list[species_index]  
+    u_num = Momentum.py_num_list[species_index]
+    dp = Grids.dpx_list[species_index]
+    du = Grids.dpy_list[species_index]
+    meanp = Grids.meanpx_list[species_index]
 
     d = zeros(Float32,p_num,u_num)
     dj = zeros(Float32,p_num,2)
 
-    t_up = SpaceTime.t_up
-    t_low = SpaceTime.t_low
+    t_up = Time.t_up
+    t_low = Time.t_low
+    t_num = Time.t_num
 
-    dt = SpaceTime.dt
+    dt = (t_up-t_low)/t_num
 
     logt = range(log10(dt),log10(t_up),length=tnum)
 

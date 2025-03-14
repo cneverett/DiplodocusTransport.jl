@@ -4,10 +4,9 @@ mutable struct Euler <: SteppingMethod
     t::Float32                  # the last time step time to calculate Δt
     dt::Float32                 # time step
 
-    Lists::ListStruct
+    PhaseSpaceStruct::PhaseSpaceStruct
     BigM::BigMatrices
     FluxM::FluxMatrices
-    SpaceTime::SpaceTimeStruct
 
     Implicit::Bool
 
@@ -19,14 +18,13 @@ mutable struct Euler <: SteppingMethod
     L::AbstractArray{Float32,2}
     U::AbstractArray{Float32,2}
 
-    function Euler(f0,Lists::ListStruct,SpaceTime::SpaceTimeStruct,Big_Matrices::BigMatrices,Flux_Matrices::FluxMatrices,Implicit::Bool)
+    function Euler(f0,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatrices,Flux_Matrices::FluxMatrices,Implicit::Bool)
 
         self = new()
 
-        self.Lists = Lists
+        self.PhaseSpace = PhaseSpace
         self.BigM = Big_Matrices
         self.FluxM = Flux_Matrices
-        self.SpaceTime = SpaceTime
 
         self.Implicit = Implicit  
 

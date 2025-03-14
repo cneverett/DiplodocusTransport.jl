@@ -1,171 +1,225 @@
-function Allocate_Flux(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Allocate_Flux(PhaseSpace::PhaseSpaceStruct)
 
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
 
-    n_mom = sum(p_num_list.*u_num_list)
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
 
-    n_st = 1 # will change with more coordinates
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    n_space = x_num*y_num*z_num
 
-    Ap_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom) 
-    Am_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom) 
+    n = n_momentum*n_space
 
-    I_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom) # boundary terms included in arrays
-    J_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom)
-    K_Flux::AbstractArray{Float32} = zeros(Float32,n_st,n_mom,n_mom)
+    # boundary terms included in arrays
+    # time fluxes
+    Ap_Flux::Array{Float32,2} = zeros(Float32,n,n) 
+    Am_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    # space fluxes
+    B_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    C_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    D_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    # momentum fluxes
+    I_Flux::Array{Float32,2} = zeros(Float32,n,n) 
+    J_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    K_Flux::Array{Float32,2} = zeros(Float32,n,n)
 
-    return (Ap_Flux,Am_Flux,I_Flux,J_Flux,K_Flux)
+    return (Ap_Flux,Am_Flux,B_FLux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 
-function Build_Flux(FluxM::FluxMatrices,Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Build_Flux(FluxM::FluxMatrices,PhaseSpace::PhaseSpaceStruct)
 
     # ensure empty to begin
     fill!(FluxM.Ap_Flux,0f0)
     fill!(FluxM.Am_Flux,0f0)
+    #fill!(FluxM.B_Flux,0f0)
+    #fill!(FluxM.C_Flux,0f0)
+    #fill!(FluxM.D_Flux,0f0)
     fill!(FluxM.I_Flux,0f0)
     fill!(FluxM.J_Flux,0f0)
     fill!(FluxM.K_Flux,0f0)
 
-    Fill_A_Flux!(FluxM.Ap_Flux,FluxM.Am_Flux,Lists,SpaceTime)
+    Fill_A_Flux!(FluxM.Ap_Flux,FluxM.Am_Flux,PhaseSpace)
 
-    Fill_I_Flux!(FluxM.I_Flux,Lists,SpaceTime) 
-    Fill_J_Flux!(FluxM.J_Flux,Lists,SpaceTime)
-    Fill_K_Flux!(FluxM.K_Flux,Lists,SpaceTime)  
+    # to be implemented
+    #Fill_B_Flux!(FluxM.B_Flux,Lists,PhaseSpace)
+    #Fill_C_Flux!(FluxM.C_Flux,Lists,PhaseSpace)
+    #Fill_D_Flux!(FluxM.D_Flux,Lists,PhaseSpace)
+
+    Fill_I_Flux!(FluxM.I_Flux,PhaseSpace) 
+    Fill_J_Flux!(FluxM.J_Flux,PhaseSpace)
+    Fill_K_Flux!(FluxM.K_Flux,PhaseSpace)  
 
 end
 
-function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
-    spacetime_coords = SpaceTime.spacetime_coordinates
-    momentum_coords = SpaceTime.momentum_coordinates
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-    p_low_list = Lists.p_low_list
-    p_up_list = Lists.p_up_list
-    p_grid_list = Lists.p_grid_list
-    u_grid_list = Lists.u_grid_list
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
-    n_mom = sum(p_num_list.*u_num_list)
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_space = x_num*y_num*z_num
 
-    n_st = 1 # will change with coordinates
+    tr = Grids.tr # time step assumed to be constant!
+    xr = Grids.xr
+    yr = Grids.yr
+    zr = Grids.zr
 
     # TOFIX: change coordinate grids later
-    t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    x_r = [0,1f0] # cylindrical radial
-    y_r = [0,Float32(2*pi)] # cylindrical theta
-    z_r = [0,1f0] # cylindrical z
+    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
+    #x_r = [0,1f0] # cylindrical radial
+    #y_r = [0,Float32(2*pi)] # cylindrical theta
+    #z_r = [0,1f0] # cylindrical z
 
-    phi0 = 0f0
-    phi1 = Float32(2*pi)
+    #phi0 = 0f0
+    #phi1 = Float32(2*pi)
     
-    for i in 1:length(name_list)
-        off = offset[i]
-        name = name_list[i]
-        p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
-        u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
+    for name in 1:length(name_list)
+        off_name = offset[name]
+        pxr = Grids.pxr_list[name]
+        pyr = Grids.pyr_list[name]
+        pzr = Grids.pzr_list[name]
 
-        for j in 1:n_st
-            for k in 1:p_num_list[i], l in 1:u_num_list[i]
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
 
-                a = (l-1)*p_num_list[i]+k+off
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+
+            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
                 b = a
 
-                A_plus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j+1],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
-                A_minus = AFluxFunction(spacetime_coords,momentum_coords,t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
+                A_plus = AFluxFunction(space_coords,momentum_coords,tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                A_minus = AFluxFunction(space_coords,momentum_coords,tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+
                 Ap_Flux[j,a,b] += A_plus
                 Am_Flux[j,a,b] -= A_minus
 
                 # normalisation
-                Ap_Flux[j,a,b] /= (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                Am_Flux[j,a,b] /= (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                Ap_Flux[j,a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                Am_Flux[j,a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+
             end
         end
     end
 end
 
-function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
-    spacetime_coords = SpaceTime.spacetime_coordinates
-    momentum_coords = SpaceTime.momentum_coordinates
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-    p_low_list = Lists.p_low_list
-    p_up_list = Lists.p_up_list
-    p_grid_list = Lists.p_grid_list
-    u_grid_list = Lists.u_grid_list
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
 
-    forces = SpaceTime.forces
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    Forces = PhaseSpace.Forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
-    n_mom = sum(p_num_list.*u_num_list)
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_space = x_num*y_num*z_num
 
-    n_st = 1 # will change with coordinates
+    tr = Grids.tr # time step assumed to be constant!
+    xr = Grids.xr
+    yr = Grids.yr
+    zr = Grids.zr
 
     # TOFIX: change coordinate grids later
-    t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    x_r = [0,1f0] # cylindrical radial
-    y_r = [0,Float32(2*pi)] # cylindrical theta
-    z_r = [0,1f0] # cylindrical z
+    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
+    #x_r = [0,1f0] # cylindrical radial
+    #y_r = [0,Float32(2*pi)] # cylindrical theta
+    #z_r = [0,1f0] # cylindrical z
 
-    phi0 = 0f0
-    phi1 = Float32(2*pi)
-
-    tmp = 0f0
+    #phi0 = 0f0
+    #phi1 = Float32(2*pi)
     
-    for i in 1:length(name_list)
-        off = offset[i]
-        name = name_list[i]
-        p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
-        u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
+    for name in 1:length(name_list)
+        off_name = offset[name]
+        pxr = Grids.pxr_list[name]
+        pyr = Grids.pyr_list[name]
+        pzr = Grids.pzr_list[name]
 
-        for j in 1:n_st
-            for k in 1:p_num_list[i], l in 1:u_num_list[i]
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
 
-                a = (l-1)*p_num_list[i]+k+off
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+
+            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
                 b = a
-                kp = k+1
-                km = k-1
-                bp = (l-1)*p_num_list[i]+kp+off
-                bm = (l-1)*p_num_list[i]+km+off
+                pxp = px+1
+                pxm = px-1
+                bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off+off_space
+                bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off+off_space
 
                 I_plus = 0f0
                 I_minus = 0f0
 
-                for f in 1:length(forces)
-                    I_plus += IFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k+1],u_r[l],u_r[l+1],phi0,phi1,name)
-                    I_minus += IFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],u_r[l],u_r[l+1],phi0,phi1,name)
+                for f in 1:length(Forces)
+                    I_plus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                    I_minus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
                 end
 
                 # outflow momentum boundaries These may not be correct
-                if kp > p_num_list[i]
-                    kp = p_num_list[i]
-                    bp = (l-1)*p_num_list[i]+kp+off
+                if pxp > px_num
+                    pxp = px_num
+                    bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off+off_space
                 end
-                if km < 1
-                    km = 1
-                    bm = (l-1)*p_num_list[i]+km+off
+                if pxm < 1
+                    pxm = 1
+                    bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off+off_space
                 end
                 
                 #=
@@ -176,177 +230,193 @@ function Fill_I_Flux!(I_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceT
                 =#
 
                 if b != bp
-                    I_Flux[j,a,bp] += I_plus / (p_r[k+2]-p_r[k+1])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    I_Flux[j,a,b] -= I_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    tmp += I_Flux[j,a,bp]
+                    I_Flux[a,bp] += I_plus / (pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                    I_Flux[a,b] -= I_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[l])#*(phi1-phi0)
                 end
                 if b != bm
-                    I_Flux[j,a,bm] -= I_minus / (p_r[k]-p_r[k-1])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    I_Flux[j,a,b] += I_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    tmp += I_Flux[j,a,bm]
-                end
-                tmp += I_Flux[j,a,b]
+                    I_Flux[a,bm] -= I_minus / (pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                    I_Flux[a,b] += I_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
 
-                #if tmp != 0f0
-                #    error("I_Flux not conservative")
-                #end
+                end
             end
         end
     end
 end
 
-function Fill_J_Flux!(J_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
-    spacetime_coords = SpaceTime.spacetime_coordinates
-    momentum_coords = SpaceTime.momentum_coordinates
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-    p_low_list = Lists.p_low_list
-    p_up_list = Lists.p_up_list
-    p_grid_list = Lists.p_grid_list
-    u_grid_list = Lists.u_grid_list
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
 
-    forces = SpaceTime.forces
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    Forces = PhaseSpace.Forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
-    n_mom = sum(p_num_list.*u_num_list)
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_space = x_num*y_num*z_num
 
-    n_st = 1 # will change with coordinates
+    tr = Grids.tr # time step assumed to be constant!
+    xr = Grids.xr
+    yr = Grids.yr
+    zr = Grids.zr
 
     # TOFIX: change coordinate grids later
-    t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    x_r = [0,1f0] # cylindrical radial
-    y_r = [0,Float32(2*pi)] # cylindrical theta
-    z_r = [0,1f0] # cylindrical z
+    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
+    #x_r = [0,1f0] # cylindrical radial
+    #y_r = [0,Float32(2*pi)] # cylindrical theta
+    #z_r = [0,1f0] # cylindrical z
 
-    phi0 = 0f0
-    phi1 = Float32(2*pi)
-
-    tmp = 0f0
+    #phi0 = 0f0
+    #phi1 = Float32(2*pi)
     
-    for i in 1:length(name_list)
-        off = offset[i]
-        name = name_list[i]
-        p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
-        u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
+    for name in 1:length(name_list)
+        off_name = offset[name]
+        pxr = Grids.pxr_list[name]
+        pyr = Grids.pyr_list[name]
+        pzr = Grids.pzr_list[name]
 
-        for j in 1:n_st
-            for k in 1:p_num_list[i], l in 1:u_num_list[i]
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
 
-                a = (l-1)*p_num_list[i]+k+off
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+
+            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
                 b = a
-                lp = l+1
-                lm = l-1
-                bp = (lp-1)*p_num_list[i]+k+off
-                bm = (lm-1)*p_num_list[i]+k+off
+                pyp = py+1
+                pym = py-1
+                bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off+off_space
+                bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off+off_space
 
                 J_plus = 0f0
                 J_minus = 0f0
 
-                for f in 1:length(forces)
-                    J_plus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l+1],phi0,phi1,name)
-                    J_minus += JFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],phi0,phi1,name)
+                for f in 1:length(Forces)
+                    J_plus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[k],pxr[k+1],pyr[l+1],pzr[pz],pzr[pz+1],name_list[name])
+                    J_minus += JFluxFunction(Forces[f],spacetime_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[k],pxr[k+1],pyr[l],pzr[pz],pzr[pz+1],name_list[name])
                 end
 
-                # Boundary conditions
-                if lp > u_num_list[i]
-                    lp = 1
-                    bp = (lp-1)*p_num_list[i]+k+off
+                # Boundary conditions reflective these may not be correct!
+                if pyp > py_num
+                    pyp = 1
+                    bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off+off_space
                 end
-                if lm < 1
-                    lm = u_num_list[i]
-                    bm = (lm-1)*p_num_list[i]+k+off
+                if pym < 1
+                    pym = py_num
+                    bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off+off_space
                 end
 
                 if b != bp
-                    J_Flux[j,a,bp] += J_plus / (p_r[k+1]-p_r[k])*(u_r[lp+1]-u_r[lp])#*(phi1-phi0)
-                    J_Flux[j,a,b] -= J_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    tmp += J_Flux[j,a,bp]
+                    J_Flux[a,bp] += J_plus / (pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])#*(phi1-phi0)
+                    J_Flux[a,b] -= J_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
                 end
                 if b != bm
-                    J_Flux[j,a,bm] -= J_minus / (p_r[k+1]-p_r[k])*(u_r[lm+1]-u_r[lm])#*(phi1-phi0)
-                    J_Flux[j,a,b] += J_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                    tmp += J_Flux[j,a,bm]
+                    J_Flux[a,bm] -= J_minus / (pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])#*(phi1-phi0)
+                    J_Flux[a,b] += J_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
                 end
-                tmp += J_Flux[j,a,b]
 
-                #if tmp != 0f0
-                #    error("J_Flux not conservative")
-                #end
             end
         end
     end
 end
 
-function Fill_K_Flux!(K_Flux::Array{Float32},Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
-    spacetime_coords = SpaceTime.spacetime_coordinates
-    momentum_coords = SpaceTime.momentum_coordinates
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-    p_low_list = Lists.p_low_list
-    p_up_list = Lists.p_up_list
-    p_grid_list = Lists.p_grid_list
-    u_grid_list = Lists.u_grid_list
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
 
-    forces = SpaceTime.forces
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    Forces = PhaseSpace.Forces
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
-    n_mom = sum(p_num_list.*u_num_list)
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_space = x_num*y_num*z_num
 
-    n_st = 1 # will change with coordinates
+    tr = Grids.tr # time step assumed to be constant!
+    xr = Grids.xr
+    yr = Grids.yr
+    zr = Grids.zr
 
     # TOFIX: change coordinate grids later
-    t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    x_r = [0,1f0] # cylindrical radial
-    y_r = [0,Float32(2*pi)] # cylindrical theta
-    z_r = [0,1f0] # cylindrical z
+    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
+    #x_r = [0,1f0] # cylindrical radial
+    #y_r = [0,Float32(2*pi)] # cylindrical theta
+    #z_r = [0,1f0] # cylindrical z
 
-    phi0 = 0f0
-    phi1 = Float32(2*pi)
+    #phi0 = 0f0
+    #phi1 = Float32(2*pi)
     
-    for i in 1:length(name_list)
-        off = offset[i]
-        name = name_list[i]
-        p_r = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i])
-        u_r = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i])
+    for name in 1:length(name_list)
+        off_name = offset[name]
+        pxr = Grids.pxr_list[name]
+        pyr = Grids.pyr_list[name]
+        pzr = Grids.pzr_list[name]
 
-        for j in 1:n_st
-            for k in 1:p_num_list[i], l in 1:u_num_list[i]
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
 
-                a = (l-1)*p_num_list[i]+k+off
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+
+            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
                 b = a
 
                 K_plus = 0f0
                 K_minus = 0f0
 
-                for f in 1:length(forces)
-                    K_plus += KFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi1,name)
-                    K_minus += KFluxFunction(forces[f],spacetime_coords,momentum_coords,t_r[j+1],t_r[j],x_r[1],x_r[2],y_r[1],y_r[2],z_r[1],z_r[2],p_r[k],p_r[k+1],u_r[l],u_r[l+1],phi0,name)
+                for f in 1:length(Forces)
+                    K_plus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name)
+                    K_minus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name)
                 end
 
-                K_Flux[j,a,b] += K_plus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
-                K_Flux[j,a,b] -= K_minus / (p_r[k+1]-p_r[k])*(u_r[l+1]-u_r[l])#*(phi1-phi0)
+                K_Flux[a,b] += K_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                K_Flux[a,b] -= K_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
             end
         end
     end

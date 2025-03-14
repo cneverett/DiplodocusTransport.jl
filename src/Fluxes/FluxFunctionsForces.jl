@@ -1,6 +1,6 @@
 # =============== IJK Sync Rad Reaction ================== #
 
-function IFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
+function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
 
     # Evaluate the flux through the I surface i.e. surface of constant p
 
@@ -34,7 +34,7 @@ function IFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
 
 end
 
-function JFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
+function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
 
     # Evaluate the flux through the J surface i.e. surface of constant u
 
@@ -72,7 +72,7 @@ function JFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentu
 
 end
 
-function KFluxFunction(force::SyncRadReact,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
+function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
 
     # Evaluate the flux through the K surface i.e. surface of constant phi
 

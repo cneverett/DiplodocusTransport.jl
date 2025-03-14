@@ -1,50 +1,269 @@
-# Empty dictionary for storing binary collision matrices by interaction name
-Matrices_BinaryInteraction = Dict{Vector{String},Tuple}()
-Matrices_Synchrotron = Dict{Vector{String},Array{Float32,2}}()
-Matrices_Force = Dict{Vector{String},Array{Float32,2}}()
+"""
+    TimeStruct()
 
-struct ListStruct
+A struct for storing the time domain of the simulation.
+"""
+struct TimeStruct
 
-    name_list::Vector{String}   # list of particle names
-    p_up_list::Vector{Float32}    # list of upper momentum limits for each particle
-    p_low_list::Vector{Float32}    # list of lower momentum limits for each particle
-    p_grid_list::Vector{String}    # list of momentum grid types for each particle
-    p_num_list::Vector{Int64}    # list of momentum bins for each particle
-    u_grid_list::Vector{String}    # list of angular grid types for each particle
-    u_num_list::Vector{Int64}    # list of angular bins for each particle
-    interaction_list_Binary::Vector{Vector{String}} # list of Binary interactions
-    interaction_list_Emi::Vector{Vector{String}} # list of Emission interactions
+    t_up::Float64
+    t_low::Float64
+    t_num::Int64
 
 end
 
-struct SpaceTimeStruct
+"""
+    SpaceStruct()
 
-    dimensions::Int64
-    spacetime_coordinates::CoordinateType
+A struct for storing the space domain of the simulation.
+"""
+struct SpaceStruct
+
+    space_coordinates::CoordinateType
+
+    x_up::Float64
+    x_low::Float64
+    x_grid::String 
+    x_num::Int64
+
+    y_up::Float64
+    y_low::Float64
+    y_grid::String
+    y_num::Int64
+
+    z_up::Float64
+    z_low::Float64
+    z_grid::String
+    z_num::Int64
+
+end
+
+"""
+    MomentumStruct()
+
+A struct for storing the momentum domain of the simulation.
+"""
+struct MomentumStruct 
+
     momentum_coordinates::CoordinateType
-    forces::Vector{ForceType}
-    t_up::Float32
-    t_low::Float32
-    dt::Float32
+
+    px_up_list::Vector{Float64}  
+    px_low_list::Vector{Float64} 
+    px_grid_list::Vector{String}   
+    px_num_list::Vector{Int64} 
+
+    py_up_list::Vector{Float64}  
+    py_low_list::Vector{Float64}  
+    py_grid_list::Vector{String}   
+    py_num_list::Vector{Int64}
+
+    pz_up_list::Vector{Float64}  
+    pz_low_list::Vector{Float64}  
+    pz_grid_list::Vector{String}   
+    pz_num_list::Vector{Int64} 
 
 end
 
-mutable struct BigMatrices <: Function
-    
-    A_Binary::Array{Float32,2}    # big matrix for binary interactions
+"""
+    GridStruct()
 
-    A_Emi::Array{Float32,2}  # big matrix for emission interactions
+A struct for storing the grid values for each particle in the simulation.
+"""
+mutable struct GridStruct <: Function
 
-    A_Abs::Array{Float32,2}  # big matrix for emission interactions
+    mass_list::Vector{Float64}
 
-    function BigMatrices(Lists::ListStruct)
+    tr::Vector{Float64}
+    dt::Vector{Float64}
+
+    xr::Vector{Float64}
+    yr::Vector{Float64}
+    zr::Vector{Float64}
+
+    dx::Vector{Float64}
+    dy::Vector{Float64}
+    dz::Vector{Float64}
+
+    pxr_list::Vector{Vector{Float64}}
+    pyr_list::Vector{Vector{Float64}}
+    pzr_list::Vector{Vector{Float64}}
+
+    dpx_list::Vector{Vector{Float64}}
+    dpy_list::Vector{Vector{Float64}}
+    dpz_list::Vector{Vector{Float64}}
+
+    mpx_list::Vector{Vector{Float64}}
+    mpy_list::Vector{Vector{Float64}}
+    mpz_list::Vector{Vector{Float64}}
+
+    function GridStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
+
         self = new()
 
-        if isempty(Lists.interaction_list_Binary) == false
-            self.A_Binary = Allocate_A_Binary(Lists)
+        # time domain grids
+
+            t_up = time.t_up
+            t_low = time.t_low
+            t_num = time.t_num
+
+            self.tr = BCI.bounds(t_low,t_up,t_num,"u")
+            self.dt = BCI.deltaVector(self.tr)
+
+        # space domain grids
+
+            x_up = space.x_up
+            x_low = space.x_low
+            x_grid = space.x_grid
+            x_num = space.x_num
+
+            y_up = space.y_up
+            y_low = space.y_low
+            y_grid = space.y_grid
+            y_num = space.y_num
+
+            z_up = space.z_up
+            z_low = space.z_low
+            z_grid = space.z_grid
+            z_num = space.z_num
+
+            self.xr = BCI.bounds(x_low,x_up,x_num,x_grid)
+            self.yr = BCI.bounds(y_low,y_up,y_num,y_grid)
+            self.zr = BCI.bounds(z_low,z_up,z_num,z_grid)
+
+            self.dx = BCI.deltaVector(self.xr)
+            self.dy = BCI.deltaVector(self.yr)
+            self.dz = BCI.deltaVector(self.zr)
+
+        # momentum domain grids
+
+            px_up_list = momentum.px_up_list
+            px_low_list = momentum.px_low_list
+            px_grid_list = momentum.px_grid_list
+            px_num_list = momentum.px_num_list
+
+            py_up_list = momentum.py_up_list
+            py_low_list = momentum.py_low_list
+            py_grid_list = momentum.py_grid_list
+            py_num_list = momentum.py_num_list
+
+            pz_up_list = momentum.pz_up_list
+            pz_low_list = momentum.pz_low_list
+            pz_grid_list = momentum.pz_grid_list
+            pz_num_list = momentum.pz_num_list
+
+            num_species = length(name_list);
+
+            self.mass_list = Vector{Float64}(undef,num_species)
+
+            self.pxr_list = Vector{Vector{Float64}}(undef,num_species);
+            self.pyr_list = Vector{Vector{Float64}}(undef,num_species);
+            self.pzr_list = Vector{Vector{Float64}}(undef,num_species);
+
+            self.dpx_list = Vector{Vector{Float64}}(undef,num_species);
+            self.dpy_list = Vector{Vector{Float64}}(undef,num_species);
+            self.dpz_list = Vector{Vector{Float64}}(undef,num_species);
+
+            self.mpx_list = Vector{Vector{Float64}}(undef,num_species);
+            self.mpy_list = Vector{Vector{Float64}}(undef,num_species);
+            self.mpz_list = Vector{Vector{Float64}}(undef,num_species);
+
+
+            for i in eachindex(name_list)
+
+                self.mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
+
+                self.pxr_list[i] = BCI.bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
+                self.pyr_list[i] = BCI.bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
+                self.pzr_list[i] = BCI.bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
+
+                self.dpx_list[i] = BCI.deltaVector(self.pxr_list[i]);
+                self.dpy_list[i] = BCI.deltaVector(self.pyr_list[i]);
+                self.dpz_list[i] = BCI.deltaVector(self.pzr_list[i]);
+
+                self.mpx_list[i] = BCI.meanVector(self.pxr_list[i]);
+                self.mpy_list[i] = BCI.meanVector(self.pyr_list[i]);
+                self.mpz_list[i] = BCI.meanVector(self.pzr_list[i]);
+
+            end
+
+        return self
+
+    end
+
+end
+
+"""
+    PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
+
+A struct for storing the phase space of the simulation.
+"""
+struct PhaseSpaceStruct <: Function
+
+    # particles
+    name_list::Vector{String}   # list of particle names
+    
+    # time
+    Time::TimeStruct
+
+    # space
+    Space::SpaceStruct
+
+    # momentum
+    Momentum::MomentumStruct
+
+    # force
+    Forces::Vector{ForceType}
+
+    # interactions
+    Binary_list::Vector{Vector{String}} # list of Binary interactions
+    Emi_list::Vector{Vector{String}} # list of Emission interactions
+
+    # grids
+    Grids::GridStruct
+
+    function PhaseSpace(name_list,time,space,momentum,Binary_list,Emi_list,forces)
+
+        self = new()
+
+        self.name_list = name_list
+        self.Time = time
+        self.Space = space
+        self.Momentum = momentum
+        self.Forces = forces
+        self.Binary_list = Binary_list
+        self.Emi_list = Emi_list
+
+        self.Grids = GridStruct(name_list,time,space,momentum)
+
+        return self
+
+    end
+
+
+end
+
+
+"""
+    BigMatrices()
+
+A struct for storing the big matrices associated with interactions in the simulation.
+"""
+mutable struct BigMatrices <: Function
+    
+    M_Bin::Array{Float32,2}    # big matrix for binary interactions
+
+    M_Emi::Array{Float32,2}  # big matrix for emission interactions
+
+    M_Abs::Array{Float32,2}  # big matrix for emission interactions
+
+    function BigMatrices(PhaseSpace::PhaseSpaceStruct)
+
+        self = new()
+
+        if isempty(PhaseSpace.Binary_list) == false
+            self.M_Bin = Allocate_M_Bin(PhaseSpace.Momentum)
         end
-        if isempty(Lists.interaction_list_Emi) == false
-            self.A_Emi = Allocate_A_Emi(Lists)
+        if isempty(PhaseSpace.Emi_list) == false
+            self.M_Emi = Allocate_M_Emi(Lists)
         end
         #self.J_Emi = Allocate_J_Emi(Lists)
         #self.A_Abs = Allocate_A_Abs(Lists)
@@ -57,79 +276,30 @@ end
 
 mutable struct FluxMatrices <: Function
 
-    Ap_Flux::Array{Float32}
-    Am_Flux::Array{Float32}
-    I_Flux::Array{Float32}
-    J_Flux::Array{Float32}
-    K_Flux::Array{Float32}
+    # time fluxes
+    Ap_Flux::Array{Float32,2}
+    Am_Flux::Array{Float32,2}
+    # space fluxes
+    B_Flux::Array{Float32,2}
+    C_Flux::Array{Float32,2}
+    D_Flux::Array{Float32,2}
+    # momentum fluxes
+    I_Flux::Array{Float32,2}
+    J_Flux::Array{Float32,2}
+    K_Flux::Array{Float32,2}
 
-    function FluxMatrices(Lists::ListStruct,SpaceTime::SpaceTimeStruct)
+    function FluxMatrices(PhaseSpace::PhaseSpaceStruct)
         self = new()
 
-        (self.Ap_Flux,self.Am_Flux,self.I_Flux,self.J_Flux,self.K_Flux) = Allocate_Flux(Lists,SpaceTime)
+        (self.Ap_Flux,self.Am_Flux,self.B_Flux,self.C_Flux,self.D_Flux,self.I_Flux,self.J_Flux,self.K_Flux) = Allocate_Flux(PhaseSpace)
 
-        Build_Flux(self,Lists,SpaceTime)
+        Build_Flux(self,PhaseSpace)
 
         return self
 
     end
 end
 
-
-# Struct for storing the Boltzmann equation and its solution
-mutable struct BoltzmannEquation <: Function
-
-    t::Float32                  # the last time step time to calculate Δt
-    dt::Float32                 # time step
-
-    #f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
-    f1DA::ArrayPartition  # advanced distribution function 
-    f1DR::ArrayPartition  # retarded distribution function
-    state::Bool
-
-    ΔfS_list::ArrayPartition       # change in distribution function due to SMatrix
-    ΔfT_list::ArrayPartition       # change in distribution function due to TMatrix
-    ΔfS_list_temp::ArrayPartition       # temporary array for change in distribution function due to SMatrix
-    ΔfS_mul_step::ArrayPartition       # temporary array the matrix multiplication step for ΔfS
-    ΔfT_list_temp::ArrayPartition       # temporary array for change in distribution function due to TMatrix
-
-    Lists::ListStruct
-    BigM::BigMatrices
-
-    A_Binary_Reshape::Array{Float32,1}    # reshaped big matrix for binary interactions
-    Δf::ArrayPartition              # change in distribution function
-    Δf_temp::ArrayPartition         # change in distribution function
-    J::Array{Float32,2}             # Jacobian matrix
-
-    function BoltzmannEquation(f0,Lists::ListStruct,Big_Matrices::BigMatrices,dt)
-
-        self = new()
-
-        self.Lists = Lists
-
-        self.t = Float32(0)
-        self.dt = dt
-
-        self.f1DA = fill!(similar(f0),Float32(0))
-        self.f1DR = fill!(similar(f0),Float32(0))
-
-        # initialize vectors for SMatrix and TMatrix changed so distribution functions for  individual species
-        self.ΔfS_list = fill!(similar(f0),Float32(0))
-        self.ΔfT_list = fill!(similar(f0),Float32(0))
-        self.ΔfS_list_temp = fill!(similar(f0),Float32(0))
-        self.ΔfT_list_temp = fill!(similar(f0),Float32(0))
-
-        self.BigM = Big_Matrices
-
-        self.A_Binary_Reshape = zeros(Float32,size(Big_Matrices.A_Binary,1))
-        self.Δf = fill!(similar(f0),Float32(0))
-        self.Δf_temp = fill!(similar(f0),Float32(0))
-        self.J = zeros(Float32,size(Big_Matrices.A_Binary,2),size(Big_Matrices.A_Binary,2))
-
-        return self
-    end
-
-end
 
 mutable struct SolutionOutput
     
@@ -147,3 +317,83 @@ mutable struct SolutionOutput
     end
 
 end
+
+
+# to be removed
+
+    struct ListStruct
+
+        name_list::Vector{String}   # list of particle names
+
+        p_up_list::Vector{Float32}    # list of upper momentum limits for each particle
+        p_low_list::Vector{Float32}    # list of lower momentum limits for each particle
+        p_grid_list::Vector{String}    # list of momentum grid types for each particle
+        p_num_list::Vector{Int64}    # list of momentum bins for each particle
+
+        u_grid_list::Vector{String}    # list of angular grid types for each particle
+        u_num_list::Vector{Int64}    # list of angular bins for each particle
+
+        interaction_list_Binary::Vector{Vector{String}} # list of Binary interactions
+        interaction_list_Emi::Vector{Vector{String}} # list of Emission interactions
+
+    end
+
+    # Struct for storing the Boltzmann equation and its solution
+    mutable struct BoltzmannEquation <: Function
+
+        t::Float32                  # the last time step time to calculate Δt
+        dt::Float32                 # time step
+
+        #f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
+        f1DA::ArrayPartition  # advanced distribution function 
+        f1DR::ArrayPartition  # retarded distribution function
+        state::Bool
+
+        ΔfS_list::ArrayPartition       # change in distribution function due to SMatrix
+        ΔfT_list::ArrayPartition       # change in distribution function due to TMatrix
+        ΔfS_list_temp::ArrayPartition       # temporary array for change in distribution function due to SMatrix
+        ΔfS_mul_step::ArrayPartition       # temporary array the matrix multiplication step for ΔfS
+        ΔfT_list_temp::ArrayPartition       # temporary array for change in distribution function due to TMatrix
+
+        Lists::ListStruct
+        BigM::BigMatrices
+
+        A_Binary_Reshape::Array{Float32,1}    # reshaped big matrix for binary interactions
+        Δf::ArrayPartition              # change in distribution function
+        Δf_temp::ArrayPartition         # change in distribution function
+        J::Array{Float32,2}             # Jacobian matrix
+
+        function BoltzmannEquation(f0,Lists::ListStruct,Big_Matrices::BigMatrices,dt)
+
+            self = new()
+
+            self.Lists = Lists
+
+            self.t = Float32(0)
+            self.dt = dt
+
+            self.f1DA = fill!(similar(f0),Float32(0))
+            self.f1DR = fill!(similar(f0),Float32(0))
+
+            # initialize vectors for SMatrix and TMatrix changed so distribution functions for  individual species
+            self.ΔfS_list = fill!(similar(f0),Float32(0))
+            self.ΔfT_list = fill!(similar(f0),Float32(0))
+            self.ΔfS_list_temp = fill!(similar(f0),Float32(0))
+            self.ΔfT_list_temp = fill!(similar(f0),Float32(0))
+
+            self.BigM = Big_Matrices
+
+            self.A_Binary_Reshape = zeros(Float32,size(Big_Matrices.A_Binary,1))
+            self.Δf = fill!(similar(f0),Float32(0))
+            self.Δf_temp = fill!(similar(f0),Float32(0))
+            self.J = zeros(Float32,size(Big_Matrices.A_Binary,2),size(Big_Matrices.A_Binary,2))
+
+            return self
+        end
+
+    end
+
+    # Empty dictionary for storing binary collision matrices by interaction name
+    Matrices_BinaryInteraction = Dict{Vector{String},Tuple}()
+    Matrices_Synchrotron = Dict{Vector{String},Array{Float32,2}}()
+    Matrices_Force = Dict{Vector{String},Array{Float32,2}}()

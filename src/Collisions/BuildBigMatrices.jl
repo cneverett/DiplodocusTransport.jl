@@ -1,47 +1,59 @@
-function Allocate_A_Binary(Lists::ListStruct)
+"""
+    Allocate_M_Bin(Momentum::MomentumStruct)
 
-    # allocates space for the BIG matrix A for all binary interactions
+Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation.
+"""
+function Allocate_M_Bin(Momentum::MomentumStruct)
 
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
 
-    n = sum(p_num_list.*u_num_list)
+    n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*n
 
-    A_Binary::AbstractArray{Float32,2} = zeros(Float32,m,n)
+    M_Bin::AbstractArray{Float32,2} = zeros(Float32,m,n)
 
-    size_A_Binary = sizeof(A_Binary)
+    size_M_Bin = sizeof(M_Bin)
 
-    if size_A_Binary > 1e9
-        println("A_Binary is approx. $(size_A_Binary/1e9) GB in memory")
-    elseif size_A_Binary > 1e6
-        println("A_Binary is approx. $(size_A_Binary/1e6) MB in memory")
-    elseif size_A_Binary > 1e3
-        println("A_Binary is approx. $(size_A_Binary/1e3) KB in memory")
+    if size_M_Bin > 1e9
+        println("M_Bin is approx. $(size_M_Bin/1e9) GB in memory")
+    elseif size_M_Bin > 1e6
+        println("M_Bin is approx. $(size_M_Bin/1e6) MB in memory")
+    elseif size_M_Bin > 1e3
+        println("M_Bin is approx. $(size_M_Bin/1e3) KB in memory")
     else
-        println("A_Binary is approx. $size_A_Binary bytes in memory")
+        println("M_Bin is approx. $size_M_Bin bytes in memory")
     end
 
-    return A_Binary
+    return M_Bin
 
 end
 
-function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+"""
+    Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+
+Fills the big matrix `M_Bin` with the interaction rates for binary interactions between all particles in the simulation.
+"""
+function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},PhaseSpace::PhaseSpaceStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Mode = Momentum.momentum_coordinates.Mode
+
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
 
     # first find offsets of the different species in the big matrix A
-
-    # assign elements of each matrix to the big matrix A, converting to Float32
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
@@ -53,8 +65,24 @@ function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{S
 
     if interaction[1] == interaction[2] && interaction[3] == interaction[4] # name1=name2 and name3=name4
 
-        SMatrix_to_A_Binary!(A_Binary,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix1,offset[name1_loc],offset[name2_loc])
+        if typeof(Mode) == AxiType
+
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+
+        elseif typeof(Mode) == IsoType
+
+            Grids = PhaseSpace.Grids
+            dpy1 = Grids.dpy[name1_loc]
+            dpy2 = Grids.dpy[name2_loc]
+            dpy3 = Grids.dpy[name3_loc]
+
+            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+
+        else
+            error("Error: Momentum mode not recognised")
+        end
 
         SMatrix3 = nothing
         TMatrix1 = nothing
@@ -65,9 +93,25 @@ function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{S
 
     if interaction[1] == interaction[2] && interaction[3] != interaction[4] # name1=name2 and name3=name4
 
-        SMatrix_to_A_Binary!(A_Binary,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        SMatrix_to_A_Binary!(A_Binary,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix1,offset[name1_loc],offset[name2_loc])
+        if typeof(Mode) == AxiType
+
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+
+        elseif typeof(Mode) == IsoType
+
+            Grids = PhaseSpace.Grids
+            dpy1 = Grids.dpy[name1_loc]
+            dpy2 = Grids.dpy[name2_loc]
+            dpy3 = Grids.dpy[name3_loc]
+            dpy4 = Grids.dpy[name4_loc]
+
+            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpy2,dpy3)
+            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
+            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+
+        end
 
         SMatrix3 = nothing
         SMatrix4 = nothing
@@ -79,9 +123,24 @@ function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{S
 
     if interaction[1] != interaction[2] && interaction[3] == interaction[4] # name1=name2 and name3=name4
 
-        SMatrix_to_A_Binary!(A_Binary,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix1,offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix2,offset[name2_loc],offset[name1_loc])
+        if typeof(Mode) == AxiType
+
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
+
+        elseif typeof(Mode) == IsoType
+
+            Grids = PhaseSpace.Grids
+            dpy1 = Grids.dpy[name1_loc]
+            dpy2 = Grids.dpy[name2_loc]
+            dpy3 = Grids.dpy[name3_loc]
+
+            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+
+        end
 
         SMatrix3 = nothing
         TMatrix1 = nothing
@@ -93,10 +152,27 @@ function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{S
 
     if interaction[1] != interaction[2] && interaction[3] != interaction[4] # name1=name2 and name3=name4
 
-        SMatrix_to_A_Binary!(A_Binary,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        SMatrix_to_A_Binary!(A_Binary,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix1,offset[name1_loc],offset[name2_loc])
-        TMatrix_to_A_Binary!(A_Binary,TMatrix2,offset[name2_loc],offset[name1_loc])
+        if typeof(Mode) == AxiType
+
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
+
+        elseif typeof(Mode) == IsoType
+
+            Grids = PhaseSpace.Grids
+            dpy1 = Grids.dpy[name1_loc]
+            dpy2 = Grids.dpy[name2_loc]
+            dpy3 = Grids.dpy[name3_loc]
+            dpy4 = Grids.dpy[name4_loc]
+
+            SMatrix_to_M_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            SMatrix_to_M_Bin!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
+            TMatrix_to_M_Bin!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            TMatrix_to_M_Bin!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+
+        end
 
         SMatrix3 = nothing
         SMatrix4 = nothing
@@ -109,49 +185,63 @@ function Fill_A_Binary!(A_Binary::AbstractArray{Float32,2},interaction::Vector{S
 
 end
 
-function Allocate_A_Emi(Lists::ListStruct)
+"""
+    Allocate_M_Emi(Momentum::MomentumStruct)
 
-    # allocates space for the BIG matrix A for all binary interactions
+Allocates a big matrix `M_Emi` which stores the interaction rates for emission interactions between all particles in the simulation.
+"""
+function Allocate_M_Emi(Momentum::MomentumStruct)
 
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
 
-    n = sum(p_num_list.*u_num_list)
+    #if Momentum.mode == "ANI"
+        n = sum(px_num_list.*py_num_list.*pz_num_list)
+    #elseif Momentum.mode == "AXI"
+    #    n = sum(px_num_list.*py_num_list)
+    #elseif Momentum.mode == "ISO"
+    #    n = sum(px_num_list)
+    #else
+    #    error("Error: Momentum mode not recognised")
+    #end
 
-    A_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
+    M_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
 
-    size_A_Emi = sizeof(A_Emi)
+    size_M_Emi = sizeof(M_Emi)
 
-    if size_A_Emi > 1e9
-        println("A_Emi is approx. $(size_A_Emi/1e9) GB in memory")
-    elseif size_A_Emi > 1e6
-        println("A_Emi is approx. $(size_A_Emi/1e6) MB in memory")
-    elseif size_A_Emi > 1e3
-        println("A_Emi is approx. $(size_A_Emi/1e3) KB in memory")
+    if size_M_Emi > 1e9
+        println("M_Emi is approx. $(size_M_Emi/1e9) GB in memory")
+    elseif size_M_Emi > 1e6
+        println("M_Emi is approx. $(size_M_Emi/1e6) MB in memory")
+    elseif size_M_Emi > 1e3
+        println("M_Emi is approx. $(size_M_Emi/1e3) KB in memory")
     else
-        println("A_Emi is approx. $size_A_Emi bytes in memory")
+        println("M_Emi is approx. $size_M_Emi bytes in memory")
     end
 
-    return A_Emi
+    return M_Emi
 
 end
 
-function Fill_A_Emi!(A_Emi::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;SMatrix2=nothing,SMatrix3=nothing,TMatrix1=nothing)
+function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::Vector{String},PhaseSpace::PhaseSpaceStruct;SMatrix2=nothing,SMatrix3=nothing,TMatrix1=nothing)
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Mode = Momentum.momentum_coordinates.mode
+  
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
 
     # first find offsets of the different species in the big matrix A
-
-    # assign elements of each matrix to the big matrix A, converting to Float32
 
     offset = zeros(Int64,size(name_list)[1])
     for i in eachindex(offset)
         if i == 1
             offset[i] = 0
         else
-            offset[i] = offset[i-1]+p_num_list[i-1]*u_num_list[i-1]
+            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
         end
     end
 
@@ -163,10 +253,24 @@ function Fill_A_Emi!(A_Emi::AbstractArray{Float32,2},interaction::Vector{String}
     # interaction is name1 -> name2 + name3
     # absorption of name1 and emission of name2 not implemented with name1 == name2
 
-    #SMatrix_to_A_Emi!(A_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
-    SMatrix_to_A_Emi!(A_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
-    #TMatrix_to_A_Emi!(A_Emi,TMatrix1,offset[name1_loc],offset[name1_loc])
+    if typeof(Mode) == AxiType
 
+        #SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
+        SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
+        #TMatrix_to_M_Emi_Axi!(M_Emi,TMatrix1,offset[name1_loc])
+
+    elseif typeof(Mode) == IsoType
+
+        Grids = PhaseSpace.Grids
+        dpy1 = Grids.dpy[name1_loc]
+        dpy2 = Grids.dpy[name2_loc]
+        dpy3 = Grids.dpy[name3_loc]
+        
+        #SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+        SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc],dpy3,dpy1)
+        #TMatrix_to_M_Emi_Iso!(M_Emi,TMatrix1,offset[name1_loc],dpy1)
+
+    end
     #SMatrix2 = nothing
     SMatrix3 = nothing
     #TMatrix1 = nothing
@@ -175,41 +279,75 @@ function Fill_A_Emi!(A_Emi::AbstractArray{Float32,2},interaction::Vector{String}
 
 end
 
-function SMatrix_to_A_Binary!(A_Binary::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
+function SMatrix_to_M_Bin_Axi!(M_Bin::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
 
-    p3_num = size(SMatrix,1)-1 # ignore overflow bin
-    u3_num = size(SMatrix,2)
-    p1_num = size(SMatrix,3)  
-    u1_num = size(SMatrix,4)
-    p2_num = size(SMatrix,5)
-    u2_num = size(SMatrix,6)
+    px3_num = size(SMatrix,1)-1 # ignore overflow bin
+    py3_num = size(SMatrix,2)
+    px1_num = size(SMatrix,3)  
+    py1_num = size(SMatrix,4)
+    px2_num = size(SMatrix,5)
+    py2_num = size(SMatrix,6)
 
     # sanity check 
-    if p1_num != p2_num || u1_num != u2_num
+    if px1_num != px2_num || py1_num != py2_num
         error("Error: SMatrix dimensions not as expected")
     end
 
-    N = size(A_Binary,2)
+    N = size(M_Bin,2)
 
-    for n in axes(SMatrix,6), m in axes(SMatrix,5), l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:p3_num
+    for n in axes(SMatrix,6), m in axes(SMatrix,5), l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px3_num
 
-        a = (j-1)*p3_num+i+offset3
-        b = (l-1)*p1_num+k+offset1
-        c = (n-1)*p2_num+m+offset2
-
-        #if (a-1)*N+(b-1)+1 > size(A_Binary,1)
-        #    error(i,j,k,l,m,n,a,b,c)
-        #end
+        a = (j-1)*px3_num+i+offset3
+        b = (l-1)*px1_num+k+offset1
+        c = (n-1)*px2_num+m+offset2
         
-        A_Binary[(b-1)*N+(a-1)+1,c] += SMatrix[i,j,k,l,m,n]/2
-        A_Binary[(c-1)*N+(a-1)+1,b] += SMatrix[i,j,k,l,m,n]/2 # symmetrising 
-        #A_Binary[a,b,c] += SMatrix[i,j,k,l,m,n]
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] += SMatrix[i,j,k,l,m,n]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] += SMatrix[i,j,k,l,m,n]/2 
 
     end
 
 end
 
-function TMatrix_to_A_Binary!(A_Binary::Array{Float32},TMatrix::Array{Float64,4},offset1::Int64,offset2::Int64)
+function SMatrix_to_M_Bin_Iso!(M_Bin::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy3::Vector{Float64},dpy1::Vector{Float64},dpy2::Vector{Float64})
+
+    px3_num = size(SMatrix,1)-1 # ignore overflow bin
+    py3_num = size(SMatrix,2)
+    px1_num = size(SMatrix,3)  
+    py1_num = size(SMatrix,4)
+    px2_num = size(SMatrix,5)
+    py2_num = size(SMatrix,6)
+
+    pxr1_grid
+
+    # sanity check 
+    if px1_num != px2_num || py1_num != py2_num
+        error("Error: SMatrix dimensions not as expected")
+    end
+
+    N = size(M_Bin,2)
+
+    for n in axes(SMatrix,6), m in axes(SMatrix,5), l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px3_num
+
+        val = 0.0 # py (pz) averaged SMatrix term 
+        for p in axes(SMatrix,6), q in axes(SMatrix,4), r in axes(SMatrix,2)
+            val += SMatrix[i,r,k,q,m,p] * dpy3[r] * dpy1[q] * dpy2[p] # check order
+        end
+        val /= sum(dpy3)*sum(dpy1)*sum(dpy2) 
+
+        a = (j-1)*px3_num+i+offset3
+        b = (l-1)*px1_num+k+offset1
+        c = (n-1)*px2_num+m+offset2
+        
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] += val/2
+        M_Bin[(c-1)*N+(a-1)+1,b] += val/2 
+
+    end
+
+end
+
+function TMatrix_to_M_Bin_Axi!(M_Bin::Array{Float32},TMatrix::Array{Float64,4},offset1::Int64,offset2::Int64)
 
     p1_num = size(TMatrix,1) # ignore overflow bin
     u1_num = size(TMatrix,2)
@@ -221,7 +359,7 @@ function TMatrix_to_A_Binary!(A_Binary::Array{Float32},TMatrix::Array{Float64,4}
         error("Error: SMatrix dimensions not as expected")
     end
 
-    N = size(A_Binary,2)
+    N = size(M_Bin,2)
 
     for l in axes(TMatrix,4), k in axes(TMatrix,3), j in axes(TMatrix,2), i in axes(TMatrix,1)
 
@@ -229,45 +367,123 @@ function TMatrix_to_A_Binary!(A_Binary::Array{Float32},TMatrix::Array{Float64,4}
         b = a
         c = (l-1)*p2_num+k+offset2
     
-        A_Binary[(b-1)*N+(a-1)+1,c] -= TMatrix[i,j,k,l]/2
-        A_Binary[(c-1)*N+(a-1)+1,b] -= TMatrix[i,j,k,l]/2
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] -= TMatrix[i,j,k,l]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] -= TMatrix[i,j,k,l]/2
 
+    end
 
-        #A_Binary[a,b,c] -= TMatrix[i,j,k,l]
+end
+
+function TMatrix_to_M_Bin_Iso!(M_Bin::Array{Float32},TMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpy1,dpy2)
+
+    p1_num = size(TMatrix,1) # ignore overflow bin
+    u1_num = size(TMatrix,2)
+    p2_num = size(TMatrix,3)  
+    u2_num = size(TMatrix,4)
+
+    # sanity check 
+    if p1_num != p2_num || u1_num != u2_num
+        error("Error: SMatrix dimensions not as expected")
+    end
+
+    N = size(M_Bin,2)
+
+    for l in axes(TMatrix,4), k in axes(TMatrix,3), j in axes(TMatrix,2), i in axes(TMatrix,1)
+
+        val = 0.0 # py (pz) averaged TMatrix term 
+        for p in axes(TMatrix,4), q in axes(TMatrix,2)
+            val += TMatrix[i,q,k,p] * dpy1[q] * dpy2[p] # check order
+        end
+        val /= sum(dpy1)*sum(dpy2) 
+
+        a = (j-1)*p1_num+i+offset1
+        b = a
+        c = (l-1)*p2_num+k+offset2
+    
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] -= val/2
+        M_Bin[(c-1)*N+(a-1)+1,b] -= val/2
+
+    end
+
+end
+
+function SMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},SMatrix::Array{Float64,4},offset2::Int64,offset1::Int64)
+
+    px2_num = size(SMatrix,1)#-1 # ignore overflow bin
+    py2_num = size(SMatrix,2)
+    px1_num = size(SMatrix,3)  
+    py1_num = size(SMatrix,4)
+
+    for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px2_num
+
+        a = (j-1)*px2_num+i+offset2
+        b = (l-1)*px1_num+k+offset1
+
+        M_Emi[a,b] += SMatrix[i,j,k,l]
+
+    end
+
+end
+
+function SMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},SMatrix::Array{Float64,4},offset2::Int64,offset1::Int64,dpy2,dpy1)
+
+    px2_num = size(SMatrix,1)#-1 # ignore overflow bin
+    py2_num = size(SMatrix,2)
+    px1_num = size(SMatrix,3)  
+    py1_num = size(SMatrix,4)
+
+    for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px2_num
+
+        val = 0.0 # py (pz) averaged SMatrix term
+        for p in axes(SMatrix,4), q in axes(SMatrix,2)
+            val += SMatrix[i,q,k,p] * dpy2[q] * dpy1[p] # check order
+        end
+        val /= sum(dpy2)*sum(dpy1)
+
+        a = (j-1)*px2_num+i+offset2
+        b = (l-1)*px1_num+k+offset1
+
+        M_Emi[a,b] += val
+
+    end
+
+end
+
+function TMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},TMatrix::Array{Float64,2},offset1::Int64)
+
+    px1_num = size(TMatrix,1)
+    py1_num = size(TMatrix,2)
+
+    for j in axes(TMatrix,2), i in axes(TMatrix,1)
+
+        a = (j-1)*px1_num+i+offset1
+        b = a
+
+        M_Emi[a,b] -= TMatrix[i,j]
         
     end
 
 end
 
-function SMatrix_to_A_Emi!(A_Emi::Array{Float32},SMatrix::Array{Float32,4},offset2::Int64,offset1::Int64)
+function TMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},TMatrix::Array{Float64,2},offset1::Int64)
 
-    p2_num = size(SMatrix,1)#-1 # ignore overflow bin
-    u2_num = size(SMatrix,2)
-    p1_num = size(SMatrix,3)  
-    u1_num = size(SMatrix,4)
-
-    for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:p2_num
-
-        a = (j-1)*p2_num+i+offset2
-        b = (l-1)*p1_num+k+offset1
-
-        A_Emi[a,b] += SMatrix[i,j,k,l]
-
-    end
-
-end
-
-function TMatrix_to_A_Emi!(A_Emi::Array{Float32},TMatrix::Array{Float64,2},offset1::Int64)
-
-    p1_num = size(TMatrix,1)
-    u1_num = size(TMatrix,2)
+    px1_num = size(TMatrix,1)
+    py1_num = size(TMatrix,2)
 
     for j in axes(TMatrix,2), i in axes(TMatrix,1)
 
-        a = (j-1)*p1_num+i+offset1
+        val = 0.0 # py (pz) averaged TMatrix term
+        for p in axes(TMatrix,2)
+            val += TMatrix[i,p] * dpy1[p] # check order
+        end
+        val /= sum(dpy1)
+
+        a = (j-1)*px1_num+i+offset1
         b = a
 
-        A_Emi[a,b] -= TMatrix[i,j]
+        M_Emi[a,b] -= val
         
     end
 
