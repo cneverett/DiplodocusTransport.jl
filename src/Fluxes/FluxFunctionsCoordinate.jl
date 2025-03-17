@@ -1,4 +1,4 @@
-# =============== ABCD Cylindrical ===================== #
+# =============== ABCD Vol Cylindrical ===================== #
 
     function AFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
 
@@ -8,7 +8,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getField(BCI,Symbol("mu"*name))
+        m = getfield(BCI,Symbol("mu"*name))
 
         flux = ((-p064 + p164)*(-u0 + u1)*(-(x0^2/2) + x1^2/2)*(-y0 + y1)*(-z0 + z1)*(-phi0 + phi1))/(2*pi)
 
@@ -24,7 +24,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getField(BCI,Symbol("mu"*name))
+        m = getfield(BCI,Symbol("mu"*name))
 
         flux = (1/(4*pi))*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1) * x * (y0 - y1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sin(phi0) - sin(phi1))
 
@@ -32,7 +32,7 @@
 
     end
 
-    function CFluxFunction(spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+    function CFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
 
         # Evaluate the flux through the I surface i.e. surface of constant cylindrical phi
 
@@ -40,7 +40,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getField(BCI,Symbol("mu"*name))
+        m = getfield(BCI,Symbol("mu"*name))
 
         flux = (1/(4*pi))*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2))*(t0 - t1) * (x0 - x1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cos(phi0) - cos(phi1))
 
@@ -48,7 +48,7 @@
 
     end
 
-    function DFluxFunction(spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z,p0,p1,u0,u1,phi0,phi1,name::String)
+    function DFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z,p0,p1,u0,u1,phi0,phi1,name::String)
 
         # Evaluate the flux through the D surface i.e. surface of constant cylindrical z
 
@@ -56,7 +56,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getField(BCI,Symbol("mu"*name))
+        m = getfield(BCI,Symbol("mu"*name))
 
         flux = ((sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1)*(u0^2 - u1^2)*(x0^2 - x1^2)*(y0 - y1)*(phi0 - phi1))/(8*pi)
 
@@ -64,11 +64,19 @@
 
     end
 
+    function VolFunction(space_coords::Cylindrical,t0,t1,x0,x1,y0,y1,z0,z1)
+
+        # Evaluate the volume element
+
+        return (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) / 2
+
+    end
+
 # ======================================================== #
 
 # =============== IJK Cylindrical Ricci ================== #
 
-    function IFluxFunction(force::CoordinateForce,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
+    function IFluxFunction(force::CoordinateForce,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
 
         # Evaluate the flux through the I surface i.e. surface of constant spherical p
 
@@ -76,7 +84,7 @@
 
     end
 
-    function JFluxFunction(force::CoordinateForce,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
+    function JFluxFunction(force::CoordinateForce,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
 
         # Evaluate the flux through the J surface i.e. surface of constant spherical u
 
@@ -84,7 +92,7 @@
 
     end
 
-    function KFluxFunction(force::CoordinateForce,spacetime_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
+    function KFluxFunction(force::CoordinateForce,space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
 
         # Evaluate the flux through the K surface i.e. surface of constant spherical phi
 
@@ -93,11 +101,12 @@
         p164 = Float64(p1)
         phipi = Float32(phi/pi) # using sinpi rather than sin to avoid float issues 
 
-        m = getField(BCI,Symbol("mu"*name))
+        m = getfield(BCI,Symbol("mu"*name))
 
-        flux = (1/(4*pi))*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
+        flux = (1/(4*pi))*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
+        flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)
 
-        return Float32(flux)
+        return flux
 
     end
 

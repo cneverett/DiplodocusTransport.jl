@@ -1,34 +1,37 @@
 function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=false)
 
-    f0 = copy(f1D0)
-    t_low = method.SpaceTime.t_low
-    t_up = method.SpaceTime.t_up
-    dt = method.SpaceTime.dt
+    PhaseSpace = method.PhaseSpace
+    Time = PhaseSpace.Time
 
-    tsteps = t_low:dt:t_up
-    nsteps = length(tsteps)
-    nsave = round(Int64,nsteps/save_steps)
+    f0 = copy(f1D0)
+    t_low = Time.t_low
+    t_up = Time.t_up
+    t_num = Time.t_num
+
+    t_steps = range(t_low,t_up,length=t_num+1)
+    n_save = ceil(Int64,t_num/save_steps+1)
 
     tmp = copy(f0)
     dtmp = similar(f0)
 
     t = t_low
 
-    output = SolutionOutput(f0,t,nsave)
+    output = SolutionOutput(f0,n_save)
 
-    # save initial state
+    # save initial state (step 1)
     output.f[1] = copy(tmp)
     output.t[1] = t
-    save_count = 2
+    save_count = 1
 
     # progress bar
     if progress
-        p = Progress(nsteps-1)
+        p = Progress(t_num)
     end
 
-    for i in 2:nsteps
+    for i in 1:t_num
 
-        t = tsteps[i]
+        t = t_steps[i]
+        dt = t_steps[i+1] - t_steps[i]
 
         method(dtmp,tmp,t,dt)
         @. tmp += dtmp
@@ -39,10 +42,10 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
         @. tmp = tmp*(tmp!=Inf)
 
         # saving state
-        if (i-1)%save_steps == 0 && save_count < nsave
+        if (i)%save_steps == 0
+            save_count += 1
             output.f[save_count] = copy(tmp)
             output.t[save_count] = t
-            save_count += 1
         end
         
         if progress
@@ -57,28 +60,3 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
 
 end
 
-function update_ΔS_Sync!(g::BoltzmannEquation,Matrices_Synchrotron,f)
-
-    #f_list = g.f_list
-    #interaction_list = g.interaction_list
-    #name_list = g.name_list
-    #ΔfS_list = g.ΔfS_list
-    #ΔfT_list = g.ΔfT_list
-
-    # reset arrays
-    fill!(g.ΔfS_list,Float32(0))
-
-    for i in eachindex(g.interaction_list_Sync)
-        interaction = g.interaction_list_Sync[i]
-        SMatrix = Matrices_Synchrotron[interaction]
-        name1_loc = findfirst(==("Pho"),g.name_list)
-        name2 = interaction[1]
-        name2_loc = findfirst(==(name2),g.name_list)
-
-        mul!(g.ΔfS_list_temp.x[name1_loc],SMatrix,f.x[name2_loc])
-  
-        g.ΔfS_list.x[name1_loc] .+= g.ΔfS_list_temp.x[name1_loc]
-        
-    end
-
-end

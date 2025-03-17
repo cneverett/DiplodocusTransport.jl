@@ -1,16 +1,14 @@
 # Struct for storing the Boltzmann equation and its solution
-mutable struct Euler <: SteppingMethod
+mutable struct EulerStruct <: SteppingMethod
 
-    t::Float32                  # the last time step time to calculate Δt
-    dt::Float32                 # time step
-
-    PhaseSpaceStruct::PhaseSpaceStruct
-    BigM::BigMatrices
-    FluxM::FluxMatrices
+    PhaseSpace::PhaseSpaceStruct
+    BigM::BigMatricesStruct
+    FluxM::FluxMatricesStruct
 
     Implicit::Bool
 
-    A_Binary_Mul::Array{Float32,2}  # temporary array for matrix multiplication of binary terms
+    M_Bin_Mul_Step::Array{Float32,2}  # temporary array for matrix multiplication of binary terms
+    M_Emi_Step::Array{Float32,2}      # temporary array for spatial evaluated emission terms
     Jac::Array{Float32,2}           # jacobian for if Implicit==True
     df::fType                       # change in distribution function
     df_temp::fType                  # change in distribution function
@@ -18,7 +16,7 @@ mutable struct Euler <: SteppingMethod
     L::AbstractArray{Float32,2}
     U::AbstractArray{Float32,2}
 
-    function Euler(f0,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatrices,Flux_Matrices::FluxMatrices,Implicit::Bool)
+    function EulerStruct(f0,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool)
 
         self = new()
 
@@ -28,7 +26,8 @@ mutable struct Euler <: SteppingMethod
 
         self.Implicit = Implicit  
 
-        self.A_Binary_Mul = zeros(Float32,length(f0),length(f0))
+        self.M_Bin_Mul_Step = zeros(Float32,length(f0),length(f0))
+        self.M_Emi_Step = zeros(Float32,length(f0),length(f0))
         if Implicit
             self.Jac = zeros(Float32,length(f0),length(f0))
         end

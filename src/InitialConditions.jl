@@ -38,23 +38,24 @@ end
 
 A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evalution at the cell bounds.
 """
-function Initial_PowerLaw(Lists::ListStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
+function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
 
-    
-    name_list = Lists.name_list
-    p_up_list = Lists.p_up_list
-    p_low_list = Lists.p_low_list
-    p_grid_list = Lists.p_grid_list
-    p_num_list = Lists.p_num_list
-    u_grid_list = Lists.u_grid_list
-    u_num_list = Lists.u_num_list
+    Momentum = PhaseSpace.Momentum
+
+    name_list = PhaseSpace.name_list
+    p_up_list = Momentum.px_up_list
+    p_low_list = Momentum.px_low_list
+    p_grid_list = Momentum.px_grid_list
+    p_num_list = Momentum.px_num_list
+    u_grid_list = Momentum.py_grid_list
+    u_num_list = Momentum.py_num_list
 
     species_index = findfirst(==(species),name_list)
     u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
 
     # Set initial conditions goes here
-    pu = p_up_list[species_index]
-    pl = p_low_list[species_index]
+    pu = Float64(p_up_list[species_index])
+    pl = Float64(p_low_list[species_index])
     p_num = p_num_list[species_index]
     p_grid = p_grid_list[species_index]
     u_num = u_num_list[species_index]
@@ -66,10 +67,10 @@ function Initial_PowerLaw(Lists::ListStruct,species::String,pmin::T,pmax::T,umin
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = location(pl,pu,p_num,pmin,p_grid)
-        pmax_index = location(pl,pu,p_num,pmax,p_grid)
-        umin_index = location(BCI.u_low,BCI.u_up,u_num,umin,u_grid)
-        umax_index = location(BCI.u_low,BCI.u_up,u_num,umax,u_grid)
+        pmin_index = BCI.location(pl,pu,p_num,Float64(pmin),p_grid)
+        pmax_index = BCI.location(pl,pu,p_num,Float64(pmax),p_grid)
+        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umin),u_grid)
+        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umax),u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -77,6 +78,7 @@ function Initial_PowerLaw(Lists::ListStruct,species::String,pmin::T,pmax::T,umin
         umax_index = umax
     end
     
+    println(pmin_index,pmax_index,umin_index,umax_index)
 
     # power law averaged over cell width.
     for i in pmin_index:pmax_index, j in umin_index:umax_index
@@ -100,15 +102,17 @@ function Initial_PowerLaw(Lists::ListStruct,species::String,pmin::T,pmax::T,umin
     return u0_species
 end
 
-function Initial_Constant(Lists::ListStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32;mode="AXI") where T <: Union{Float32,Int64}
+function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32) where T <: Union{Float32,Int64}
 
-    name_list = Lists.name_list
-    p_up_list = Lists.p_up_list
-    p_low_list = Lists.p_low_list
-    p_grid_list = Lists.p_grid_list
-    p_num_list = Lists.p_num_list
-    u_grid_list = Lists.u_grid_list
-    u_num_list = Lists.u_num_list
+    Momentum = PhaseSpace.Momentum
+
+    name_list = PhaseSpace.name_list
+    p_up_list = Momentum.px_up_list
+    p_low_list = Momentum.px_low_list
+    p_grid_list = Momentum.px_grid_list
+    p_num_list = Momentum.px_num_list
+    u_grid_list = Momentum.py_grid_list
+    u_num_list = Momentum.py_num_list
 
     species_index = findfirst(==(species),name_list)
     u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
@@ -151,12 +155,12 @@ function Initial_Constant(Lists::ListStruct,species::String,pmin::T,pmax::T,umin
         u0_2D_species[i,j] *= dp[i] * du[j]
     end
 
-    if mode=="AXI"
+    #if mode=="AXI"
         u0_species = reshape(u0_2D_species,p_num*u_num)
-    elseif mode=="ISO"
+    #elseif mode=="ISO"
         # f(p) = 2*f(p,μ)
-        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
-    end
+    #    u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
+    #end
 
     return u0_species
 end

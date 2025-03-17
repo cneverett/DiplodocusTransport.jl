@@ -49,7 +49,7 @@ function SCorrection!(SMatrix3::Array{T,6},SMatrix4::Array{T,6},TMatrix1::Array{
 
 end
 
-function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Binary_Struct(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
 
     Binary_list = PhaseSpace.Binary_list
 
@@ -77,9 +77,9 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,Phas
 
     fill!(BigM.M_Bin,0f0);
 
-    for i in eachindex(interaction_list_Binary)
+    for i in eachindex(Binary_list)
 
-        interaction = interaction_list_Binary[i]
+        interaction = Binary_list[i]
 
         name1_loc = findfirst(==(interaction[1]),name_list)
         name2_loc = findfirst(==(interaction[2]),name_list)
@@ -228,7 +228,7 @@ function LoadMatrices_Binary_Struct(BigM::BigMatrices,DataDirectory::String,Phas
 
 end
 
-function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Emi_Struct(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
 
     Emi_list = PhaseSpace.Emi_list
 
@@ -256,9 +256,9 @@ function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,PhaseSp
 
     fill!(BigM.M_Emi,0f0);
 
-    for i in eachindex(interaction_list_Emi)
+    for i in eachindex(Emi_list)
 
-        interaction = interaction_list_Emi[i]
+        interaction = Emi_list[i]
 
         name1 = interaction[1]
         name2 = interaction[2]
@@ -278,45 +278,45 @@ function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,PhaseSp
         pz2_grid::String = pz_grid_list[name2_loc]
         pz3_grid::String = pz_grid_list[name3_loc]
     
-        px1_num::String = px_num_list[name1_loc]
-        px2_num::String = px_num_list[name2_loc]
-        px3_num::String = px_num_list[name3_loc]
-        py1_num::String = py_num_list[name1_loc]
-        py2_num::String = py_num_list[name2_loc]
-        py3_num::String = py_num_list[name3_loc]
-        pz1_num::String = pz_num_list[name1_loc]
-        pz2_num::String = pz_num_list[name2_loc]
-        pz3_num::String = pz_num_list[name3_loc]
+        px1_num::String = string(px_num_list[name1_loc])
+        px2_num::String = string(px_num_list[name2_loc])
+        px3_num::String = string(px_num_list[name3_loc])
+        py1_num::String = string(py_num_list[name1_loc])
+        py2_num::String = string(py_num_list[name2_loc])
+        py3_num::String = string(py_num_list[name3_loc])
+        pz1_num::String = string(pz_num_list[name1_loc])
+        pz2_num::String = string(pz_num_list[name2_loc])
+        pz3_num::String = string(pz_num_list[name3_loc])
     
-        px1_low::String = px_low_list[name1_loc]
-        px2_low::String = px_low_list[name2_loc]
-        px3_low::String = px_low_list[name3_loc]
-        py1_low::String = py_low_list[name1_loc]
-        py2_low::String = py_low_list[name2_loc]
-        py3_low::String = py_low_list[name3_loc]
-        pz1_low::String = pz_low_list[name1_loc]
-        pz2_low::String = pz_low_list[name2_loc]
-        pz3_low::String = pz_low_list[name3_loc]
+        px1_low::String = string(px_low_list[name1_loc])
+        px2_low::String = string(px_low_list[name2_loc])
+        px3_low::String = string(px_low_list[name3_loc])
+        py1_low::String = string(py_low_list[name1_loc])
+        py2_low::String = string(py_low_list[name2_loc])
+        py3_low::String = string(py_low_list[name3_loc])
+        pz1_low::String = string(pz_low_list[name1_loc])
+        pz2_low::String = string(pz_low_list[name2_loc])
+        pz3_low::String = string(pz_low_list[name3_loc])
         
-        px1_up::String = px_up_list[name1_loc]
-        px2_up::String = px_up_list[name2_loc]
-        px3_up::String = px_up_list[name3_loc]
-        py1_up::String = py_up_list[name1_loc]
-        py2_up::String = py_up_list[name2_loc]
-        py3_up::String = py_up_list[name3_loc]
-        pz1_up::String = pz_up_list[name1_loc]
-        pz2_up::String = pz_up_list[name2_loc]
-        pz3_up::String = pz_up_list[name3_loc]
+        px1_up::String = string(px_up_list[name1_loc])
+        px2_up::String = string(px_up_list[name2_loc])
+        px3_up::String = string(px_up_list[name3_loc])
+        py1_up::String = string(py_up_list[name1_loc])
+        py2_up::String = string(py_up_list[name2_loc])
+        py3_up::String = string(py_up_list[name3_loc])
+        pz1_up::String = string(pz_up_list[name1_loc])
+        pz2_up::String = string(pz_up_list[name2_loc])
+        pz3_up::String = string(pz_up_list[name3_loc])
     
-        pxr1::Vector{Float64} = PhaseSpace.Grids.pxr_grid[name1_loc]
-        pxr2::Vector{Float64} = PhaseSpace.Grids.pxr_grid[name2_loc]
-        pxr3::Vector{Float64} = PhaseSpace.Grids.pxr_grid[name3_loc]
-        pyr1::Vector{Float64} = PhaseSpace.Grids.pyr_grid[name1_loc]
-        pyr2::Vector{Float64} = PhaseSpace.Grids.pyr_grid[name2_loc]
-        pyr3::Vector{Float64} = PhaseSpace.Grids.pyr_grid[name3_loc]
-        pzr1::Vector{Float64} = PhaseSpace.Grids.pzr_grid[name1_loc]
-        pzr2::Vector{Float64} = PhaseSpace.Grids.pzr_grid[name2_loc]
-        pzr3::Vector{Float64} = PhaseSpace.Grids.pzr_grid[name3_loc]
+        pxr1::Vector{Float64} = PhaseSpace.Grids.pxr_list[name1_loc]
+        pxr2::Vector{Float64} = PhaseSpace.Grids.pxr_list[name2_loc]
+        pxr3::Vector{Float64} = PhaseSpace.Grids.pxr_list[name3_loc]
+        pyr1::Vector{Float64} = PhaseSpace.Grids.pyr_list[name1_loc]
+        pyr2::Vector{Float64} = PhaseSpace.Grids.pyr_list[name2_loc]
+        pyr3::Vector{Float64} = PhaseSpace.Grids.pyr_list[name3_loc]
+        pzr1::Vector{Float64} = PhaseSpace.Grids.pzr_list[name1_loc]
+        pzr2::Vector{Float64} = PhaseSpace.Grids.pzr_list[name2_loc]
+        pzr3::Vector{Float64} = PhaseSpace.Grids.pzr_list[name3_loc]
 
         #filename = "sync"*name2*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*py1_grid*py1_num*"#"*py3_grid*py3_num_st*".jld2";
 
@@ -331,7 +331,7 @@ function LoadMatrices_Emi_Struct(BigM::BigMatrices,DataDirectory::String,PhaseSp
             
         # some SMatrix values are greater than float32 precision!
         #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
-        PhaseSpaceFactors_Sync_Undo!(matrix,p3_r,u3_r,p1_r,u1_r)
+        PhaseSpaceFactors_Emi_Undo!(matrix,pxr3,pyr3,pxr1,pyr1)
 
         Fill_M_Emi!(BigM.M_Emi,interaction,PhaseSpace;SMatrix3=matrix)
     

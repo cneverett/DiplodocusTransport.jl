@@ -1,9 +1,11 @@
 """
-    Allocate_M_Bin(Momentum::MomentumStruct)
+    Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct)
 
-Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation.
+Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation. If `n` is the size of the momentum domain, then `M_Bin` is an `n^2 x n` matrix. The size of `M_Bin` in memory is printed to the console upon allocation.
 """
-function Allocate_M_Bin(Momentum::MomentumStruct)
+function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct)
+
+    Momentum = PhaseSpace.Momentum
 
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
@@ -190,21 +192,15 @@ end
 
 Allocates a big matrix `M_Emi` which stores the interaction rates for emission interactions between all particles in the simulation.
 """
-function Allocate_M_Emi(Momentum::MomentumStruct)
+function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct)
+
+    Momentum = PhaseSpace.Momentum
 
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
 
-    #if Momentum.mode == "ANI"
-        n = sum(px_num_list.*py_num_list.*pz_num_list)
-    #elseif Momentum.mode == "AXI"
-    #    n = sum(px_num_list.*py_num_list)
-    #elseif Momentum.mode == "ISO"
-    #    n = sum(px_num_list)
-    #else
-    #    error("Error: Momentum mode not recognised")
-    #end
+    n = sum(px_num_list.*py_num_list.*pz_num_list)
 
     M_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
 

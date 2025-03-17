@@ -196,7 +196,7 @@ end
 
 A struct for storing the phase space of the simulation.
 """
-struct PhaseSpaceStruct <: Function
+mutable struct PhaseSpaceStruct <: Function
 
     # particles
     name_list::Vector{String}   # list of particle names
@@ -220,7 +220,7 @@ struct PhaseSpaceStruct <: Function
     # grids
     Grids::GridStruct
 
-    function PhaseSpace(name_list,time,space,momentum,Binary_list,Emi_list,forces)
+    function PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
 
         self = new()
 
@@ -247,7 +247,7 @@ end
 
 A struct for storing the big matrices associated with interactions in the simulation.
 """
-mutable struct BigMatrices <: Function
+mutable struct BigMatricesStruct <: Function
     
     M_Bin::Array{Float32,2}    # big matrix for binary interactions
 
@@ -255,15 +255,15 @@ mutable struct BigMatrices <: Function
 
     M_Abs::Array{Float32,2}  # big matrix for emission interactions
 
-    function BigMatrices(PhaseSpace::PhaseSpaceStruct)
+    function BigMatricesStruct(PhaseSpace::PhaseSpaceStruct)
 
         self = new()
 
         if isempty(PhaseSpace.Binary_list) == false
-            self.M_Bin = Allocate_M_Bin(PhaseSpace.Momentum)
+            self.M_Bin = Allocate_M_Bin(PhaseSpace)
         end
         if isempty(PhaseSpace.Emi_list) == false
-            self.M_Emi = Allocate_M_Emi(Lists)
+            self.M_Emi = Allocate_M_Emi(PhaseSpace)
         end
         #self.J_Emi = Allocate_J_Emi(Lists)
         #self.A_Abs = Allocate_A_Abs(Lists)
@@ -274,7 +274,7 @@ mutable struct BigMatrices <: Function
 
 end
 
-mutable struct FluxMatrices <: Function
+mutable struct FluxMatricesStruct <: Function
 
     # time fluxes
     Ap_Flux::Array{Float32,2}
@@ -287,11 +287,13 @@ mutable struct FluxMatrices <: Function
     I_Flux::Array{Float32,2}
     J_Flux::Array{Float32,2}
     K_Flux::Array{Float32,2}
+    # space time volume element vector
+    Vol::Vector{Float32}
 
-    function FluxMatrices(PhaseSpace::PhaseSpaceStruct)
+    function FluxMatricesStruct(PhaseSpace::PhaseSpaceStruct)
         self = new()
 
-        (self.Ap_Flux,self.Am_Flux,self.B_Flux,self.C_Flux,self.D_Flux,self.I_Flux,self.J_Flux,self.K_Flux) = Allocate_Flux(PhaseSpace)
+        (self.Ap_Flux,self.Am_Flux,self.B_Flux,self.C_Flux,self.D_Flux,self.I_Flux,self.J_Flux,self.K_Flux,self.Vol) = Allocate_Flux(PhaseSpace)
 
         Build_Flux(self,PhaseSpace)
 
@@ -303,14 +305,14 @@ end
 
 mutable struct SolutionOutput
     
-    f
-    t::Vector{Float32}
+    f::fType
+    t::Vector{Float64}
 
-    function SolutionOutput(f0::fType,t::Float32,n_save::Int64)
+    function SolutionOutput(f0::fType,n_save::Int64)
 
         self = new()
         self.f = Vector{typeof(f0)}(undef,n_save)
-        self.t = Vector{Float32}(undef,n_save)
+        self.t = Vector{Float64}(undef,n_save)
 
         return self
     
@@ -337,63 +339,3 @@ end
         interaction_list_Emi::Vector{Vector{String}} # list of Emission interactions
 
     end
-
-    # Struct for storing the Boltzmann equation and its solution
-    mutable struct BoltzmannEquation <: Function
-
-        t::Float32                  # the last time step time to calculate Δt
-        dt::Float32                 # time step
-
-        #f_list::Vector{Vector{Float32}} # vector of distribution functions for each particle
-        f1DA::ArrayPartition  # advanced distribution function 
-        f1DR::ArrayPartition  # retarded distribution function
-        state::Bool
-
-        ΔfS_list::ArrayPartition       # change in distribution function due to SMatrix
-        ΔfT_list::ArrayPartition       # change in distribution function due to TMatrix
-        ΔfS_list_temp::ArrayPartition       # temporary array for change in distribution function due to SMatrix
-        ΔfS_mul_step::ArrayPartition       # temporary array the matrix multiplication step for ΔfS
-        ΔfT_list_temp::ArrayPartition       # temporary array for change in distribution function due to TMatrix
-
-        Lists::ListStruct
-        BigM::BigMatrices
-
-        A_Binary_Reshape::Array{Float32,1}    # reshaped big matrix for binary interactions
-        Δf::ArrayPartition              # change in distribution function
-        Δf_temp::ArrayPartition         # change in distribution function
-        J::Array{Float32,2}             # Jacobian matrix
-
-        function BoltzmannEquation(f0,Lists::ListStruct,Big_Matrices::BigMatrices,dt)
-
-            self = new()
-
-            self.Lists = Lists
-
-            self.t = Float32(0)
-            self.dt = dt
-
-            self.f1DA = fill!(similar(f0),Float32(0))
-            self.f1DR = fill!(similar(f0),Float32(0))
-
-            # initialize vectors for SMatrix and TMatrix changed so distribution functions for  individual species
-            self.ΔfS_list = fill!(similar(f0),Float32(0))
-            self.ΔfT_list = fill!(similar(f0),Float32(0))
-            self.ΔfS_list_temp = fill!(similar(f0),Float32(0))
-            self.ΔfT_list_temp = fill!(similar(f0),Float32(0))
-
-            self.BigM = Big_Matrices
-
-            self.A_Binary_Reshape = zeros(Float32,size(Big_Matrices.A_Binary,1))
-            self.Δf = fill!(similar(f0),Float32(0))
-            self.Δf_temp = fill!(similar(f0),Float32(0))
-            self.J = zeros(Float32,size(Big_Matrices.A_Binary,2),size(Big_Matrices.A_Binary,2))
-
-            return self
-        end
-
-    end
-
-    # Empty dictionary for storing binary collision matrices by interaction name
-    Matrices_BinaryInteraction = Dict{Vector{String},Tuple}()
-    Matrices_Synchrotron = Dict{Vector{String},Array{Float32,2}}()
-    Matrices_Force = Dict{Vector{String},Array{Float32,2}}()

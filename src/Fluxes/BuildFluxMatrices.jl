@@ -27,12 +27,14 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct)
     I_Flux::Array{Float32,2} = zeros(Float32,n,n) 
     J_Flux::Array{Float32,2} = zeros(Float32,n,n)
     K_Flux::Array{Float32,2} = zeros(Float32,n,n)
+    # volume element 
+    Vol::Vector{Float32} = zeros(Float32,n_space)
 
-    return (Ap_Flux,Am_Flux,B_FLux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
+    return (Ap_Flux,Am_Flux,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux,Vol)
 
 end
 
-function Build_Flux(FluxM::FluxMatrices,PhaseSpace::PhaseSpaceStruct)
+function Build_Flux(FluxM::FluxMatricesStruct,PhaseSpace::PhaseSpaceStruct)
 
     # ensure empty to begin
     fill!(FluxM.Ap_Flux,0f0)
@@ -43,6 +45,7 @@ function Build_Flux(FluxM::FluxMatrices,PhaseSpace::PhaseSpaceStruct)
     fill!(FluxM.I_Flux,0f0)
     fill!(FluxM.J_Flux,0f0)
     fill!(FluxM.K_Flux,0f0)
+    fill!(FluxM.Vol,0f0)
 
     Fill_A_Flux!(FluxM.Ap_Flux,FluxM.Am_Flux,PhaseSpace)
 
@@ -53,7 +56,9 @@ function Build_Flux(FluxM::FluxMatrices,PhaseSpace::PhaseSpaceStruct)
 
     Fill_I_Flux!(FluxM.I_Flux,PhaseSpace) 
     Fill_J_Flux!(FluxM.J_Flux,PhaseSpace)
-    Fill_K_Flux!(FluxM.K_Flux,PhaseSpace)  
+    Fill_K_Flux!(FluxM.K_Flux,PhaseSpace) 
+    
+    Fill_Vol!(FluxM.Vol,PhaseSpace)
 
 end
 
@@ -116,22 +121,49 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},PhaseSpace
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
 
                 A_plus = AFluxFunction(space_coords,momentum_coords,tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
                 A_minus = AFluxFunction(space_coords,momentum_coords,tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
 
-                Ap_Flux[j,a,b] += A_plus
-                Am_Flux[j,a,b] -= A_minus
+                Ap_Flux[a,b] += A_plus
+                Am_Flux[a,b] -= A_minus
 
                 # normalisation
-                Ap_Flux[j,a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                Am_Flux[j,a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                Ap_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                Am_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
 
             end
         end
     end
+end
+
+function Fill_Vol!(Vol::Vector{Float32},PhaseSpace::PhaseSpaceStruct)
+
+    Space = PhaseSpace.Space
+    Time = PhaseSpace.Time
+    Grids = PhaseSpace.Grids
+
+    space_coords = Space.space_coordinates
+
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+
+    tr = Grids.tr # time step assumed to be constant!
+    xr = Grids.xr
+    yr = Grids.yr
+    zr = Grids.zr
+
+    for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+        space = (x-1)*y_num*z_num+(y-1)*z_num+z
+
+        Vol[space] = VolFunction(space_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1])
+
+    end
+
 end
 
 function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
@@ -195,14 +227,14 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
                 pxp = px+1
                 pxm = px-1
-                bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off+off_space
-                bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off+off_space
+                bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
+                bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
 
                 I_plus = 0f0
                 I_minus = 0f0
@@ -215,11 +247,11 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 # outflow momentum boundaries These may not be correct
                 if pxp > px_num
                     pxp = px_num
-                    bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off+off_space
+                    bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
                 end
                 if pxm < 1
                     pxm = 1
-                    bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off+off_space
+                    bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
                 end
                 
                 #=
@@ -231,7 +263,7 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
                 if b != bp
                     I_Flux[a,bp] += I_plus / (pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                    I_Flux[a,b] -= I_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[l])#*(phi1-phi0)
+                    I_Flux[a,b] -= I_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
                 end
                 if b != bm
                     I_Flux[a,bm] -= I_minus / (pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
@@ -304,12 +336,12 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
                 pyp = py+1
                 pym = py-1
-                bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off+off_space
-                bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off+off_space
+                bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
+                bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
 
                 J_plus = 0f0
                 J_minus = 0f0
@@ -322,11 +354,11 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 # Boundary conditions reflective these may not be correct!
                 if pyp > py_num
                     pyp = 1
-                    bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off+off_space
+                    bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
                 end
                 if pym < 1
                     pym = py_num
-                    bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off+off_space
+                    bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
                 end
 
                 if b != bp
@@ -404,7 +436,7 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off+off_space
+                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
 
                 K_plus = 0f0
