@@ -44,6 +44,7 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
         # saving state
         if (i)%save_steps == 0
             save_count += 1
+            t = t_steps[i+1]
             output.f[save_count] = copy(tmp)
             output.t[save_count] = t
         end

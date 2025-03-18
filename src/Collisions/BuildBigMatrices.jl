@@ -154,14 +154,14 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
 
     if interaction[1] != interaction[2] && interaction[3] != interaction[4] # name1=name2 and name3=name4
 
-        if typeof(Mode) == AxiType
+        if typeof(Mode) == Axi
 
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
 
-        elseif typeof(Mode) == IsoType
+        elseif typeof(Mode) == Iso
 
             Grids = PhaseSpace.Grids
             dpy1 = Grids.dpy[name1_loc]
@@ -249,13 +249,13 @@ function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::Vector{String}
     # interaction is name1 -> name2 + name3
     # absorption of name1 and emission of name2 not implemented with name1 == name2
 
-    if typeof(Mode) == AxiType
+    if typeof(Mode) == Axi
 
         #SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
         SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
         #TMatrix_to_M_Emi_Axi!(M_Emi,TMatrix1,offset[name1_loc])
 
-    elseif typeof(Mode) == IsoType
+    elseif typeof(Mode) == Iso
 
         Grids = PhaseSpace.Grids
         dpy1 = Grids.dpy[name1_loc]
