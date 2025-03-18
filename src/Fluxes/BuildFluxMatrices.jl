@@ -160,7 +160,7 @@ function Fill_Vol!(Vol::Vector{Float32},PhaseSpace::PhaseSpaceStruct)
 
         space = (x-1)*y_num*z_num+(y-1)*z_num+z
 
-        Vol[space] = VolFunction(space_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1])
+        Vol[space] = VolFunction(space_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1])
 
     end
 
@@ -240,8 +240,8 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 I_minus = 0f0
 
                 for f in 1:length(Forces)
-                    I_plus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                    I_minus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                    I_plus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                    I_minus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
                 end
 
                 # outflow momentum boundaries These may not be correct
@@ -347,8 +347,8 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 J_minus = 0f0
 
                 for f in 1:length(Forces)
-                    J_plus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[k],pxr[k+1],pyr[l+1],pzr[pz],pzr[pz+1],name_list[name])
-                    J_minus += JFluxFunction(Forces[f],spacetime_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[k],pxr[k+1],pyr[l],pzr[pz],pzr[pz+1],name_list[name])
+                    J_plus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                    J_minus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
                 end
 
                 # Boundary conditions reflective these may not be correct!
@@ -443,8 +443,8 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 K_minus = 0f0
 
                 for f in 1:length(Forces)
-                    K_plus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name)
-                    K_minus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[2],tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name)
+                    K_plus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
+                    K_minus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
                 end
 
                 K_Flux[a,b] += K_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)

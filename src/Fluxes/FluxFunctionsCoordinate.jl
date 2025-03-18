@@ -68,7 +68,7 @@
 
         # Evaluate the volume element
 
-        return (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1) / 2
+        return (-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
 
     end
 
