@@ -16,7 +16,7 @@ function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=fal
 
     t = t_low
 
-    output = SolutionOutput(f0,n_save)
+    output = OutputStruct(f0,n_save)
 
     # save initial state (step 1)
     output.f[1] = copy(tmp)

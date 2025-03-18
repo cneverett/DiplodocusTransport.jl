@@ -12,11 +12,11 @@ mutable struct EulerStruct <: SteppingMethod
     Jac::Array{Float32,2}           # jacobian for if Implicit==True
     df::fType                       # change in distribution function
     df_temp::fType                  # change in distribution function
-    temp::AbstractArray{Float32,2}
-    L::AbstractArray{Float32,2}
-    U::AbstractArray{Float32,2}
+    temp::Array{Float32,2}
+    #L::AbstractArray{Float32,2}
+    #U::AbstractArray{Float32,2}
 
-    function EulerStruct(f0,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool)
+    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool)
 
         self = new()
 
@@ -34,8 +34,8 @@ mutable struct EulerStruct <: SteppingMethod
         self.df = fill!(similar(f0),Float32(0))
         self.df_temp = fill!(similar(f0),Float32(0))
         self.temp = zeros(Float32,length(f0),length(f0))
-        self.L = similar(self.temp)
-        self.U = similar(self.temp)
+        #self.L = similar(self.temp)
+        #self.U = similar(self.temp)
 
         return self
     end

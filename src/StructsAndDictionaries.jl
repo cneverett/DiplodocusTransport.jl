@@ -291,6 +291,7 @@ mutable struct FluxMatricesStruct <: Function
     Vol::Vector{Float32}
 
     function FluxMatricesStruct(PhaseSpace::PhaseSpaceStruct)
+        
         self = new()
 
         (self.Ap_Flux,self.Am_Flux,self.B_Flux,self.C_Flux,self.D_Flux,self.I_Flux,self.J_Flux,self.K_Flux,self.Vol) = Allocate_Flux(PhaseSpace)
@@ -303,12 +304,12 @@ mutable struct FluxMatricesStruct <: Function
 end
 
 
-mutable struct SolutionOutput
+mutable struct OutputStruct
     
     f::fType
     t::Vector{Float64}
 
-    function SolutionOutput(f0::fType,n_save::Int64)
+    function OutputStruct(f0::fType,n_save::Int64)
 
         self = new()
         self.f = Vector{typeof(f0)}(undef,n_save)
