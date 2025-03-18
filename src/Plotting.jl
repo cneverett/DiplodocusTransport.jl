@@ -893,10 +893,10 @@ function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,
 end
 
 
-function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;tnum=50,uDis=false)
+function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false)
 
     fig = Figure()
-    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect(),limits=((nothing,nothing),(nothing,nothing)))
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -909,54 +909,59 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;tnum=50,uDis
     u_num = Momentum.py_num_list[species_index]
     dp = Grids.dpx_list[species_index]
     du = Grids.dpy_list[species_index]
-    meanp = Grids.meanpx_list[species_index]
+    meanp = Grids.mpx_list[species_index]
 
     d = zeros(Float32,p_num,u_num)
     dj = zeros(Float32,p_num,2)
 
-    t_up = Time.t_up
-    t_low = Time.t_low
-    t_num = Time.t_num
+    t_save = length(sol.t)
 
-    dt = (t_up-t_low)/t_num
+    t_plot = ceil(Int64,t_save/step)
 
-    logt = range(log10(dt),log10(t_up),length=tnum)
+    color_counter = 1
 
-    my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(logt)+1)]
-
-    logt_indicies = zeros(Int64,length(logt))
-
-    for i in 1:length(logt)
-        logt_indicies[i] = findmin(abs.(sol.t .- 10^logt[i]))[2]
+    if logt
+        log_t = log10.(sol.t)
+        values = findall(x->x%1==0,log_t)
+        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(values))]
+    else
+        values = (1:t_save)*step
+        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = t_plot+1)]
     end
 
-    for i in 1:length(logt_indicies)
+    for i in 1:t_save
 
-        t_index = logt_indicies[i]
-        #println(t_index)
-        t = sol.t[t_index]
+    if i in values
 
-        d .= reshape(sol.f[t_index].x[species_index],(p_num,u_num))
+        t = sol.t[i]
+
+        d .= reshape(sol.f[i].x[species_index],(p_num,u_num))
 
         @. d = d*(d!=Inf)
 
         if uDis
-            dj .= log10.(d .* dp)[:,1:3:4]
+            dj .= log10.(d .* dp)[:,1:3:4] # print just aligned and antialigned with field
 
-            scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=1.0,strokecolor = my_colors[i])
-            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[i])
-            #stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=3.0,linestyle=:dot,color = my_colors[i])
+            replace!(x -> x>=1f0 ? x : NaN, dj)
+            
+            #scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=1.0,strokecolor = my_colors[color_counter])
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[color_counter])
+            stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=3.0,linestyle=:dash,color = my_colors[color_counter])
         else
             dj[:,1] .= log10.(d*du .* dp)
 
             replace!(x -> x>=1f0 ? x : NaN, dj)
 
-            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[i])
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[color_counter])
         end
+
+        color_counter += 1
 
     end
 
-    Colorbar(fig[1,2],colormap = my_colors,limits=(logt[1],logt[end]))
+    end
+
+    Colorbar(fig[1,2],colormap = my_colors,limits=(log10(sol.t[2]),log10(sol.t[end])),label=L"$\log_{10}(t)$ $[\text{s} * \sigma_{T}c]$")
     
     return fig
 
