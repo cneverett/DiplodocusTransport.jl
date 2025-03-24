@@ -607,7 +607,25 @@ end
 
 Returns a collation of figures for analysing the output of the simulation.
 """
-function AllPlots_Ani(sol,num_species,name_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,filename,fps::Int;istart=nothing,istop=nothing,iframe=nothing,thermal=false,initial=false)
+function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,filename,fps::Int;istart=nothing,istop=nothing,iframe=nothing,thermal=false,initial=false)
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    p_num_list = Momentum.px_num_list
+    u_num_list = Momentum.py_num_list
+
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+    dp_list = Grids.dpx_list
+    du_list = Grids.dpy_list
+    meanp_list = Grids.mpx_list
+    meanu_list = Grids.mpy_list
+
+    mass_list = Grids.mass_list
+
+    num_species = length(name_list)
 
     fig = Figure(size=(1000,700,))
     #fig = Figure()
