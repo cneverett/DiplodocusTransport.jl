@@ -61,14 +61,16 @@ struct MomentumStruct
     pz_grid_list::Vector{String}   
     pz_num_list::Vector{Int64} 
 
+    scheme::String
+
 end
 
 """
-    GridStruct()
+    GridsStruct()
 
 A struct for storing the grid values for each particle in the simulation.
 """
-mutable struct GridStruct <: Function
+mutable struct GridsStruct <: Function
 
     mass_list::Vector{Float64}
 
@@ -95,7 +97,7 @@ mutable struct GridStruct <: Function
     mpy_list::Vector{Vector{Float64}}
     mpz_list::Vector{Vector{Float64}}
 
-    function GridStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
+    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
 
         self = new()
 
@@ -214,11 +216,11 @@ mutable struct PhaseSpaceStruct <: Function
     Forces::Vector{ForceType}
 
     # interactions
-    Binary_list::Vector{Vector{String}} # list of Binary interactions
-    Emi_list::Vector{Vector{String}} # list of Emission interactions
+    Binary_list::Vector{BinaryStruct} # list of Binary interactions
+    Emi_list::Vector{EmiStruct} # list of Emission interactions
 
     # grids
-    Grids::GridStruct
+    Grids::GridsStruct
 
     function PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
 
@@ -232,7 +234,7 @@ mutable struct PhaseSpaceStruct <: Function
         self.Binary_list = Binary_list
         self.Emi_list = Emi_list
 
-        self.Grids = GridStruct(name_list,time,space,momentum)
+        self.Grids = GridsStruct(name_list,time,space,momentum)
 
         return self
 
@@ -255,19 +257,18 @@ mutable struct BigMatricesStruct <: Function
 
     M_Abs::Array{Float32,2}  # big matrix for emission interactions
 
-    function BigMatricesStruct(PhaseSpace::PhaseSpaceStruct)
+    function BigMatricesStruct(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=true)
 
         self = new()
 
         if isempty(PhaseSpace.Binary_list) == false
-            self.M_Bin = Allocate_M_Bin(PhaseSpace)
+            self.M_Bin = Allocate_M_Bin(PhaseSpace,loading_check)
+            LoadMatrices_Binary(self,DataDirectory,PhaseSpace)
         end
         if isempty(PhaseSpace.Emi_list) == false
-            self.M_Emi = Allocate_M_Emi(PhaseSpace)
+            self.M_Emi = Allocate_M_Emi(PhaseSpace,loading_check)
+            LoadMatrices_Emi(self,DataDirectory,PhaseSpace);
         end
-        #self.J_Emi = Allocate_J_Emi(Lists)
-        #self.A_Abs = Allocate_A_Abs(Lists)
-        #self.J_Abs = Allocate_J_Abs(Lists)
 
         return self
     end
