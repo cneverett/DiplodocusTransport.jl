@@ -42,11 +42,12 @@ end
 
 Returns a tuple of `Vector{Float32}` of initial number density, energy density, and temperature values for each particle species, given the output of a simulation `sol` and the input parameters `Lists`.    
 """
-function getInitialScaling(sol,Lists::ListStruct,pr_list,ur_list,mass_list)
+function getInitialScaling(sol,PhaseSpace::PhaseSpaceStruct)
 
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
+    name_list = PhaseSpace.name_list
+    momentum = PhaseSpace.momentum
+    p_num_list = momentum.p_num_list
+    u_num_list = momentum.u_num_list
 
     num_species = length(name_list);
     numInit_list = zeros(Float32,num_species);
