@@ -175,6 +175,8 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
 
+    scheme = Momentum.scheme
+
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
     y_num = Space.y_num
@@ -260,15 +262,17 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 __|________|_________|________|_
                     b-1        b        b+1  
                 =#
-
-                if b != bp
-                    I_Flux[a,bp] += I_plus / (pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                    I_Flux[a,b] -= I_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                end
-                if b != bm
-                    I_Flux[a,bm] -= I_minus / (pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                    I_Flux[a,b] += I_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-
+                if scheme == "central"
+                    if b != bp
+                        I_Flux[a,bp] += I_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                        I_Flux[a,b] -= I_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    end
+                    if b != bm
+                        I_Flux[a,bm] -= I_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                        I_Flux[a,b] += I_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    end
+                else
+                    error("Scheme note recognised")
                 end
             end
         end
@@ -361,13 +365,20 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                     bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
                 end
 
+                #=
+                ________________________________
+                a |  -J_m  | J_m-J_p | J_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
+
                 if b != bp
-                    J_Flux[a,bp] += J_plus / (pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])#*(phi1-phi0)
-                    J_Flux[a,b] -= J_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                    J_Flux[a,bp] += J_plus / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp]))#*(phi1-phi0)
+                    J_Flux[a,b] -= J_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
                 end
                 if b != bm
-                    J_Flux[a,bm] -= J_minus / (pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])#*(phi1-phi0)
-                    J_Flux[a,b] += J_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                    J_Flux[a,bm] -= J_minus / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym]))#*(phi1-phi0)
+                    J_Flux[a,b] += J_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
                 end
 
             end
@@ -383,6 +394,7 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
+    scheme = Momentum.scheme
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -438,6 +450,10 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
 
                 a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
+                pzp = pz+1
+                pzm = pz-1
+                bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
 
                 K_plus = 0f0
                 K_minus = 0f0
@@ -447,8 +463,31 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                     K_minus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
                 end
 
-                K_Flux[a,b] += K_plus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                K_Flux[a,b] -= K_minus / (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                # Boundary conditions periodic these may not be correct!
+                if pzp > pz_num
+                    pzp = 1
+                    bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                end
+                if pzm < 1
+                    pzm = pz_num
+                    bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                end
+
+                #=
+                ________________________________
+                a |  -K_m  | K_m-K_p | K_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
+
+                if b != bp
+                    K_Flux[a,bp] += K_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    K_Flux[a,b] -= K_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                end
+                if b != bm
+                    K_Flux[a,bm] -= K_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    K_Flux[a,b] += K_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                end
             end
         end
     end

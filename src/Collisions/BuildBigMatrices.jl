@@ -3,7 +3,7 @@
 
 Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation. If `n` is the size of the momentum domain, then `M_Bin` is an `n^2 x n` matrix. The size of `M_Bin` in memory is printed to the console upon allocation.
 """
-function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct)
+function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
 
     Momentum = PhaseSpace.Momentum
 
@@ -14,19 +14,42 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct)
     n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*n
 
-    M_Bin::AbstractArray{Float32,2} = zeros(Float32,m,n)
+    size = m*n*sizeof(Float32)
 
-    size_M_Bin = sizeof(M_Bin)
+    if loading_check
 
-    if size_M_Bin > 1e9
-        println("M_Bin is approx. $(size_M_Bin/1e9) GB in memory")
-    elseif size_M_Bin > 1e6
-        println("M_Bin is approx. $(size_M_Bin/1e6) MB in memory")
-    elseif size_M_Bin > 1e3
-        println("M_Bin is approx. $(size_M_Bin/1e3) KB in memory")
+        if size > 1e9
+            println("M_Bin will be approx. $(size/1e9) GB in memory")
+        elseif size > 1e6
+            println("M_Bin will be approx. $(size/1e6) MB in memory")
+        elseif size > 1e3
+            println("M_Bin will be approx. $(size/1e3) KB in memory")
+        else
+            println("M_Bin will be approx. $size bytes in memory")
+        end
+
+        println("Do you want to proceed? (y/n)")
+        proceed = readline()
+        if proceed != "y"
+            error("Error: User aborted binary interaction matrix loading")
+        end
+
     else
-        println("M_Bin is approx. $size_M_Bin bytes in memory")
+
+        println("Building binary interaction matrix")
+        if size > 1e9
+            println("M_Bin is approx. $(size/1e9) GB in memory")
+        elseif size > 1e6
+            println("M_Bin is approx. $(size/1e6) MB in memory")
+        elseif size > 1e3
+            println("M_Bin is approx. $(size/1e3) KB in memory")
+        else
+            println("M_Bin is approx. $size bytes in memory")
+        end
+
     end
+
+    M_Bin::AbstractArray{Float32,2} = zeros(Float32,m,n)
 
     return M_Bin
 
@@ -38,7 +61,7 @@ end
 
 Fills the big matrix `M_Bin` with the interaction rates for binary interactions between all particles in the simulation.
 """
-function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},PhaseSpace::PhaseSpaceStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -47,6 +70,11 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
+
+    name1 = interaction.name1
+    name2 = interaction.name2
+    name3 = interaction.name3
+    name4 = interaction.name4
 
     # first find offsets of the different species in the big matrix A
 
@@ -60,19 +88,19 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
     end
 
     # interaction = ["name1","name2","name3","name4"]
-    name1_loc = findfirst(==(interaction[1]),name_list)
-    name2_loc = findfirst(==(interaction[2]),name_list)
-    name3_loc = findfirst(==(interaction[3]),name_list)
-    name4_loc = findfirst(==(interaction[4]),name_list)
+    name1_loc = findfirst(==(name1),name_list)
+    name2_loc = findfirst(==(name2),name_list)
+    name3_loc = findfirst(==(name3),name_list)
+    name4_loc = findfirst(==(name4),name_list)
 
-    if interaction[1] == interaction[2] && interaction[3] == interaction[4] # name1=name2 and name3=name4
+    if name1 == name2 && name3 == name4
 
-        if typeof(Mode) == AxiType
+        if typeof(Mode) == Axi
 
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
 
-        elseif typeof(Mode) == IsoType
+        elseif typeof(Mode) == Iso
 
             Grids = PhaseSpace.Grids
             dpy1 = Grids.dpy[name1_loc]
@@ -93,15 +121,15 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
 
     end
 
-    if interaction[1] == interaction[2] && interaction[3] != interaction[4] # name1=name2 and name3=name4
+    if name1 == name2 && name3 != name4
 
-        if typeof(Mode) == AxiType
+        if typeof(Mode) == AxiT
 
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
 
-        elseif typeof(Mode) == IsoType
+        elseif typeof(Mode) == Iso
 
             Grids = PhaseSpace.Grids
             dpy1 = Grids.dpy[name1_loc]
@@ -123,15 +151,15 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
 
     end
 
-    if interaction[1] != interaction[2] && interaction[3] == interaction[4] # name1=name2 and name3=name4
+    if name1 != name2 && name3 == name4
 
-        if typeof(Mode) == AxiType
+        if typeof(Mode) == Axi
 
             SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
             TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
 
-        elseif typeof(Mode) == IsoType
+        elseif typeof(Mode) == Iso
 
             Grids = PhaseSpace.Grids
             dpy1 = Grids.dpy[name1_loc]
@@ -152,7 +180,7 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String}
 
     end
 
-    if interaction[1] != interaction[2] && interaction[3] != interaction[4] # name1=name2 and name3=name4
+    if name1 != name2 && name3 != name4
 
         if typeof(Mode) == Axi
 
@@ -192,7 +220,7 @@ end
 
 Allocates a big matrix `M_Emi` which stores the interaction rates for emission interactions between all particles in the simulation.
 """
-function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct)
+function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
 
     Momentum = PhaseSpace.Momentum
 
@@ -202,33 +230,61 @@ function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct)
 
     n = sum(px_num_list.*py_num_list.*pz_num_list)
 
-    M_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
+    size = n*n*sizeof(Float32)
 
-    size_M_Emi = sizeof(M_Emi)
+    if loading_check
 
-    if size_M_Emi > 1e9
-        println("M_Emi is approx. $(size_M_Emi/1e9) GB in memory")
-    elseif size_M_Emi > 1e6
-        println("M_Emi is approx. $(size_M_Emi/1e6) MB in memory")
-    elseif size_M_Emi > 1e3
-        println("M_Emi is approx. $(size_M_Emi/1e3) KB in memory")
+        if size > 1e9
+            println("M_Emi will be approx. $(size/1e9) GB in memory")
+        elseif size > 1e6
+            println("M_Emi will be approx. $(size/1e6) MB in memory")
+        elseif size > 1e3
+            println("M_Emi will be approx. $(size/1e3) KB in memory")
+        else
+            println("M_Emi will be approx. $size bytes in memory")
+        end
+
+        println("Do you want to proceed? (y/n)")
+        #proceed = readline()
+        proceed = "y" ## FIX LATER
+        if proceed != "y"
+            error("Error: User aborted emission interaction matrix loading")
+        end
+
     else
-        println("M_Emi is approx. $size_M_Emi bytes in memory")
+
+        println("Building emission interaction matrix")
+        if size > 1e9
+            println("M_Emi is approx. $(size/1e9) GB in memory")
+        elseif size > 1e6
+            println("M_Emi is approx. $(size/1e6) MB in memory")
+        elseif size > 1e3
+            println("M_Emi is approx. $(size/1e3) KB in memory")
+        else
+            println("M_Emi is approx. $size bytes in memory")
+        end
+
     end
+
+    M_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
 
     return M_Emi
 
 end
 
-function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::Vector{String},PhaseSpace::PhaseSpaceStruct;SMatrix2=nothing,SMatrix3=nothing,TMatrix1=nothing)
+function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,PhaseSpace::PhaseSpaceStruct;SMatrix2=nothing,SMatrix3=nothing,TMatrix1=nothing)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
-    Mode = Momentum.momentum_coordinates.mode
+    mode = interaction.mode
   
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
+
+    name1 = interaction.name1
+    name2 = interaction.name2
+    name3 = interaction.name3
 
     # first find offsets of the different species in the big matrix A
 
@@ -241,26 +297,25 @@ function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::Vector{String}
         end
     end
 
-    # interaction = ["name1","name2","name3","interaction"]
-    name1_loc = findfirst(==(interaction[1]),name_list)
-    name2_loc = findfirst(==(interaction[2]),name_list)
-    name3_loc = findfirst(==(interaction[3]),name_list)
+    name1_loc = findfirst(==(name1),name_list)
+    name2_loc = findfirst(==(name2),name_list)
+    name3_loc = findfirst(==(name3),name_list)
 
     # interaction is name1 -> name2 + name3
     # absorption of name1 and emission of name2 not implemented with name1 == name2
 
-    if typeof(Mode) == Axi
+    if typeof(mode) == Axi
 
         #SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
         SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
         #TMatrix_to_M_Emi_Axi!(M_Emi,TMatrix1,offset[name1_loc])
 
-    elseif typeof(Mode) == Iso
+    elseif typeof(mode) == Iso
 
         Grids = PhaseSpace.Grids
-        dpy1 = Grids.dpy[name1_loc]
-        dpy2 = Grids.dpy[name2_loc]
-        dpy3 = Grids.dpy[name3_loc]
+        dpy1 = Grids.dpy_list[name1_loc]
+        dpy2 = Grids.dpy_list[name2_loc]
+        dpy3 = Grids.dpy_list[name3_loc]
         
         #SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
         SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc],dpy3,dpy1)
