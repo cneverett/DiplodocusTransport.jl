@@ -1,4 +1,4 @@
-function Solve(f1D0::fType,method::SteppingMethod;save_steps::Int=1,progress=false)
+function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress=false)
 
     PhaseSpace = method.PhaseSpace
     Time = PhaseSpace.Time

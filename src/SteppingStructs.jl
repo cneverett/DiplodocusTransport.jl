@@ -1,5 +1,5 @@
 # Struct for storing the Boltzmann equation and its solution
-mutable struct EulerStruct <: SteppingMethod
+mutable struct EulerStruct <: SteppingMethodType
 
     PhaseSpace::PhaseSpaceStruct
     BigM::BigMatricesStruct
@@ -11,10 +11,9 @@ mutable struct EulerStruct <: SteppingMethod
     M_Emi_Step::Array{Float32,2}      # temporary array for spatial evaluated emission terms
     Jac::Array{Float32,2}           # jacobian for if Implicit==True
     df::fType                       # change in distribution function
-    df_temp::fType                  # change in distribution function
+    #df_temp::fType                  # change in distribution function
     temp::Array{Float32,2}
-    #L::AbstractArray{Float32,2}
-    #U::AbstractArray{Float32,2}
+    LU::LinearAlgebra.LU{Float32, Matrix{Float32}, Vector{Int64}}
 
     function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool)
 
@@ -32,10 +31,10 @@ mutable struct EulerStruct <: SteppingMethod
             self.Jac = zeros(Float32,length(f0),length(f0))
         end
         self.df = fill!(similar(f0),Float32(0))
-        self.df_temp = fill!(similar(f0),Float32(0))
+        #self.df_temp = fill!(similar(f0),Float32(0))
         self.temp = zeros(Float32,length(f0),length(f0))
-        #self.L = similar(self.temp)
-        #self.U = similar(self.temp)
+        self.temp = zeros(Float32,length(f0),length(f0))
+        self.LU = similar(self.temp)
 
         return self
     end

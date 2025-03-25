@@ -37,7 +37,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,t,dt)
         # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
         fill!(Euler.temp,Float32(0))
         if isempty(Euler.PhaseSpace.Binary_list) == false
-            update_Big_Binary!(Euler,f)
+            update_Big_Bin!(Euler,f)
             @. Euler.temp += Euler.M_Bin_Mul_Step 
         end
         if isempty(Euler.PhaseSpace.Emi_list) == false
@@ -59,11 +59,17 @@ function (Euler::EulerStruct)(df::fType,f::fType,t,dt)
             #@. g.temp = g.temp*(g.temp!=Inf)
         end
 
+        if Euler.Implicit
+
+        else
+            Euler.LU = copy(Euler.FluxM.Ap_Flux)
+            ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
+        end
         # improve allocations with LU decomp??
-        Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
-        Euler.temp ./= Euler.df_temp
+        #Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
+        #Euler.temp ./= Euler.df_temp
         #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
-        mul!(Euler.df,Euler.temp,f)
+        #mul!(Euler.df,Euler.temp,f)
         @. df = Euler.df
 
     end
@@ -96,8 +102,6 @@ function update_Big_Bin!(method::SteppingMethod,f)
 
     # Thanks to Emma Godden for fixing a bug here
     temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
-
-    #off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
