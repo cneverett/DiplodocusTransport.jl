@@ -10,7 +10,7 @@
 
         m = getfield(BCI,Symbol("mu"*name))
 
-        flux = ((-p064 + p164)*(-u0 + u1)*(-(x0^2/2) + x1^2/2)*(-y0 + y1)*(-z0 + z1)*(-phi0 + phi1))/(2*pi)
+        flux = ((-p064 + p164)*(-u0 + u1)*(-(x0^2/2) + x1^2/2)*(-y0 + y1)*(-z0 + z1)*(-phi0 + phi1))
 
         return Float32(flux)
 
@@ -26,7 +26,7 @@
 
         m = getfield(BCI,Symbol("mu"*name))
 
-        flux = (1/(4*pi))*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1) * x * (y0 - y1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sin(phi0) - sin(phi1))
+        flux = (1/2)*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1) * x * (y0 - y1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sin(phi0) - sin(phi1))
 
         return Float32(flux)
 
@@ -42,7 +42,7 @@
 
         m = getfield(BCI,Symbol("mu"*name))
 
-        flux = (1/(4*pi))*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2))*(t0 - t1) * (x0 - x1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cos(phi0) - cos(phi1))
+        flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2))*(t0 - t1) * (x0 - x1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cos(phi0) - cos(phi1))
 
         return Float32(flux)
 
@@ -58,7 +58,7 @@
 
         m = getfield(BCI,Symbol("mu"*name))
 
-        flux = ((sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1)*(u0^2 - u1^2)*(x0^2 - x1^2)*(y0 - y1)*(phi0 - phi1))/(8*pi)
+        flux = (1/4)*((sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1)*(u0^2 - u1^2)*(x0^2 - x1^2)*(y0 - y1)*(phi0 - phi1))
 
         return Float32(flux)
 
@@ -103,7 +103,7 @@
 
         m = getfield(BCI,Symbol("mu"*name))
 
-        flux = (1/(4*pi))*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
+        flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
         flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)
 
         return flux

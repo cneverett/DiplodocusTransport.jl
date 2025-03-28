@@ -25,7 +25,7 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
         return flux = 0f0
     else
         if typeof(mode) == Axi
-            flux = 1/(12*m^2*pi)
+            flux = 1/(6*m^2)
             flux *= p64*sqrt(m^2 + p64^2) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (phi0 - phi1)
             flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             flux *= fluxScale
@@ -69,7 +69,7 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
         flux = 0f0
     else
         if typeof(mode) == Axi
-            flux = -1/(8*pi)
+            flux = -1/4
             flux *= u * (-1 + u^2) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2) / (m^2 * (p064 + sqrt(m^2 + p064^2))))
             flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             flux *= fluxScale
