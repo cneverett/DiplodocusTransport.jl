@@ -355,14 +355,16 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                     J_minus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
                 end
 
-                # Boundary conditions reflective these may not be correct!
+                # Flux on boundaries should be zero
                 if pyp > py_num
-                    pyp = 1
+                    pyp = py_num
                     bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
+                    # b = bp therefore no J_plus flux only J_minus i.e. particles only leave/enter from left boundary (u<1)
                 end
                 if pym < 1
-                    pym = py_num
+                    pym = 1
                     bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
+                    # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
                 end
 
                 #=
