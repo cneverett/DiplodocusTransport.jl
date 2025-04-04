@@ -45,9 +45,14 @@ Returns a tuple of `Vector{Float32}` of initial number density, energy density, 
 function getInitialScaling(sol,PhaseSpace::PhaseSpaceStruct)
 
     name_list = PhaseSpace.name_list
-    momentum = PhaseSpace.momentum
-    p_num_list = momentum.p_num_list
-    u_num_list = momentum.u_num_list
+    momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    p_num_list = momentum.px_num_list
+    u_num_list = momentum.py_num_list
+
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+    mass_list = Grids.mass_list
 
     num_species = length(name_list);
     numInit_list = zeros(Float32,num_species);
