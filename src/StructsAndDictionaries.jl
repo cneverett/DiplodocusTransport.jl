@@ -8,6 +8,7 @@ struct TimeStruct
     t_up::Float64
     t_low::Float64
     t_num::Int64
+    t_grid::String
 
 end
 
@@ -106,8 +107,9 @@ mutable struct GridsStruct <: Function
             t_up = time.t_up
             t_low = time.t_low
             t_num = time.t_num
+            t_grid = time.t_grid
 
-            self.tr = BCI.bounds(t_low,t_up,t_num,"u")
+            self.tr = BCI.bounds(t_low,t_up,t_num,t_grid)
             self.dt = BCI.deltaVector(self.tr)
 
         # space domain grids

@@ -91,19 +91,10 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},PhaseSpace
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
     n_space = x_num*y_num*z_num
 
-    tr = Grids.tr # time step assumed to be constant!
+    tr = Grids.tr # A_flux uses only first time step!
     xr = Grids.xr
     yr = Grids.yr
     zr = Grids.zr
-
-    # TOFIX: change coordinate grids later
-    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    #x_r = [0,1f0] # cylindrical radial
-    #y_r = [0,Float32(2*pi)] # cylindrical theta
-    #z_r = [0,1f0] # cylindrical z
-
-    #phi0 = 0f0
-    #phi1 = Float32(2*pi)
     
     for name in 1:length(name_list)
         off_name = offset[name]

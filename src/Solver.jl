@@ -2,25 +2,23 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
 
     PhaseSpace = method.PhaseSpace
     Time = PhaseSpace.Time
+    Grids = PhaseSpace.Grids
 
     f0 = copy(f1D0)
-    t_low = Time.t_low
-    t_up = Time.t_up
-    t_num = Time.t_num
+    tr = Grids.tr
+    dt0 = tr[2] - tr[1]
+    t_num = length(tr)-1
 
-    t_steps = range(t_low,t_up,length=t_num+1)
     n_save = ceil(Int64,t_num/save_steps+1)
 
     tmp = copy(f0)
     dtmp = similar(f0)
 
-    t = t_low
-
     output = OutputStruct(f0,n_save)
 
     # save initial state (step 1)
     output.f[1] = copy(tmp)
-    output.t[1] = t
+    output.t[1] = tr[1]
     save_count = 1
 
     # progress bar
@@ -30,10 +28,9 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
 
     for i in 1:t_num
 
-        t = t_steps[i]
-        dt = t_steps[i+1] - t_steps[i]
+        dt = tr[i+1] - tr[i]
 
-        method(dtmp,tmp,t,dt)
+        method(dtmp,tmp,dt0,dt)
         @. tmp += dtmp
 
         # removing values less than 0f0
@@ -44,7 +41,7 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
         # saving state
         if (i)%save_steps == 0
             save_count += 1
-            t = t_steps[i+1]
+            t = tr[i+1]
             output.f[save_count] = copy(tmp)
             output.t[save_count] = t
         end
