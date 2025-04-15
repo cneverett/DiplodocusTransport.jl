@@ -126,10 +126,10 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = BCI.location(pl,pu,p_num,pmin,p_grid)
-        pmax_index = BCI.location(pl,pu,p_num,pmax,p_grid)
-        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,umin,u_grid)
-        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,umax,u_grid)
+        pmin_index = BCI.location(pl,pu,p_num,Float64(pmin),p_grid)
+        pmax_index = BCI.location(pl,pu,p_num,Float64(pmax),p_grid)
+        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umin),u_grid)
+        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umax),u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -140,7 +140,7 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     dp = BCI.deltaVector(BCI.bounds(pl,pu,p_num,p_grid))
     du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
 
-    # set values and normlaise to initial number density (in m^{-3})
+    # set values and normalise to initial number density (in m^{-3})
     for i in pmin_index:pmax_index, j in umin_index:umax_index
         u0_2D_species[i,j] = 1e0
         #u0_2D_species[i,j] = dp[i] * du[j]
