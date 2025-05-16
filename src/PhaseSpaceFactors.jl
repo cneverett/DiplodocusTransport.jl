@@ -42,7 +42,7 @@ function PhaseSpaceFactors_Binary_Undo!(p3_bounds::Vector{Float64},u3_bounds::Ve
     # === SMatrix4 === #
     # Momentum space volume elements
     if SMatrix4 != 0f0
-        for h2 in axes(SMatrix3,9), u2 in axes(SMatrix3,8), p2 in axes(SMatrix3,7), h1 in axes(SMatrix3,6), u1 in axes(SMatrix3,5), p1 in axes(SMatrix3,4) # common axes
+        for h2 in axes(SMatrix4,9), u2 in axes(SMatrix4,8), p2 in axes(SMatrix4,7), h1 in axes(SMatrix4,6), u1 in axes(SMatrix4,5), p1 in axes(SMatrix4,4) # common axes
             for h4 in axes(SMatrix4,3), u4 in axes(SMatrix4,2), p4 in axes(SMatrix4,1)
                 if p4 == 1 # must account for underflow values increasing bin size 
                     SMatrix4[p4,u4,h4,p1,u1,h1,p2,u2,h2] *= (u4_bounds[u4+1]-u4_bounds[u4])*(h4_bounds[h4+1]-h4_bounds[h4])*(p4_bounds[p4+1])# dp4du4dh4 
