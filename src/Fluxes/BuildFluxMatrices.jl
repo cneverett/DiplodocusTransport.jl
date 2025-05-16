@@ -122,8 +122,8 @@ function Fill_A_Flux!(Ap_Flux::Array{Float32},Am_Flux::Array{Float32},PhaseSpace
                 Am_Flux[a,b] -= A_minus
 
                 # normalisation
-                Ap_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
-                Am_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])#*(phi1-phi0)
+                Ap_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])
+                Am_Flux[a,b] /= (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])
 
             end
         end
@@ -194,15 +194,6 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
     xr = Grids.xr
     yr = Grids.yr
     zr = Grids.zr
-
-    # TOFIX: change coordinate grids later
-    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    #x_r = [0,1f0] # cylindrical radial
-    #y_r = [0,Float32(2*pi)] # cylindrical theta
-    #z_r = [0,1f0] # cylindrical z
-
-    #phi0 = 0f0
-    #phi1 = Float32(2*pi)
     
     for name in 1:length(name_list)
         off_name = offset[name]
@@ -255,12 +246,12 @@ function Fill_I_Flux!(I_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 =#
                 if scheme == "central"
                     if b != bp
-                        I_Flux[a,bp] += I_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
-                        I_Flux[a,b] -= I_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                        I_Flux[a,bp] += I_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
+                        I_Flux[a,b] -= I_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                     end
                     if b != bm
-                        I_Flux[a,bm] -= I_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
-                        I_Flux[a,b] += I_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                        I_Flux[a,bm] -= I_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
+                        I_Flux[a,b] += I_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                     end
                 else
                     error("Scheme note recognised")
@@ -305,15 +296,6 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
     xr = Grids.xr
     yr = Grids.yr
     zr = Grids.zr
-
-    # TOFIX: change coordinate grids later
-    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    #x_r = [0,1f0] # cylindrical radial
-    #y_r = [0,Float32(2*pi)] # cylindrical theta
-    #z_r = [0,1f0] # cylindrical z
-
-    #phi0 = 0f0
-    #phi1 = Float32(2*pi)
     
     for name in 1:length(name_list)
         off_name = offset[name]
@@ -366,12 +348,12 @@ function Fill_J_Flux!(J_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 =#
 
                 if b != bp
-                    J_Flux[a,bp] += J_plus / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp]))#*(phi1-phi0)
-                    J_Flux[a,b] -= J_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    J_Flux[a,bp] += J_plus / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp]))*(pzr[pz+1]-pzr[pz])
+                    J_Flux[a,b] -= J_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                 end
                 if b != bm
-                    J_Flux[a,bm] -= J_minus / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym]))#*(phi1-phi0)
-                    J_Flux[a,b] += J_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    J_Flux[a,bm] -= J_minus / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym]))*(pzr[pz+1]-pzr[pz])
+                    J_Flux[a,b] += J_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                 end
 
             end
@@ -415,15 +397,6 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
     xr = Grids.xr
     yr = Grids.yr
     zr = Grids.zr
-
-    # TOFIX: change coordinate grids later
-    #t_r = SpaceTime.t_low:SpaceTime.dt:SpaceTime.t_up
-    #x_r = [0,1f0] # cylindrical radial
-    #y_r = [0,Float32(2*pi)] # cylindrical theta
-    #z_r = [0,1f0] # cylindrical z
-
-    #phi0 = 0f0
-    #phi1 = Float32(2*pi)
     
     for name in 1:length(name_list)
         off_name = offset[name]
@@ -474,12 +447,12 @@ function Fill_K_Flux!(K_Flux::Array{Float32},PhaseSpace::PhaseSpaceStruct)
                 =#
 
                 if b != bp
-                    K_Flux[a,bp] += K_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
-                    K_Flux[a,b] -= K_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    K_Flux[a,bp] += K_plus / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
+                    K_Flux[a,b] -= K_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                 end
                 if b != bm
-                    K_Flux[a,bm] -= K_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
-                    K_Flux[a,b] += K_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))#*(phi1-phi0)
+                    K_Flux[a,bm] -= K_minus / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
+                    K_Flux[a,b] += K_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])
                 end
             end
         end

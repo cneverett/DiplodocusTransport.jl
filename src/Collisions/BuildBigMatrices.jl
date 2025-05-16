@@ -29,10 +29,10 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
         end
 
         println("Do you want to proceed? (y/n)")
-        proceed = readline()
-        if proceed != "y"
-            error("Error: User aborted binary interaction matrix loading")
-        end
+        #proceed = readline()
+        #if proceed != "y"
+        #    error("Error: User aborted binary interaction matrix loading")
+        #end
 
     else
 
@@ -57,15 +57,15 @@ end
 
 
 """
-    Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+    Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;GainMatrix3=nothing,GainMatrix4=nothing,LossMatrix1=nothing,LossMatrix2=nothing)
 
 Fills the big matrix `M_Bin` with the interaction rates for binary interactions between all particles in the simulation.
 """
-function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct;SMatrix3=nothing,SMatrix4=nothing,TMatrix1=nothing,TMatrix2=nothing)
+function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6})
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
-    Mode = Momentum.momentum_coordinates.Mode
+    #Mode = Momentum.momentum_coordinates.Mode
 
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
@@ -97,8 +97,8 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
 
         if typeof(Mode) == Axi
 
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
 
         elseif typeof(Mode) == Iso
 
@@ -107,15 +107,15 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
             dpy2 = Grids.dpy[name2_loc]
             dpy3 = Grids.dpy[name3_loc]
 
-            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
 
         else
             error("Error: Momentum mode not recognised")
         end
 
-        SMatrix3 = nothing
-        TMatrix1 = nothing
+        GainMatrix3 = nothing
+        LossMatrix1 = nothing
 
         GC.gc()
 
@@ -123,11 +123,11 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
 
     if name1 == name2 && name3 != name4
 
-        if typeof(Mode) == AxiT
+        if typeof(Mode) == Axi
 
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
 
         elseif typeof(Mode) == Iso
 
@@ -137,15 +137,15 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
             dpy3 = Grids.dpy[name3_loc]
             dpy4 = Grids.dpy[name4_loc]
 
-            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpy2,dpy3)
-            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
-            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpy2,dpy3)
+            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
+            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
 
         end
 
-        SMatrix3 = nothing
-        SMatrix4 = nothing
-        TMatrix1 = nothing
+        GainMatrix3 = nothing
+        GainMatrix4 = nothing
+        LossMatrix1 = nothing
 
         GC.gc()
 
@@ -155,9 +155,9 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
 
         if typeof(Mode) == Axi
 
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
 
         elseif typeof(Mode) == Iso
 
@@ -166,15 +166,15 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
             dpy2 = Grids.dpy[name2_loc]
             dpy3 = Grids.dpy[name3_loc]
 
-            SMatrix_to_M_Bin_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-            TMatrix_to_M_Bin_Iso!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
 
         end
 
-        SMatrix3 = nothing
-        TMatrix1 = nothing
-        TMatrix2 = nothing
+        GainMatrix3 = nothing
+        LossMatrix1 = nothing
+        LossMatrix2 = nothing
 
         GC.gc()
 
@@ -182,12 +182,12 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
 
     if name1 != name2 && name3 != name4
 
-        if typeof(Mode) == Axi
+        #=if typeof(Mode) == Axi
 
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            SMatrix_to_M_Bin_Axi!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc])
-            TMatrix_to_M_Bin_Axi!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
 
         elseif typeof(Mode) == Iso
 
@@ -197,17 +197,22 @@ function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,P
             dpy3 = Grids.dpy[name3_loc]
             dpy4 = Grids.dpy[name4_loc]
 
-            SMatrix_to_M_Iso!(M_Bin,SMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            SMatrix_to_M_Bin!(M_Bin,SMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
-            TMatrix_to_M_Bin!(M_Bin,TMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-            TMatrix_to_M_Bin!(M_Bin,TMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+            GainMatrix_to_M_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
+            GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
+            LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
+            LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
 
-        end
+        end=#
 
-        SMatrix3 = nothing
-        SMatrix4 = nothing
-        TMatrix1 = nothing
-        TMatrix2 = nothing
+        GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+        GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+        LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+        LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
+
+        GainMatrix3 = nothing
+        GainMatrix4 = nothing
+        LossMatrix1 = nothing
+        LossMatrix2 = nothing
 
         GC.gc()
 
@@ -272,7 +277,7 @@ function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
 
 end
 
-function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,PhaseSpace::PhaseSpaceStruct;SMatrix2=nothing,SMatrix3=nothing,TMatrix1=nothing)
+function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,PhaseSpace::PhaseSpaceStruct;GainMatrix2=nothing,GainMatrix3=nothing,LossMatrix1=nothing)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -306,9 +311,9 @@ function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,Phas
 
     if typeof(mode) == Axi
 
-        #SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc])
-        SMatrix_to_M_Emi_Axi!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc])
-        #TMatrix_to_M_Emi_Axi!(M_Emi,TMatrix1,offset[name1_loc])
+        #GainMatrix_to_M_Emi_Axi!(M_Emi,GainMatrix2,offset[name2_loc],offset[name1_loc])
+        GainMatrix_to_M_Emi_Axi!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc])
+        #LossMatrix_to_M_Emi_Axi!(M_Emi,LossMatrix1,offset[name1_loc])
 
     elseif typeof(mode) == Iso
 
@@ -317,72 +322,211 @@ function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,Phas
         dpy2 = Grids.dpy_list[name2_loc]
         dpy3 = Grids.dpy_list[name3_loc]
         
-        #SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
-        SMatrix_to_M_Emi_Iso!(M_Emi,SMatrix3,offset[name3_loc],offset[name1_loc],dpy3,dpy1)
-        #TMatrix_to_M_Emi_Iso!(M_Emi,TMatrix1,offset[name1_loc],dpy1)
+        #GainMatrix_to_M_Emi_Iso!(M_Emi,GainMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
+        GainMatrix_to_M_Emi_Iso!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc],dpy3,dpy1)
+        #LossMatrix_to_M_Emi_Iso!(M_Emi,LossMatrix1,offset[name1_loc],dpy1)
 
     end
-    #SMatrix2 = nothing
-    SMatrix3 = nothing
-    #TMatrix1 = nothing
+    #GainMatrix2 = nothing
+    GainMatrix3 = nothing
+    #LossMatrix1 = nothing
 
     GC.gc()
 
 end
 
-function SMatrix_to_M_Bin_Axi!(M_Bin::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
+function GainMatrix_to_M_Bin!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64)
 
-    px3_num = size(SMatrix,1)-1 # ignore overflow bin
-    py3_num = size(SMatrix,2)
-    px1_num = size(SMatrix,3)  
-    py1_num = size(SMatrix,4)
-    px2_num = size(SMatrix,5)
-    py2_num = size(SMatrix,6)
+    px3_num = size(GainMatrix,1)-1 # ignore overflow bin
+    py3_num = size(GainMatrix,2)
+    pz3_num = size(GainMatrix,3)
+    px1_num = size(GainMatrix,4)  
+    py1_num = size(GainMatrix,5)
+    pz1_num = size(GainMatrix,6)
+    px2_num = size(GainMatrix,7)
+    py2_num = size(GainMatrix,8)
+    pz2_num = size(GainMatrix,9)
+
+    N = size(M_Bin,2)
+    #println("N = $N")
+    #println("$offset2")
+
+    for pz2 in 1:pz2_num, py2 in 1:py2_num, px2 in 1:px2_num, pz1 in 1:pz1_num, py1 in 1:py1_num, px1 in 1:px1_num, pz3 in 1:pz3_num, py3 in 1:py3_num, px3 in 1:px3_num
+
+        a = (pz3-1)*px3_num*py3_num+(py3-1)*px3_num+px3+offset3
+        b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
+        c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
+
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] += GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] += GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2
+
+    end
+
+end
+
+function LossMatrix_to_M_Bin!(M_Bin::Array{Float32},LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64)
+
+    px1_num = size(LossMatrix,1)  
+    py1_num = size(LossMatrix,2)
+    pz1_num = size(LossMatrix,3)
+    px2_num = size(LossMatrix,4)
+    py2_num = size(LossMatrix,5)
+    pz2_num = size(LossMatrix,6)
+
+    N = size(M_Bin,2)
+
+    for pz2 in 1:pz2_num, py2 in 1:py2_num, px2 in 1:px2_num, pz1 in 1:pz1_num, py1 in 1:py1_num, px1 in 1:px1_num
+
+        a = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
+        b = a
+        c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
+
+        # M_Bin terms allocated symmetrically
+        M_Bin[(b-1)*N+(a-1)+1,c] -= LossMatrix[px1,py1,pz1,px2,py2,pz2]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] -= LossMatrix[px1,py1,pz1,px2,py2,pz2]/2
+
+    end
+
+end
+
+
+
+function GainMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},GainMatrix::Array{Float64,4},offset2::Int64,offset1::Int64)
+
+    px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
+    py2_num = size(GainMatrix,2)
+    px1_num = size(GainMatrix,3)  
+    py1_num = size(GainMatrix,4)
+
+    for l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px2_num
+
+        a = (j-1)*px2_num+i+offset2
+        b = (l-1)*px1_num+k+offset1
+
+        M_Emi[a,b] += GainMatrix[i,j,k,l]
+
+    end
+
+end
+
+function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},GainMatrix::Array{Float64,4},offset2::Int64,offset1::Int64,dpy2,dpy1)
+
+    px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
+    py2_num = size(GainMatrix,2)
+    px1_num = size(GainMatrix,3)  
+    py1_num = size(GainMatrix,4)
+
+    for l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px2_num
+
+        val = 0.0 # py (pz) averaged GainMatrix term
+        for p in axes(GainMatrix,4), q in axes(GainMatrix,2)
+            val += GainMatrix[i,q,k,p] * dpy2[q] * dpy1[p] # check order
+        end
+        val /= sum(dpy2)*sum(dpy1)
+
+        a = (j-1)*px2_num+i+offset2
+        b = (l-1)*px1_num+k+offset1
+
+        M_Emi[a,b] += val
+
+    end
+
+end
+
+function LossMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},LossMatrix::Array{Float64,2},offset1::Int64)
+
+    px1_num = size(LossMatrix,1)
+    py1_num = size(LossMatrix,2)
+
+    for j in axes(LossMatrix,2), i in axes(LossMatrix,1)
+
+        a = (j-1)*px1_num+i+offset1
+        b = a
+
+        M_Emi[a,b] -= LossMatrix[i,j]
+        
+    end
+
+end
+
+function LossMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},LossMatrix::Array{Float64,2},offset1::Int64)
+
+    px1_num = size(LossMatrix,1)
+    py1_num = size(LossMatrix,2)
+
+    for j in axes(LossMatrix,2), i in axes(LossMatrix,1)
+
+        val = 0.0 # py (pz) averaged LossMatrix term
+        for p in axes(LossMatrix,2)
+            val += LossMatrix[i,p] * dpy1[p] # check order
+        end
+        val /= sum(dpy1)
+
+        a = (j-1)*px1_num+i+offset1
+        b = a
+
+        M_Emi[a,b] -= val
+        
+    end
+
+end
+
+##  TO BE REMOVED LATER
+
+function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
+
+    px3_num = size(GainMatrix,1)-1 # ignore overflow bin
+    py3_num = size(GainMatrix,2)
+    px1_num = size(GainMatrix,3)  
+    py1_num = size(GainMatrix,4)
+    px2_num = size(GainMatrix,5)
+    py2_num = size(GainMatrix,6)
 
     # sanity check 
     if px1_num != px2_num || py1_num != py2_num
-        error("Error: SMatrix dimensions not as expected")
+        error("Error: GainMatrix dimensions not as expected")
     end
 
     N = size(M_Bin,2)
 
-    for n in axes(SMatrix,6), m in axes(SMatrix,5), l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px3_num
+    for n in axes(GainMatrix,6), m in axes(GainMatrix,5), l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px3_num
 
         a = (j-1)*px3_num+i+offset3
         b = (l-1)*px1_num+k+offset1
         c = (n-1)*px2_num+m+offset2
         
         # M_Bin terms allocated symmetrically
-        M_Bin[(b-1)*N+(a-1)+1,c] += SMatrix[i,j,k,l,m,n]/2
-        M_Bin[(c-1)*N+(a-1)+1,b] += SMatrix[i,j,k,l,m,n]/2 
+        M_Bin[(b-1)*N+(a-1)+1,c] += GainMatrix[i,j,k,l,m,n]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] += GainMatrix[i,j,k,l,m,n]/2 
 
     end
 
 end
 
-function SMatrix_to_M_Bin_Iso!(M_Bin::AbstractArray{Float32,2},SMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy3::Vector{Float64},dpy1::Vector{Float64},dpy2::Vector{Float64})
+function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy3::Vector{Float64},dpy1::Vector{Float64},dpy2::Vector{Float64})
 
-    px3_num = size(SMatrix,1)-1 # ignore overflow bin
-    py3_num = size(SMatrix,2)
-    px1_num = size(SMatrix,3)  
-    py1_num = size(SMatrix,4)
-    px2_num = size(SMatrix,5)
-    py2_num = size(SMatrix,6)
+    px3_num = size(GainMatrix,1)-1 # ignore overflow bin
+    py3_num = size(GainMatrix,2)
+    px1_num = size(GainMatrix,3)  
+    py1_num = size(GainMatrix,4)
+    px2_num = size(GainMatrix,5)
+    py2_num = size(GainMatrix,6)
 
     pxr1_grid
 
     # sanity check 
     if px1_num != px2_num || py1_num != py2_num
-        error("Error: SMatrix dimensions not as expected")
+        error("Error: GainMatrix dimensions not as expected")
     end
 
     N = size(M_Bin,2)
 
-    for n in axes(SMatrix,6), m in axes(SMatrix,5), l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px3_num
+    for n in axes(GainMatrix,6), m in axes(GainMatrix,5), l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px3_num
 
-        val = 0.0 # py (pz) averaged SMatrix term 
-        for p in axes(SMatrix,6), q in axes(SMatrix,4), r in axes(SMatrix,2)
-            val += SMatrix[i,r,k,q,m,p] * dpy3[r] * dpy1[q] * dpy2[p] # check order
+        val = 0.0 # py (pz) averaged GainMatrix term 
+        for p in axes(GainMatrix,6), q in axes(GainMatrix,4), r in axes(GainMatrix,2)
+            val += GainMatrix[i,r,k,q,m,p] * dpy3[r] * dpy1[q] * dpy2[p] # check order
         end
         val /= sum(dpy3)*sum(dpy1)*sum(dpy2) 
 
@@ -398,53 +542,53 @@ function SMatrix_to_M_Bin_Iso!(M_Bin::AbstractArray{Float32,2},SMatrix::Array{Fl
 
 end
 
-function TMatrix_to_M_Bin_Axi!(M_Bin::Array{Float32},TMatrix::Array{Float64,4},offset1::Int64,offset2::Int64)
+function LossMatrix_to_M_Bin_Axi!(M_Bin::Array{Float32},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64)
 
-    p1_num = size(TMatrix,1) # ignore overflow bin
-    u1_num = size(TMatrix,2)
-    p2_num = size(TMatrix,3)  
-    u2_num = size(TMatrix,4)
+    p1_num = size(LossMatrix,1) # ignore overflow bin
+    u1_num = size(LossMatrix,2)
+    p2_num = size(LossMatrix,3)  
+    u2_num = size(LossMatrix,4)
 
     # sanity check 
     if p1_num != p2_num || u1_num != u2_num
-        error("Error: SMatrix dimensions not as expected")
+        error("Error: GainMatrix dimensions not as expected")
     end
 
     N = size(M_Bin,2)
 
-    for l in axes(TMatrix,4), k in axes(TMatrix,3), j in axes(TMatrix,2), i in axes(TMatrix,1)
+    for l in axes(LossMatrix,4), k in axes(LossMatrix,3), j in axes(LossMatrix,2), i in axes(LossMatrix,1)
 
         a = (j-1)*p1_num+i+offset1
         b = a
         c = (l-1)*p2_num+k+offset2
     
         # M_Bin terms allocated symmetrically
-        M_Bin[(b-1)*N+(a-1)+1,c] -= TMatrix[i,j,k,l]/2
-        M_Bin[(c-1)*N+(a-1)+1,b] -= TMatrix[i,j,k,l]/2
+        M_Bin[(b-1)*N+(a-1)+1,c] -= LossMatrix[i,j,k,l]/2
+        M_Bin[(c-1)*N+(a-1)+1,b] -= LossMatrix[i,j,k,l]/2
 
     end
 
 end
 
-function TMatrix_to_M_Bin_Iso!(M_Bin::Array{Float32},TMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpy1,dpy2)
+function LossMatrix_to_M_Bin_Iso!(M_Bin::Array{Float32},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpy1,dpy2)
 
-    p1_num = size(TMatrix,1) # ignore overflow bin
-    u1_num = size(TMatrix,2)
-    p2_num = size(TMatrix,3)  
-    u2_num = size(TMatrix,4)
+    p1_num = size(LossMatrix,1) # ignore overflow bin
+    u1_num = size(LossMatrix,2)
+    p2_num = size(LossMatrix,3)  
+    u2_num = size(LossMatrix,4)
 
     # sanity check 
     if p1_num != p2_num || u1_num != u2_num
-        error("Error: SMatrix dimensions not as expected")
+        error("Error: GainMatrix dimensions not as expected")
     end
 
     N = size(M_Bin,2)
 
-    for l in axes(TMatrix,4), k in axes(TMatrix,3), j in axes(TMatrix,2), i in axes(TMatrix,1)
+    for l in axes(LossMatrix,4), k in axes(LossMatrix,3), j in axes(LossMatrix,2), i in axes(LossMatrix,1)
 
-        val = 0.0 # py (pz) averaged TMatrix term 
-        for p in axes(TMatrix,4), q in axes(TMatrix,2)
-            val += TMatrix[i,q,k,p] * dpy1[q] * dpy2[p] # check order
+        val = 0.0 # py (pz) averaged LossMatrix term 
+        for p in axes(LossMatrix,4), q in axes(LossMatrix,2)
+            val += LossMatrix[i,q,k,p] * dpy1[q] * dpy2[p] # check order
         end
         val /= sum(dpy1)*sum(dpy2) 
 
@@ -456,86 +600,6 @@ function TMatrix_to_M_Bin_Iso!(M_Bin::Array{Float32},TMatrix::Array{Float64,4},o
         M_Bin[(b-1)*N+(a-1)+1,c] -= val/2
         M_Bin[(c-1)*N+(a-1)+1,b] -= val/2
 
-    end
-
-end
-
-function SMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},SMatrix::Array{Float64,4},offset2::Int64,offset1::Int64)
-
-    px2_num = size(SMatrix,1)#-1 # ignore overflow bin
-    py2_num = size(SMatrix,2)
-    px1_num = size(SMatrix,3)  
-    py1_num = size(SMatrix,4)
-
-    for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px2_num
-
-        a = (j-1)*px2_num+i+offset2
-        b = (l-1)*px1_num+k+offset1
-
-        M_Emi[a,b] += SMatrix[i,j,k,l]
-
-    end
-
-end
-
-function SMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},SMatrix::Array{Float64,4},offset2::Int64,offset1::Int64,dpy2,dpy1)
-
-    px2_num = size(SMatrix,1)#-1 # ignore overflow bin
-    py2_num = size(SMatrix,2)
-    px1_num = size(SMatrix,3)  
-    py1_num = size(SMatrix,4)
-
-    for l in axes(SMatrix,4), k in axes(SMatrix,3), j in axes(SMatrix,2), i in 1:px2_num
-
-        val = 0.0 # py (pz) averaged SMatrix term
-        for p in axes(SMatrix,4), q in axes(SMatrix,2)
-            val += SMatrix[i,q,k,p] * dpy2[q] * dpy1[p] # check order
-        end
-        val /= sum(dpy2)*sum(dpy1)
-
-        a = (j-1)*px2_num+i+offset2
-        b = (l-1)*px1_num+k+offset1
-
-        M_Emi[a,b] += val
-
-    end
-
-end
-
-function TMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},TMatrix::Array{Float64,2},offset1::Int64)
-
-    px1_num = size(TMatrix,1)
-    py1_num = size(TMatrix,2)
-
-    for j in axes(TMatrix,2), i in axes(TMatrix,1)
-
-        a = (j-1)*px1_num+i+offset1
-        b = a
-
-        M_Emi[a,b] -= TMatrix[i,j]
-        
-    end
-
-end
-
-function TMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},TMatrix::Array{Float64,2},offset1::Int64)
-
-    px1_num = size(TMatrix,1)
-    py1_num = size(TMatrix,2)
-
-    for j in axes(TMatrix,2), i in axes(TMatrix,1)
-
-        val = 0.0 # py (pz) averaged TMatrix term
-        for p in axes(TMatrix,2)
-            val += TMatrix[i,p] * dpy1[p] # check order
-        end
-        val /= sum(dpy1)
-
-        a = (j-1)*px1_num+i+offset1
-        b = a
-
-        M_Emi[a,b] -= val
-        
     end
 
 end
