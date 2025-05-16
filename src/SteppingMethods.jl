@@ -14,7 +14,7 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(df::fType,f::fType,t,dt)
+function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
@@ -45,8 +45,6 @@ function (Euler::EulerStruct)(df::fType,f::fType,t,dt)
             @. Euler.temp += Euler.M_Emi_Step
         end
         # Signs here perhaps incorrect?!
-        @. Euler.temp -= Euler.FluxM.Ap_Flux
-        @. Euler.temp -= Euler.FluxM.Am_Flux
         #  @. Euler.temp -= Euler.FluxM.B_Flux
         #  @. Euler.temp -= Euler.FluxM.C_Flux
         #  @. Euler.temp -= Euler.FluxM.D_Flux
@@ -59,24 +57,34 @@ function (Euler::EulerStruct)(df::fType,f::fType,t,dt)
             #@. g.temp = g.temp*(g.temp!=Inf)
         end
 
-        if Euler.Implicit
-
-        else
-            Euler.LU = copy(Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
+        if Euler.PhaseSpace.Time.t_grid != "u" # non-uniform time stepping
+            Euler.temp .*= dt / dt0
         end
+
+        @. Euler.temp -= Euler.FluxM.Ap_Flux
+        @. Euler.temp -= Euler.FluxM.Am_Flux
+
+        #if Euler.Implicit
+
+        #else
+        #    Euler.LU = copy(Euler.FluxM.Ap_Flux)
+        #    ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
+        #end
         # improve allocations with LU decomp??
-        #Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
-        #Euler.temp ./= Euler.df_temp
+        Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
+        Euler.temp ./= Euler.df_temp
         #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
-        #mul!(Euler.df,Euler.temp,f)
+        mul!(Euler.df,Euler.temp,f)
         @. df = Euler.df
+
+        #println("$df")
+        #error("")
 
     end
 
 end
 
-function update_Big_Bin!(method::SteppingMethod,f)
+function update_Big_Bin!(method::SteppingMethodType,f)
 
     if size(method.BigM.M_Bin) != (length(f)^2,length(f))
         error("M_Bin is not the correct size")
@@ -112,6 +120,14 @@ function update_Big_Bin!(method::SteppingMethod,f)
 
         mul!(tempView,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
 
+        #println(maximum(method.BigM.M_Bin[:,168+144]))
+        #println(method.M_Bin_Mul_Step[169:168+408,168+144])
+        #println(method.M_Bin_Mul_Step[169:168+408,24])
+        #println(Vol[off_space+1])
+        #println(sum(fView))
+        #println("")
+
+
         # multiply by volume element
         tempView .*= Vol[off_space+1]
 
@@ -127,7 +143,7 @@ function update_Big_Bin!(method::SteppingMethod,f)
 
 end
 
-function update_Big_Emi!(method::SteppingMethod,f)
+function update_Big_Emi!(method::SteppingMethodType,f)
 
     if size(method.BigM.M_Emi) != (length(f),length(f))
         error("M_Bin is not the correct size")
