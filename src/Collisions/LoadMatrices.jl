@@ -1,4 +1,4 @@
-function SCorrection!(Output::Tuple{Tuple{String, String, String, String, Float64, Float64, Float64, Float64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64}, Array{Float64, 9}, Array{Float64, 9}, Array{Float64, 6}, Array{Float64, 6}})
+function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Float64, Float64, Float64, Float64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64, Float64, Float64, String, Int64, String, Int64, String, Int64}, Array{Float64, 9}, Array{Float64, 9}, Array{Float64, 6}, Array{Float64, 6}})
 
     # Function that applies the correct phase space factors to SMatrix and TMatrix derived from Stotal and Ttotal arrays
 
@@ -252,7 +252,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
         if name1 == name2 && name3 == name4
             # print conversion statistic
             BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-            SCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             println("Scorrected:")
             BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
@@ -266,7 +266,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
             # print conversion statistic
             BCI.DoesConserve(matrices[1],matrices[2],matrices[3],zeros(size(matrices[3])),Parameters)
-            #SCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             #println("Scorrected:")
             #BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
@@ -281,7 +281,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
             # print conversion statistic
             BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],matrices[3],Parameters)
-            #SCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             #println("Scorrected:")
             #BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
@@ -298,7 +298,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
             # print conversion statistic
             #BCI.DoesConserve2(Output) # UNCOMMENT LATER
             DoesConserve2(Output)
-            SCorrection!(Output)
+            GainCorrection!(Output)
             println("")
             println("Scorrected:")
             println("")
