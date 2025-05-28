@@ -1,4 +1,4 @@
-name = "BoltzmannEquationSolver"
+name = "DiplodocusTransport"
 uuid = "f63b9913-7a9a-464d-82b9-3e1e536d6db0"
 authors = ["Christopher Everett"]
 version = "1.0.0-DEV"

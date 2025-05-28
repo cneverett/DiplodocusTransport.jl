@@ -1,6 +1,7 @@
-module BoltzmannEquationSolver
+module DiplodocusTransport
 
-export Solver, InitialConditions, LoadMatrices, BigMatrices, SpaceTimeStruct, FluxMatrices
+export Solver, InitialConditions, LoadMatrices, BigMatrices, FluxMatrices
+export PhaseSpaceStruct, MomentumStruct, SpaceTimeStruct 
 
 using JLD2
 import BoltzmannCollisionIntegral as BCI
