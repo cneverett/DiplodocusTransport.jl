@@ -53,25 +53,36 @@ function SCorrection!(Output::Tuple{Tuple{String, String, String, String, Float6
 
 
     for p1 in axes(GainMatrix3, 4), u1 in axes(GainMatrix3,5), h1 in axes(GainMatrix3,6), p2 in axes(GainMatrix3,7), u2 in axes(GainMatrix3,8), h2 in axes(GainMatrix3,9)
+        
         GainSumN3 = zero(Float64)
         GainSumN4 = zero(Float64)
+        LossSumN1 = LossMatrix1[p1,u1,h1,p2,u2,h2]
+        LossSumN2 = LossMatrix2[p2,u2,h2,p1,u1,h1]
+        
         for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
             GainSumN3 += GainMatrix3[p3,u3,h3,p1,u1,h1,p2,u2,h2]
         end
         for p4 in axes(GainMatrix4,1), u4 in axes(GainMatrix4,2), h4 in axes(GainMatrix4,3) 
         GainSumN4 += GainMatrix4[p4,u4,h4,p1,u1,h1,p2,u2,h2]
         end
-        LossSumN1 = LossMatrix1[p1,u1,h1,p2,u2,h2]
-        LossSumN2 = LossMatrix2[p2,u2,h2,p1,u1,h1]
 
         if name1 == name3
-            Correction = LossSumN1/GainSumN3
-            @view(GainMatrix3[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
+            if GainSumN3 != 0e0
+                Correction = LossSumN1/GainSumN3
+                @view(GainMatrix3[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
+            else
+                GainMatrix3[p1,u1,h1,p1,u1,h1,p2,u2,h2] .+= LossSumN1
+            end
+            
         end
 
         if name2 == name4
-            Correction = LossSumN2/GainSumN4
-            @view(GainMatrix4[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
+            if GainSumN4 != 0e0
+                Correction = LossSumN2/GainSumN4
+                @view(GainMatrix4[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
+            else
+                GainMatrix4[p2,u2,h2,p1,u1,h1,p2,u2,h2] .+= LossSumN2
+            end
         end
 
     end
@@ -226,7 +237,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
         #Parameters = (name1,name2,name3,name4,mu1,mu2,mu3,mu4,p1_low,p1_up,p1_grid,p1_num,u1_grid,u1_num,p2_low,p2_up,p2_grid,p2_num,u2_grid,u2_num,p3_low,p3_up,p3_grid,p3_num,u3_grid,u3_num,p4_low,p4_up,p4_grid,p4_num,u4_grid,u4_num)
 
-        filename = "CompTestWeighted10.jld2"
+        filename = "CompTestWeighted14.jld2"
 
         println(filename)
 
@@ -397,18 +408,19 @@ function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpa
 
         #filename = "syncEle#-14.0#4.0#72#-5.0#4.0#72#8#8.jld2";
         filename = "syncEle#-14.0-7.0l84#0.0-7.0l56#u8#u8.jld2";
+        filename = "syncTest1.jld2"
 
         println(filename)
 
-        Parameters = BCI.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
-        matrix = BCI.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
-        matrix = BCI.fload_Matrix_Sync(DataDirectory,filename) # remove later
+        #Parameters = BCI.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
+        #matrix = BCI.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
+        matrix = fload_Matrix_Sync(DataDirectory,filename)[2] # remove later
             
         # some SMatrix values are greater than float32 precision!
         #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
-        PhaseSpaceFactors_Emi_Undo!(matrix,pxr3,pyr3,pxr1,pyr1)
+        #PhaseSpaceFactors_Emi_Undo!(matrix,pxr3,pyr3,pxr1,pyr1)
 
-        Fill_M_Emi!(BigM.M_Emi,interaction,PhaseSpace;SMatrix3=matrix)
+        Fill_M_Emi!(BigM.M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
     
     end # for
 
@@ -439,6 +451,24 @@ function fload_Matrix(fileLocation::String,fileName::String)
     #(name1,name2,name3,name4,mu1,mu2,mu3,mu4,p1_low,p1_up,p1_grid,p1_num,u1_grid,u1_num,p2_low,p2_up,p2_grid,p2_num,u2_grid,u2_num,p3_low,p3_up,p3_grid,p3_num,u3_grid,u3_num,p4_low,p4_up,p4_grid,p4_num,u4_grid,u4_num) = Parameters
 
     return (Parameters,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
+
+end
+
+function fload_Matrix_Sync(fileLocation::String,fileName::String)
+        
+    filePath = fileLocation*"\\"*fileName
+    fileExist = isfile(filePath)
+
+    if fileExist
+        f = jldopen(filePath,"r+");
+        Parameters = f["Parameters"]
+        GainMatrix3 = f["GainMatrix3"];
+        close(f)  
+    else
+        error("no file with name $fileName found at location $fileLocation")
+    end
+
+    return (Parameters,GainMatrix3)
 
 end
 
