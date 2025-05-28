@@ -1,7 +1,7 @@
 """
     Euler(dg,g,t,dt)
 
-Explicit and Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolian `Implicit` flag when defining the EulerStruct.
+Explicit and Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolean `Implicit` flag when defining the EulerStruct.
 
 # Explicit method:
 Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
@@ -14,73 +14,70 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt)
+function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
-    fill!(df,Float32(0))
 
     # reset arrays
+    fill!(df,Float32(0))
     fill!(Euler.df,Float32(0))
-
-
+    fill!(Euler.temp,Float32(0))
     if Euler.Implicit
         fill!(Euler.Jac,Float32(0))
-        fill!(Euler.temp,Float32(0))
+    end
+        
+    # add binary terms to temp (jacobians are added in update_Big_Bin! if implicit)
+    if isempty(Euler.PhaseSpace.Binary_list) == false
+        update_Big_Bin!(Euler,f)
+        @. Euler.temp += Euler.M_Bin_Mul_Step 
+    end
+    # add emission terms to temp (jacobians are added in update_Big_Emi! if implicit)
+    if isempty(Euler.PhaseSpace.Emi_list) == false
+        update_Big_Emi!(Euler,f)
+        @. Euler.temp += Euler.M_Emi_Step
+    end
+    # add flux terms to temp
+    #  @. Euler.temp -= Euler.FluxM.B_Flux
+    #  @. Euler.temp -= Euler.FluxM.C_Flux
+    #  @. Euler.temp -= Euler.FluxM.D_Flux
+    @. Euler.temp -= Euler.FluxM.K_Flux 
+    @. Euler.temp -= Euler.FluxM.J_Flux 
+    @. Euler.temp -= Euler.FluxM.I_Flux
+
+    if isinf(sum(Euler.temp))
+        error("overflow in arrays")
+        #@. g.temp = g.temp*(g.temp!=Inf)
+    end
+
+    # phase space correction for non-uniform time stepping
+    if Euler.PhaseSpace.Time.t_grid != "u" 
+        Euler.temp .*= dt / dt0
+    end
+
+    @. Euler.temp -= Euler.FluxM.Ap_Flux
+    @. Euler.temp -= Euler.FluxM.Am_Flux
+
+    #if Euler.Implicit
         # TOFIX add fluxes inside mul!
         #mul!(g.df,g.M_Bin_Mul_Step,f)
         #@. g.Jac = 2*g.M_Bin_Mul_Step
         #g.df .= (I-dt*g.Jac)\g.df
         #@. df = dt*g.df
-        
-    else
-        # this version is allocating, probably temp. Maybe put a temp array in Euler for this.
-        fill!(Euler.temp,Float32(0))
-        if isempty(Euler.PhaseSpace.Binary_list) == false
-            update_Big_Bin!(Euler,f)
-            @. Euler.temp += Euler.M_Bin_Mul_Step 
-        end
-        if isempty(Euler.PhaseSpace.Emi_list) == false
-            update_Big_Emi!(Euler,f)
-            @. Euler.temp += Euler.M_Emi_Step
-        end
-        # Signs here perhaps incorrect?!
-        #  @. Euler.temp -= Euler.FluxM.B_Flux
-        #  @. Euler.temp -= Euler.FluxM.C_Flux
-        #  @. Euler.temp -= Euler.FluxM.D_Flux
-        @. Euler.temp -= Euler.FluxM.K_Flux 
-        @. Euler.temp -= Euler.FluxM.J_Flux 
-        @. Euler.temp -= Euler.FluxM.I_Flux
 
-        if isinf(sum(Euler.temp))
-            error("overflow in arrays")
-            #@. g.temp = g.temp*(g.temp!=Inf)
-        end
+    #else
+    #    Euler.LU = copy(Euler.FluxM.Ap_Flux)
+    #    ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
+    #end
+    # improve allocations with LU decomp??
+    Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
+    Euler.temp ./= Euler.df_temp
+    #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
+    mul!(Euler.df,Euler.temp,f)
+    @. df = Euler.df
 
-        if Euler.PhaseSpace.Time.t_grid != "u" # non-uniform time stepping
-            Euler.temp .*= dt / dt0
-        end
-
-        @. Euler.temp -= Euler.FluxM.Ap_Flux
-        @. Euler.temp -= Euler.FluxM.Am_Flux
-
-        #if Euler.Implicit
-
-        #else
-        #    Euler.LU = copy(Euler.FluxM.Ap_Flux)
-        #    ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
-        #end
-        # improve allocations with LU decomp??
-        Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
-        Euler.temp ./= Euler.df_temp
-        #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
-        mul!(Euler.df,Euler.temp,f)
-        @. df = Euler.df
-
-        #println("$df")
-        #error("")
-
-    end
+    #println("$df")
+    #error("")
 
 end
 

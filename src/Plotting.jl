@@ -911,10 +911,11 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
 end
 
 
-function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false)
+function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false,plot_limits=(nothing,nothing))
 
     fig = Figure()
-    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect(),limits=((nothing,nothing),(nothing,nothing)))
+    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+    ax.limits = plot_limits
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -941,7 +942,7 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
     if logt
         log_t = log10.(sol.t)
         values = findall(x->x%1==0,log_t)
-        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(values))]
+        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(values)+1)]
     else
         values = (1:t_save)*step
         my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = t_plot+1)]
@@ -949,7 +950,7 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
 
     for i in 1:t_save
 
-    if i in values
+    if i in values || i == 1
 
         t = sol.t[i]
 
@@ -960,17 +961,17 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
         if uDis
             dj .= log10.(d .* dp)[:,1:3:4] # print just aligned and antialigned with field
 
-            replace!(x -> x>=1f0 ? x : NaN, dj)
+            #replace!(x -> x>=1f-20 ? x : NaN, dj)
             
             #scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=1.0,strokecolor = my_colors[color_counter])
-            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[color_counter])
-            stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=3.0,linestyle=:dash,color = my_colors[color_counter])
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=1.0,color = my_colors[color_counter])
+            stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=1.0,linestyle=:dash,color = my_colors[color_counter])
         else
             dj[:,1] .= log10.(d*du .* dp)
 
-            replace!(x -> x>=1f0 ? x : NaN, dj)
+            #replace!(x -> x>=1f-20 ? x : NaN, dj)
 
-            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=3.0,color = my_colors[color_counter])
+            stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=1.0,color = my_colors[color_counter])
         end
 
         color_counter += 1
@@ -979,8 +980,68 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
 
     end
 
+#=     if species == "Pho"
+
+        vlines!([1,2,3,4,5,6,-3])
+
+    end =#
+
     Colorbar(fig[1,2],colormap = my_colors,limits=(log10(sol.t[2]),log10(sol.t[end])),label=L"$\log_{10}(t)$ $[\text{s} * \sigma_{T}c]$")
     
     return fig
 
+end
+
+
+"""
+    FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
+
+Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
+"""
+function FracNumPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct,numInit_list;mode="AXI",fig=nothing)
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    p_num_list = Momentum.px_num_list
+    u_num_list = Momentum.py_num_list
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+
+    mass_list = Grids.mass_list
+
+    num_species = length(name_list)
+
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    end
+
+    j = findfirst(x->x==species,name_list)
+
+    num = 0e0
+
+    for i in eachindex(sol.t)
+
+        if i == 1
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num = ScalarNumberDensity(Na,Ua)
+        end
+        num0 = num 
+
+        Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+        Ua = HydroFourVelocity(Na)
+        num = ScalarNumberDensity(Na,Ua)
+
+        scatter!(ax,log10(sol.t[i]),num/num0#=num/numInit_list[j]=#-1,marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+    
+    end
+
+    return fig
 end

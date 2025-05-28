@@ -392,43 +392,53 @@ end
 
 
 
-function GainMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},GainMatrix::Array{Float64,4},offset2::Int64,offset1::Int64)
+function GainMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64)
+
+    # 1 is incident particle, 2 is emitted particle
 
     px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
     py2_num = size(GainMatrix,2)
-    px1_num = size(GainMatrix,3)  
-    py1_num = size(GainMatrix,4)
+    pz2_num = size(GainMatrix,3)
+    px1_num = size(GainMatrix,4)  
+    py1_num = size(GainMatrix,5)
+    pz1_num = size(GainMatrix,6)
 
-    for l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px2_num
+    for pz1 in axes(GainMatrix,6), py1 in axes(GainMatrix,5), px1 in axes(GainMatrix,4), pz2 in axes(GainMatrix,3), py2 in axes(GainMatrix,2), px2 in axes(GainMatrix,1)
 
-        a = (j-1)*px2_num+i+offset2
-        b = (l-1)*px1_num+k+offset1
+        a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
+        b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += GainMatrix[i,j,k,l]
+        M_Emi[a,b] += GainMatrix[px2,py2,pz2,px1,py1,pz1]
 
     end
 
 end
 
-function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},GainMatrix::Array{Float64,4},offset2::Int64,offset1::Int64,dpy2,dpy1)
+function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32,2},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64,dpy2,dpy1)
 
     px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
     py2_num = size(GainMatrix,2)
-    px1_num = size(GainMatrix,3)  
-    py1_num = size(GainMatrix,4)
+    pz2_num = size(GainMatrix,3)
+    px1_num = size(GainMatrix,4)  
+    py1_num = size(GainMatrix,5)
+    pz1_num = size(GainMatrix,6)
 
-    for l in axes(GainMatrix,4), k in axes(GainMatrix,3), j in axes(GainMatrix,2), i in 1:px2_num
+    for pz1 in axes(GainMatrix,6), px1 in axes(GainMatrix,4), pz2 in axes(GainMatrix,3), px2 in axes(GainMatrix,1)
 
         val = 0.0 # py (pz) averaged GainMatrix term
-        for p in axes(GainMatrix,4), q in axes(GainMatrix,2)
-            val += GainMatrix[i,q,k,p] * dpy2[q] * dpy1[p] # check order
+        for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2)
+            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] * dpy2[py2] * dpy1[py1] # check order
         end
         val /= sum(dpy2)*sum(dpy1)
 
-        a = (j-1)*px2_num+i+offset2
-        b = (l-1)*px1_num+k+offset1
+        for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2) 
+
+        a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
+        b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
         M_Emi[a,b] += val
+
+        end
 
     end
 

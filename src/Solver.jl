@@ -29,8 +29,9 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
     for i in 1:t_num
 
         dt = tr[i+1] - tr[i]
+        t = tr[i]
 
-        method(dtmp,tmp,dt0,dt)
+        method(dtmp,tmp,dt0,dt,t)
         @. tmp += dtmp
 
         # removing values less than 0f0
