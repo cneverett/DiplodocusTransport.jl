@@ -4,12 +4,9 @@ export Solver, InitialConditions, LoadMatrices, BigMatrices, FluxMatrices
 export PhaseSpaceStruct, MomentumStruct, SpaceTimeStruct 
 
 using JLD2
-import BoltzmannCollisionIntegral as BCI
+import DiplodocusCollisions as BCI
 using LinearAlgebra
 using ProgressMeter
-#using LoopVectorization
-#using Tullio
-#using TensorOperations
 using Bessels
 using Statistics
 using RecursiveArrayTools
