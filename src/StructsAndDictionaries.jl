@@ -109,8 +109,8 @@ mutable struct GridsStruct <: Function
             t_num = time.t_num
             t_grid = time.t_grid
 
-            self.tr = BCI.bounds(t_low,t_up,t_num,t_grid)
-            self.dt = BCI.deltaVector(self.tr)
+            self.tr = DC.bounds(t_low,t_up,t_num,t_grid)
+            self.dt = DC.deltaVector(self.tr)
 
         # space domain grids
 
@@ -129,13 +129,13 @@ mutable struct GridsStruct <: Function
             z_grid = space.z_grid
             z_num = space.z_num
 
-            self.xr = BCI.bounds(x_low,x_up,x_num,x_grid)
-            self.yr = BCI.bounds(y_low,y_up,y_num,y_grid)
-            self.zr = BCI.bounds(z_low,z_up,z_num,z_grid)
+            self.xr = DC.bounds(x_low,x_up,x_num,x_grid)
+            self.yr = DC.bounds(y_low,y_up,y_num,y_grid)
+            self.zr = DC.bounds(z_low,z_up,z_num,z_grid)
 
-            self.dx = BCI.deltaVector(self.xr)
-            self.dy = BCI.deltaVector(self.yr)
-            self.dz = BCI.deltaVector(self.zr)
+            self.dx = DC.deltaVector(self.xr)
+            self.dy = DC.deltaVector(self.yr)
+            self.dz = DC.deltaVector(self.zr)
 
         # momentum domain grids
 
@@ -173,19 +173,19 @@ mutable struct GridsStruct <: Function
 
             for i in eachindex(name_list)
 
-                self.mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
+                self.mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
 
-                self.pxr_list[i] = BCI.bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
-                self.pyr_list[i] = BCI.bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
-                self.pzr_list[i] = BCI.bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
+                self.pxr_list[i] = DC.bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
+                self.pyr_list[i] = DC.bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
+                self.pzr_list[i] = DC.bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
 
-                self.dpx_list[i] = BCI.deltaVector(self.pxr_list[i]);
-                self.dpy_list[i] = BCI.deltaVector(self.pyr_list[i]);
-                self.dpz_list[i] = BCI.deltaVector(self.pzr_list[i]);
+                self.dpx_list[i] = DC.deltaVector(self.pxr_list[i]);
+                self.dpy_list[i] = DC.deltaVector(self.pyr_list[i]);
+                self.dpz_list[i] = DC.deltaVector(self.pzr_list[i]);
 
-                self.mpx_list[i] = BCI.meanVector(self.pxr_list[i]);
-                self.mpy_list[i] = BCI.meanVector(self.pyr_list[i]);
-                self.mpz_list[i] = BCI.meanVector(self.pzr_list[i]);
+                self.mpx_list[i] = DC.meanVector(self.pxr_list[i]);
+                self.mpy_list[i] = DC.meanVector(self.pyr_list[i]);
+                self.mpz_list[i] = DC.meanVector(self.pzr_list[i]);
 
             end
 

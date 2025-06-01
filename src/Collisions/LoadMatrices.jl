@@ -9,29 +9,29 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
     LossMatrix1 = Output[4]
     LossMatrix2 = Output[5]
 
-    p1_r = BCI.bounds(p1_low,p1_up,p1_num,p1_grid);
-    p1_d = BCI.deltaVector(p1_r);
-    p1_d_full = [p1_d; BCI.deltaVector([p1_r[end]; 2*p1_r[end]])];
-    u1_r = BCI.bounds(BCI.u_low,BCI.u_up,u1_num,u1_grid);
-    u1_d = BCI.deltaVector(u1_r);
+    p1_r = DC.bounds(p1_low,p1_up,p1_num,p1_grid);
+    p1_d = DC.deltaVector(p1_r);
+    p1_d_full = [p1_d; DC.deltaVector([p1_r[end]; 2*p1_r[end]])];
+    u1_r = DC.bounds(DC.u_low,DC.u_up,u1_num,u1_grid);
+    u1_d = DC.deltaVector(u1_r);
 
-    p2_r = BCI.bounds(p2_low,p2_up,p2_num,p2_grid);
-    p2_d = BCI.deltaVector(p2_r);
-    p2_d_full = [p2_d; BCI.deltaVector([p2_r[end]; 2*p2_r[end]])];
-    u2_r = BCI.bounds(BCI.u_low,BCI.u_up,u2_num,u2_grid);
-    u2_d = BCI.deltaVector(u2_r);
+    p2_r = DC.bounds(p2_low,p2_up,p2_num,p2_grid);
+    p2_d = DC.deltaVector(p2_r);
+    p2_d_full = [p2_d; DC.deltaVector([p2_r[end]; 2*p2_r[end]])];
+    u2_r = DC.bounds(DC.u_low,DC.u_up,u2_num,u2_grid);
+    u2_d = DC.deltaVector(u2_r);
 
-    p3_r = BCI.bounds(p3_low,p3_up,p3_num,p3_grid);
-    p3_d = BCI.deltaVector(p3_r);
-    p3_d_full = [p3_d; BCI.deltaVector([p3_r[end]; 2*p3_r[end]])];
-    u3_r = BCI.bounds(BCI.u_low,BCI.u_up,u3_num,u3_grid);
-    u3_d = BCI.deltaVector(u3_r);
+    p3_r = DC.bounds(p3_low,p3_up,p3_num,p3_grid);
+    p3_d = DC.deltaVector(p3_r);
+    p3_d_full = [p3_d; DC.deltaVector([p3_r[end]; 2*p3_r[end]])];
+    u3_r = DC.bounds(DC.u_low,DC.u_up,u3_num,u3_grid);
+    u3_d = DC.deltaVector(u3_r);
 
-    p4_r = BCI.bounds(p4_low,p4_up,p4_num,p4_grid);
-    p4_d = BCI.deltaVector(p4_r);
-    p4_d_full = [p4_d; BCI.deltaVector([p4_r[end]; 2*p4_r[end]])];
-    u4_r = BCI.bounds(BCI.u_low,BCI.u_up,u4_num,u4_grid);
-    u4_d = BCI.deltaVector(u4_r);
+    p4_r = DC.bounds(p4_low,p4_up,p4_num,p4_grid);
+    p4_d = DC.deltaVector(p4_r);
+    p4_d_full = [p4_d; DC.deltaVector([p4_r[end]; 2*p4_r[end]])];
+    u4_r = DC.bounds(DC.u_low,DC.u_up,u4_num,u4_grid);
+    u4_d = DC.deltaVector(u4_r);
 
 #=     for k in axes(SMatrix3,3), l in axes(SMatrix3, 4), m in axes(SMatrix3,5), n in axes(SMatrix3,6)
         SsumN3 = zero(T)
@@ -71,7 +71,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
                 Correction = LossSumN1/GainSumN3
                 @view(GainMatrix3[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
             else
-                GainMatrix3[p1,u1,h1,p1,u1,h1,p2,u2,h2] .+= LossSumN1
+                GainMatrix3[p1,u1,h1,p1,u1,h1,p2,u2,h2] += LossSumN1
             end
             
         end
@@ -81,7 +81,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
                 Correction = LossSumN2/GainSumN4
                 @view(GainMatrix4[:,:,:,p1,u1,h1,p2,u2,h2]) .*= Correction
             else
-                GainMatrix4[p2,u2,h2,p1,u1,h1,p2,u2,h2] .+= LossSumN2
+                GainMatrix4[p2,u2,h2,p1,u1,h1,p2,u2,h2] += LossSumN2
             end
         end
 
@@ -233,7 +233,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
         filename *= ".jld2";
 
         #Parameters=(name1,name2,name3,name4,m1,m2,m3,m4,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,px4_low,px4_up,px4_grid,px4_num,py4_grid,py4_num,pz4_grid,pz4_num)
-        #filename = BCI.FileName(Parameters)
+        #filename = DC.FileName(Parameters)
 
         #Parameters = (name1,name2,name3,name4,mu1,mu2,mu3,mu4,p1_low,p1_up,p1_grid,p1_num,u1_grid,u1_num,p2_low,p2_up,p2_grid,p2_num,u2_grid,u2_num,p3_low,p3_up,p3_grid,p3_num,u3_grid,u3_num,p4_low,p4_up,p4_grid,p4_num,u4_grid,u4_num)
 
@@ -241,7 +241,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
         println(filename)
 
-        #Output = BCI.fload_Matrix(DataDirectory,filename) # UNCOMMENT LATER
+        #Output = DC.fload_Matrix(DataDirectory,filename) # UNCOMMENT LATER
         Output = fload_Matrix(DataDirectory,filename)
         Parameters = Output[1]
         GainMatrix3 = Output[2]
@@ -251,10 +251,10 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
         if name1 == name2 && name3 == name4
             # print conversion statistic
-            BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             println("Scorrected:")
-            BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
             PhaseSpaceFactors_Binary_Undo!(pxr3,pyr3,pxr4,pyr4,pxr1,pyr1,pxr2,pyr2,SMatrix3=matrices[1],TMatrix1=matrices[2])
 
@@ -265,10 +265,10 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
         if name1 == name2 && name3 != name4
 
             # print conversion statistic
-            BCI.DoesConserve(matrices[1],matrices[2],matrices[3],zeros(size(matrices[3])),Parameters)
+            DC.DoesConserve(matrices[1],matrices[2],matrices[3],zeros(size(matrices[3])),Parameters)
             #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             #println("Scorrected:")
-            #BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            #DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
             
@@ -280,10 +280,10 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
         if name1 != name2 && name3 == name4
 
             # print conversion statistic
-            BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],matrices[3],Parameters)
+            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],matrices[3],Parameters)
             #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
             #println("Scorrected:")
-            #BCI.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
+            #DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
             PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
 
@@ -296,13 +296,13 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
             #PhaseSpaceFactors_Binary_Undo!(pxr3,pyr3,pzr3,pxr4,pyr4,pzr4,pxr1,pyr1,pzr1,pxr2,pyr2,pzr2,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
 
             # print conversion statistic
-            #BCI.DoesConserve2(Output) # UNCOMMENT LATER
-            DoesConserve2(Output)
+            #DC.DoesConserve2(Output) # UNCOMMENT LATER
+            DC.DoesConserve2(Output)
             GainCorrection!(Output)
             println("")
-            println("Scorrected:")
+            println("GainCorrected:")
             println("")
-            #BCI.DoesConserve2(Output) # UNCOMMENT LATER
+            #DC.DoesConserve2(Output) # UNCOMMENT LATER
             DoesConserve2(Output)
             
             #Fill_M_Bin!(BigM.M_Bin,interaction,PhaseSpace;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
@@ -412,8 +412,8 @@ function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpa
 
         println(filename)
 
-        #Parameters = BCI.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
-        #matrix = BCI.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
+        #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
+        #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
         matrix = fload_Matrix_Sync(DataDirectory,filename)[2] # remove later
             
         # some SMatrix values are greater than float32 precision!
@@ -485,32 +485,32 @@ function DoesConserve2(Output::Tuple{Tuple,Array{Float64,9},Array{Float64,9},Arr
     LossMatrix1 = Output[4]
     LossMatrix2 = Output[5]
 
-    p1_r = BCI.bounds(p1_low,p1_up,p1_num,p1_grid);
-    p1_d = BCI.deltaVector(p1_r);
-    p1_d_full = [p1_d; BCI.deltaVector([p1_r[end]; 2*p1_r[end]])];
-    E1_Δ = BCI.deltaEVector(p1_r,mu1);
-    E1_Δ_full = [E1_Δ; BCI.deltaEVector([p1_r[end], 2*p1_r[end]],mu1)];
+    p1_r = DC.bounds(p1_low,p1_up,p1_num,p1_grid);
+    p1_d = DC.deltaVector(p1_r);
+    p1_d_full = [p1_d; DC.deltaVector([p1_r[end]; 2*p1_r[end]])];
+    E1_Δ = DC.deltaEVector(p1_r,mu1);
+    E1_Δ_full = [E1_Δ; DC.deltaEVector([p1_r[end], 2*p1_r[end]],mu1)];
     E1_d_full = E1_Δ_full ./ p1_d_full;
 
-    p2_r = BCI.bounds(p2_low,p2_up,p2_num,p2_grid);
-    p2_d = BCI.deltaVector(p2_r);
-    p2_d_full = [p2_d; BCI.deltaVector([p2_r[end]; 2*p2_r[end]])];
-    E2_Δ = BCI.deltaEVector(p2_r,mu2);
-    E2_Δ_full = [E2_Δ; BCI.deltaEVector([p2_r[end], 2*p2_r[end]],mu2)];
+    p2_r = DC.bounds(p2_low,p2_up,p2_num,p2_grid);
+    p2_d = DC.deltaVector(p2_r);
+    p2_d_full = [p2_d; DC.deltaVector([p2_r[end]; 2*p2_r[end]])];
+    E2_Δ = DC.deltaEVector(p2_r,mu2);
+    E2_Δ_full = [E2_Δ; DC.deltaEVector([p2_r[end], 2*p2_r[end]],mu2)];
     E2_d_full = E2_Δ_full ./ p2_d_full;
 
-    p3_r = BCI.bounds(p3_low,p3_up,p3_num,p3_grid);
-    p3_d = BCI.deltaVector(p3_r);
-    p3_d_full = [p3_d; BCI.deltaVector([p3_r[end]; 2*p3_r[end]])];
-    E3_Δ = BCI.deltaEVector(p3_r,mu3);
-    E3_Δ_full = [E3_Δ; BCI.deltaEVector([p3_r[end], 2*p3_r[end]],mu3)];
+    p3_r = DC.bounds(p3_low,p3_up,p3_num,p3_grid);
+    p3_d = DC.deltaVector(p3_r);
+    p3_d_full = [p3_d; DC.deltaVector([p3_r[end]; 2*p3_r[end]])];
+    E3_Δ = DC.deltaEVector(p3_r,mu3);
+    E3_Δ_full = [E3_Δ; DC.deltaEVector([p3_r[end], 2*p3_r[end]],mu3)];
     E3_d_full = E3_Δ_full ./ p3_d_full
 
-    p4_r = BCI.bounds(p4_low,p4_up,p4_num,p4_grid);
-    p4_d = BCI.deltaVector(p4_r);
-    p4_d_full = [p4_d; BCI.deltaVector([p4_r[end]; 2*p4_r[end]])];
-    E4_Δ = BCI.deltaEVector(p4_r,mu4);
-    E4_Δ_full = [E4_Δ; BCI.deltaEVector([p4_r[end], 2*p4_r[end]],mu4)];
+    p4_r = DC.bounds(p4_low,p4_up,p4_num,p4_grid);
+    p4_d = DC.deltaVector(p4_r);
+    p4_d_full = [p4_d; DC.deltaVector([p4_r[end]; 2*p4_r[end]])];
+    E4_Δ = DC.deltaEVector(p4_r,mu4);
+    E4_Δ_full = [E4_Δ; DC.deltaEVector([p4_r[end], 2*p4_r[end]],mu4)];
     E4_d_full = E4_Δ_full ./ p4_d_full
 
     SsumN3 = 0

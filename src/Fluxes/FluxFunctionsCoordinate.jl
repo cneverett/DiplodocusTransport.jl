@@ -8,7 +8,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(BCI,Symbol("mu"*name))
+        m = getfield(DC,Symbol("mu"*name))
 
         flux = ((-p064 + p164)*(-u0 + u1)*(-(x0^2/2) + x1^2/2)*(-y0 + y1)*(-z0 + z1)*(-phi0 + phi1))
 
@@ -24,7 +24,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(BCI,Symbol("mu"*name))
+        m = getfield(DC,Symbol("mu"*name))
 
         flux = (1/2)*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1) * x * (y0 - y1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sin(phi0) - sin(phi1))
 
@@ -40,7 +40,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(BCI,Symbol("mu"*name))
+        m = getfield(DC,Symbol("mu"*name))
 
         flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2))*(t0 - t1) * (x0 - x1) * (z0 - z1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cos(phi0) - cos(phi1))
 
@@ -56,7 +56,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(BCI,Symbol("mu"*name))
+        m = getfield(DC,Symbol("mu"*name))
 
         flux = (1/4)*((sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2))*(t0 - t1)*(u0^2 - u1^2)*(x0^2 - x1^2)*(y0 - y1)*(phi0 - phi1))
 
@@ -101,7 +101,7 @@
         p164 = Float64(p1)
         phipi = Float32(phi/pi) # using sinpi rather than sin to avoid float issues 
 
-        m = getfield(BCI,Symbol("mu"*name))
+        m = getfield(DC,Symbol("mu"*name))
 
         flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
         flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)

@@ -24,13 +24,13 @@ function getGridValues(Lists::ListStruct)
     meanu_list = Vector{Vector{Float32}}(undef,num_species);
     mass_list = Vector{Float32}(undef,num_species);
     for i in eachindex(name_list)
-        mass_list[i] = getfield(BCI,Symbol("mu"*name_list[i]));
-        pr_list[i] = BCI.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i]);
-        ur_list[i] = BCI.bounds(BCI.u_low,BCI.u_up,u_num_list[i],u_grid_list[i]);
-        dp_list[i] = BCI.deltaVector(pr_list[i]);
-        du_list[i] = BCI.deltaVector(ur_list[i]);    
-        meanp_list[i] = BCI.meanVector(pr_list[i]);
-        meanu_list[i] = BCI.meanVector(ur_list[i]);
+        mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
+        pr_list[i] = DC.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i]);
+        ur_list[i] = DC.bounds(DC.u_low,DC.u_up,u_num_list[i],u_grid_list[i]);
+        dp_list[i] = DC.deltaVector(pr_list[i]);
+        du_list[i] = DC.deltaVector(ur_list[i]);    
+        meanp_list[i] = DC.meanVector(pr_list[i]);
+        meanu_list[i] = DC.meanVector(ur_list[i]);
     end
 
     return (mass_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list)

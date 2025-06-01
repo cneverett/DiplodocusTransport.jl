@@ -60,17 +60,17 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     p_grid = p_grid_list[species_index]
     u_num = u_num_list[species_index]
     u_grid = u_grid_list[species_index]
-    pr = BCI.bounds(pl,pu,p_num,p_grid)
-    dp = BCI.deltaVector(pr)
-    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
-    mass = getfield(BCI,Symbol("mu"*name_list[species_index]))
+    pr = DC.bounds(pl,pu,p_num,p_grid)
+    dp = DC.deltaVector(pr)
+    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
+    mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = BCI.location(pl,pu,p_num,Float64(pmin),p_grid)
-        pmax_index = BCI.location(pl,pu,p_num,Float64(pmax),p_grid)
-        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umin),u_grid)
-        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umax),u_grid)
+        pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
+        pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
+        umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
+        umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -126,10 +126,10 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
 
     type = zero(T)
     if typeof(type)==Float32
-        pmin_index = BCI.location(pl,pu,p_num,Float64(pmin),p_grid)
-        pmax_index = BCI.location(pl,pu,p_num,Float64(pmax),p_grid)
-        umin_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umin),u_grid)
-        umax_index = BCI.location(BCI.u_low,BCI.u_up,u_num,Float64(umax),u_grid)
+        pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
+        pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
+        umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
+        umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
@@ -137,8 +137,8 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
         umax_index = umax
     end
 
-    dp = BCI.deltaVector(BCI.bounds(pl,pu,p_num,p_grid))
-    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
+    dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
+    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
 
     # set values and normalise to initial number density (in m^{-3})
     for i in pmin_index:pmax_index, j in umin_index:umax_index
@@ -185,10 +185,10 @@ function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_In
 
     u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
 
-    meanp = BCI.meanVector(BCI.bounds(pl,pu,p_num,p_grid))
-    dp = BCI.deltaVector(BCI.bounds(pl,pu,p_num,p_grid))
-    du = BCI.deltaVector(BCI.bounds(BCI.u_low,BCI.u_up,u_num,u_grid))
-    mass = getfield(BCI,Symbol("mu"*name_list[species_index]))
+    meanp = DC.meanVector(DC.bounds(pl,pu,p_num,p_grid))
+    dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
+    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
+    mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
     u0_2D_species .= MaxwellJuttner_Distribution(Float32.(meanp),T,Float32(mass))
     

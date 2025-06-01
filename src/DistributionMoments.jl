@@ -11,7 +11,7 @@ function FourFlow(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     du = zeros(Float64,u_num)
     du2 = zeros(Float64,u_num)
     dp = zeros(Float64,p_num)
-    dE = BCI.deltaEVector(pr,m)
+    dE = DC.deltaEVector(pr,m)
 
     for i in 1:u_num
         du[i] = ur[i+1]-ur[i]
@@ -84,7 +84,7 @@ function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     du3 = zeros(Float64,u_num)
     duplusu3 = zeros(Float64,u_num)
     dpfunc = zeros(Float64,p_num)
-    dE = BCI.deltaEVector(pr,m)
+    dE = DC.deltaEVector(pr,m)
 
     pr64 = Float64.(pr)
 
