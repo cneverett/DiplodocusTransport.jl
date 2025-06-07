@@ -1,9 +1,34 @@
 """
+    BuildBigMatrices(PhaseSpace,DataDirectory;loading_check)
+
+Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BigMatricesStruct`.
+"""
+function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=true,MatrixType::DataType=Matrix{Float32})
+
+    if isempty(PhaseSpace.Binary_list) 
+        M_Bin = MatrixType(undef,0,0)
+    else
+        M_Bin = Allocate_M_Bin(PhaseSpace,loading_check,MatrixType)
+        LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace)
+    end
+    if isempty(PhaseSpace.Emi_list)
+        M_Emi = MatrixType(undef,0,0)
+    else
+        M_Emi = Allocate_M_Emi(PhaseSpace,loading_check,MatrixType)
+        LoadMatrices_Emi(M_Emi,DataDirectory,PhaseSpace)
+    end
+
+    return BigMatricesStruct{MatrixType}(M_Bin,M_Emi)
+
+end
+
+
+"""
     Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct)
 
 Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation. If `n` is the size of the momentum domain, then `M_Bin` is an `n^2 x n` matrix. The size of `M_Bin` in memory is printed to the console upon allocation.
 """
-function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
+function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,MatrixType::AbstractMatrix{<:AbstractFloat})
 
     Momentum = PhaseSpace.Momentum
 
@@ -14,7 +39,7 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
     n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*n
 
-    size = m*n*sizeof(Float32)
+    size = m*n*sizeof(eltype(MatrixType))
 
     if loading_check
 
@@ -49,7 +74,8 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
 
     end
 
-    M_Bin::AbstractArray{Float32,2} = zeros(Float32,m,n)
+    M_Bin::MatrixType = MatrixType(undef,m,n)
+    fill!(M_Bin,zero(eltype(MatrixType)))
 
     return M_Bin
 
@@ -57,11 +83,11 @@ end
 
 
 """
-    Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::Vector{String},Lists::ListStruct;GainMatrix3=nothing,GainMatrix4=nothing,LossMatrix1=nothing,LossMatrix2=nothing)
+    Fill_M_Bin!(M_Bin::Array{Float32,2},interaction::Vector{String},Lists::ListStruct;GainMatrix3=nothing,GainMatrix4=nothing,LossMatrix1=nothing,LossMatrix2=nothing)
 
 Fills the big matrix `M_Bin` with the interaction rates for binary interactions between all particles in the simulation.
 """
-function Fill_M_Bin!(M_Bin::AbstractArray{Float32,2},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6})
+function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6}) where F<:AbstractFloat
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -225,7 +251,7 @@ end
 
 Allocates a big matrix `M_Emi` which stores the interaction rates for emission interactions between all particles in the simulation.
 """
-function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
+function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,MatrixType::DataType)
 
     Momentum = PhaseSpace.Momentum
 
@@ -271,13 +297,14 @@ function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool)
 
     end
 
-    M_Emi::AbstractArray{Float32,2} = zeros(Float32,n,n)
+    M_Emi::MatrixType = MatrixType(undef,n,n)
+    fill!(M_Emi,zero(eltype(MatrixType)))
 
     return M_Emi
 
 end
 
-function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,PhaseSpace::PhaseSpaceStruct;GainMatrix2=nothing,GainMatrix3=nothing,LossMatrix1=nothing)
+function Fill_M_Emi!(M_Emi::AbstractMatrix{<:AbstractFloat},interaction::EmiStruct,PhaseSpace::PhaseSpaceStruct;GainMatrix2=nothing,GainMatrix3=nothing,LossMatrix1=nothing)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -335,7 +362,7 @@ function Fill_M_Emi!(M_Emi::AbstractArray{Float32,2},interaction::EmiStruct,Phas
 
 end
 
-function GainMatrix_to_M_Bin!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64)
+function GainMatrix_to_M_Bin!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64) where F<:AbstractFloat
 
     px3_num = size(GainMatrix,1)-1 # ignore overflow bin
     py3_num = size(GainMatrix,2)
@@ -358,14 +385,14 @@ function GainMatrix_to_M_Bin!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{
         c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
 
         # M_Bin terms allocated symmetrically
-        M_Bin[(b-1)*N+(a-1)+1,c] += GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2
-        M_Bin[(c-1)*N+(a-1)+1,b] += GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2
+        M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2)
+        M_Bin[(c-1)*N+(a-1)+1,b] += convert(F,GainMatrix[px3,py3,pz3,px1,py1,pz1,px2,py2,pz2]/2)
 
     end
 
 end
 
-function LossMatrix_to_M_Bin!(M_Bin::Array{Float32},LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64)
+function LossMatrix_to_M_Bin!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64) where F<:AbstractFloat
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)
@@ -383,8 +410,8 @@ function LossMatrix_to_M_Bin!(M_Bin::Array{Float32},LossMatrix::Array{Float64,6}
         c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
 
         # M_Bin terms allocated symmetrically
-        M_Bin[(b-1)*N+(a-1)+1,c] -= LossMatrix[px1,py1,pz1,px2,py2,pz2]/2
-        M_Bin[(c-1)*N+(a-1)+1,b] -= LossMatrix[px1,py1,pz1,px2,py2,pz2]/2
+        M_Bin[(b-1)*N+(a-1)+1,c] -= convert(F,LossMatrix[px1,py1,pz1,px2,py2,pz2]/2)
+        M_Bin[(c-1)*N+(a-1)+1,b] -= convert(F,LossMatrix[px1,py1,pz1,px2,py2,pz2]/2)
 
     end
 
@@ -392,7 +419,7 @@ end
 
 
 
-function GainMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64)
+function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64)
 
     # 1 is incident particle, 2 is emitted particle
 
@@ -408,13 +435,13 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},GainMatrix::Array{Float6
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += GainMatrix[px2,py2,pz2,px1,py1,pz1]
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1])
 
     end
 
 end
 
-function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32,2},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64,dpy2,dpy1)
+function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64,dpy2,dpy1)
 
     px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
     py2_num = size(GainMatrix,2)
@@ -436,7 +463,7 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32,2},GainMatrix::Array{Floa
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += val
+        M_Emi[a,b] += convert(eltype(M_Emi),val)
 
         end
 
@@ -444,7 +471,7 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32,2},GainMatrix::Array{Floa
 
 end
 
-function LossMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},LossMatrix::Array{Float64,2},offset1::Int64)
+function LossMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},LossMatrix::Array{Float64,2},offset1::Int64)
 
     px1_num = size(LossMatrix,1)
     py1_num = size(LossMatrix,2)
@@ -454,13 +481,13 @@ function LossMatrix_to_M_Emi_Axi!(M_Emi::Array{Float32},LossMatrix::Array{Float6
         a = (j-1)*px1_num+i+offset1
         b = a
 
-        M_Emi[a,b] -= LossMatrix[i,j]
+        M_Emi[a,b] -= convert(eltype(M_Emi),LossMatrix[i,j])
         
     end
 
 end
 
-function LossMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},LossMatrix::Array{Float64,2},offset1::Int64)
+function LossMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},LossMatrix::Array{Float64,2},offset1::Int64)
 
     px1_num = size(LossMatrix,1)
     py1_num = size(LossMatrix,2)
@@ -476,7 +503,7 @@ function LossMatrix_to_M_Emi_Iso!(M_Emi::Array{Float32},LossMatrix::Array{Float6
         a = (j-1)*px1_num+i+offset1
         b = a
 
-        M_Emi[a,b] -= val
+        M_Emi[a,b] -= convert(eltype(M_Emi),val)
         
     end
 
@@ -484,7 +511,7 @@ end
 
 ##  TO BE REMOVED LATER
 
-function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
+function GainMatrix_to_M_Bin_Axi!(M_Bin::Array{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
 
     px3_num = size(GainMatrix,1)-1 # ignore overflow bin
     py3_num = size(GainMatrix,2)
@@ -514,7 +541,7 @@ function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractArray{Float32,2},GainMatrix::Ar
 
 end
 
-function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractArray{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy3::Vector{Float64},dpy1::Vector{Float64},dpy2::Vector{Float64})
+function GainMatrix_to_M_Bin_Iso!(M_Bin::Array{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy3::Vector{Float64},dpy1::Vector{Float64},dpy2::Vector{Float64})
 
     px3_num = size(GainMatrix,1)-1 # ignore overflow bin
     py3_num = size(GainMatrix,2)

@@ -2,20 +2,21 @@
 mutable struct EulerStruct <: SteppingMethodType
 
     PhaseSpace::PhaseSpaceStruct
-    BigM::BigMatricesStruct
-    FluxM::FluxMatricesStruct
+    BigM::BigMatricesStruct{Matrix{Float32}}
+    FluxM::FluxMatricesStruct{Matrix{Float32},Vector{Float32}}
 
     Implicit::Bool
 
-    M_Bin_Mul_Step::Array{Float32,2}  # temporary array for matrix multiplication of binary terms
-    M_Emi_Step::Array{Float32,2}      # temporary array for spatial evaluated emission terms
-    Jac::Array{Float32,2}           # jacobian for if Implicit==True
-    df::fType                       # change in distribution function
-    df_temp::fType                  # change in distribution function
-    temp::Array{Float32,2}
-    #LU::LinearAlgebra.LU{Float32, Matrix{Float32}, Vector{Int64}}
+    M_Bin_Mul_Step::Matrix{Float32}  # temporary array for matrix multiplication of binary terms
+    M_Emi_Step::Matrix{Float32}      # temporary array for spatial evaluated emission terms
+    Jac::Matrix{Float32}           # jacobian for if Implicit==True
+    df::Vector{Float32}                     # change in distribution function
+    df_temp::Vector{Float32}                 # change in distribution function
+    temp::Matrix{Float32}
+    LU64::LinearAlgebra.LU{Float64, Matrix{Float64}, Vector{Int64}}
+    LU32::LinearAlgebra.LU{Float32, Matrix{Float32}, Vector{Int64}}
 
-    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool)
+    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct{Matrix{Float32}},Flux_Matrices::FluxMatricesStruct{Matrix{Float32},Vector{Float32}},Implicit::Bool)
 
         self = new()
 
@@ -30,10 +31,11 @@ mutable struct EulerStruct <: SteppingMethodType
         if Implicit
             self.Jac = zeros(Float32,length(f0),length(f0))
         end
-        self.df = fill!(similar(f0),Float32(0))
-        self.df_temp = fill!(similar(f0),Float32(0))
+        self.df = zeros(Float32,length(f0))
+        self.df_temp = zeros(Float32,length(f0))
         self.temp = zeros(Float32,length(f0),length(f0))
-        #self.LU = similar(self.temp)
+        self.LU32 = lu(similar(self.temp)+I)
+        self.LU64 = lu(Float64.(similar(self.temp)+I))
 
         return self
     end

@@ -9,12 +9,12 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     # convert p to Float64 to ensure no floating point issues
     p64 = Float64(p)
 
-    μ0 = getfield(BCI,Symbol("μ0"))
-    m = getfield(BCI,Symbol("mu"*name))
-    q = getfield(BCI,Symbol("q"))
-    Z = getfield(BCI,Symbol("z"*name))
-    mEle = getfield(BCI,Symbol("mEle"))
-    c = getfield(BCI,Symbol("c"))
+    μ0 = getfield(DC,Symbol("μ0"))
+    m = getfield(DC,Symbol("mu"*name))
+    q = getfield(DC,Symbol("q"))
+    Z = getfield(DC,Symbol("z"*name))
+    mEle = getfield(DC,Symbol("mEle"))
+    c = getfield(DC,Symbol("c"))
 
     # TOFIX Variable B
     B = 1f-4
@@ -39,7 +39,7 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
         end
     end
 
-    return Float32(flux)
+    return flux
 
 end
 
@@ -53,12 +53,12 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     p064 = Float64(p0)
     p164 = Float64(p1)
 
-    μ0 = getfield(BCI,Symbol("μ0"))
-    m = getfield(BCI,Symbol("mu"*name))
-    q = getfield(BCI,Symbol("q"))
-    Z = getfield(BCI,Symbol("z"*name))
-    mEle = getfield(BCI,Symbol("mEle"))
-    c = getfield(BCI,Symbol("c"))
+    μ0 = getfield(DC,Symbol("μ0"))
+    m = getfield(DC,Symbol("mu"*name))
+    q = getfield(DC,Symbol("q"))
+    Z = getfield(DC,Symbol("z"*name))
+    mEle = getfield(DC,Symbol("mEle"))
+    c = getfield(DC,Symbol("c"))
 
     # TOFIX Variable B
     B = 1f-4
@@ -78,7 +78,7 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
         end
     end
 
-    return Float32(flux)
+    return flux
 
 end
 
@@ -90,12 +90,12 @@ function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     p064 = Float64(p0)
     p164 = Float64(p1)
 
-    μ0 = getfield(BCI,Symbol("μ0"))
-    m = getfield(BCI,Symbol("mu"*name))
-    q = getfield(BCI,Symbol("q"))
-    Z = getfield(BCI,Symbol("z"*name))
-    mEle = getfield(BCI,Symbol("mEle"))
-    c = getfield(BCI,Symbol("c"))
+    μ0 = getfield(DC,Symbol("μ0"))
+    m = getfield(DC,Symbol("mu"*name))
+    q = getfield(DC,Symbol("q"))
+    Z = getfield(DC,Symbol("z"*name))
+    mEle = getfield(DC,Symbol("mEle"))
+    c = getfield(DC,Symbol("c"))
 
     # TOFIX Variable B
     B = 1f-4
@@ -113,7 +113,7 @@ function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
         flux *= fluxScale
     end
 
-    return Float32(flux)
+    return flux
 
 end
 

@@ -91,7 +91,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
 
 end
 
-function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
 
     Binary_list = PhaseSpace.Binary_list
 
@@ -117,7 +117,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
     pz_grid_list = Momentum.pz_grid_list
     pz_num_list = Momentum.pz_num_list
 
-    fill!(BigM.M_Bin,0f0);
+    fill!(M_Bin,0f0);
 
     for i in eachindex(Binary_list)
 
@@ -306,7 +306,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
             DoesConserve2(Output)
             
             #Fill_M_Bin!(BigM.M_Bin,interaction,PhaseSpace;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
-            Fill_M_Bin!(BigM.M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
+            Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
 
         end
 
@@ -314,7 +314,7 @@ function LoadMatrices_Binary(BigM::BigMatricesStruct,DataDirectory::String,Phase
 
 end
 
-function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
 
     Emi_list = PhaseSpace.Emi_list
 
@@ -340,7 +340,7 @@ function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpa
     pz_grid_list = Momentum.pz_grid_list
     pz_num_list = Momentum.pz_num_list
 
-    fill!(BigM.M_Emi,0f0);
+    fill!(M_Emi,0f0);
 
     for i in eachindex(Emi_list)
 
@@ -407,8 +407,8 @@ function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpa
         #filename = "sync"*name2*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*py1_grid*py1_num*"#"*py3_grid*py3_num_st*".jld2";
 
         #filename = "syncEle#-14.0#4.0#72#-5.0#4.0#72#8#8.jld2";
-        filename = "syncEle#-14.0-7.0l84#0.0-7.0l56#u8#u8.jld2";
-        filename = "syncTest1.jld2"
+        #filename = "syncEle#-14.0-7.0l84#0.0-7.0l56#u8#u8.jld2";
+        filename = "syncTest3.jld2"
 
         println(filename)
 
@@ -420,7 +420,7 @@ function LoadMatrices_Emi(BigM::BigMatricesStruct,DataDirectory::String,PhaseSpa
         #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
         #PhaseSpaceFactors_Emi_Undo!(matrix,pxr3,pyr3,pxr1,pyr1)
 
-        Fill_M_Emi!(BigM.M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
+        Fill_M_Emi!(M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
     
     end # for
 

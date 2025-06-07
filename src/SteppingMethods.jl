@@ -44,36 +44,75 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     @. Euler.temp -= Euler.FluxM.K_Flux 
     @. Euler.temp -= Euler.FluxM.J_Flux 
     @. Euler.temp -= Euler.FluxM.I_Flux
+    if Euler.Implicit
+        @. Euler.Jac -= Euler.FluxM.K_Flux
+        @. Euler.Jac -= Euler.FluxM.J_Flux
+        @. Euler.Jac -= Euler.FluxM.I_Flux
+    end
+    # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
+    if Euler.PhaseSpace.Time.t_grid != "u" 
+        Euler.temp .*= dt / dt0
+        if Euler.Implicit
+            Euler.Jac .*= dt / dt0
+        end
+    end
+    # add time fluxes to temp
+    @. Euler.temp -= Euler.FluxM.Ap_Flux
+    @. Euler.temp -= Euler.FluxM.Am_Flux
 
     if isinf(sum(Euler.temp))
         error("overflow in arrays")
         #@. g.temp = g.temp*(g.temp!=Inf)
     end
 
-    # phase space correction for non-uniform time stepping
-    if Euler.PhaseSpace.Time.t_grid != "u" 
-        Euler.temp .*= dt / dt0
-    end
-
-    @. Euler.temp -= Euler.FluxM.Ap_Flux
-    @. Euler.temp -= Euler.FluxM.Am_Flux
-
-    #if Euler.Implicit
+    if Euler.Implicit
         # TOFIX add fluxes inside mul!
-        #mul!(g.df,g.M_Bin_Mul_Step,f)
+        mul!(Euler.df_temp,Euler.temp,f)
+        println("t = $t")
+        println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
+        lu!(Euler.LU64,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
+        @. Euler.LU32.factors = Float32.(Euler.LU64.factors)
+        @. Euler.LU32.ipiv = Euler.LU64.ipiv
+        ldiv!(Euler.df,Euler.LU32,Euler.df_temp)
         #@. g.Jac = 2*g.M_Bin_Mul_Step
         #g.df .= (I-dt*g.Jac)\g.df
         #@. df = dt*g.df
 
-    #else
-    #    Euler.LU = copy(Euler.FluxM.Ap_Flux)
-    #    ldiv!(Euler.df,lu!(Euler.LU),Euler.temp)
-    #end
+        #if t > 1e-16
+            #println("$(Euler.LU)")
+        #    println("$(Euler.df)")
+        #    error("here")
+        #end
+
+    else
+        #= mul!(Euler.df_temp,Euler.temp,f)
+        if isdiag(Euler.FluxM.Ap_Flux)
+            ldiv!(Euler.df,factorize(Euler.FluxM.Ap_Flux),Euler.df_temp)
+        else
+            lu!(Euler.LU,Euler.FluxM.Ap_Flux)
+            ldiv!(Euler.df,Euler.LU,Euler.df_temp)
+        end =#
+
+        
+        if isdiag(Euler.FluxM.Ap_Flux)
+            ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
+            #println("$(sum(Euler.temp))")
+            # CFL ish check
+            #println("t = $t")
+            #println("max λ = $(maximum(abs.(eigvals(Euler.temp))))")
+            #println("min λ = $(minimum(abs.(eigvals(Euler.temp))))")
+        else
+            lu!(Euler.LU,Euler.FluxM.Ap_Flux)
+            ldiv!(Euler.temp,Euler.LU,Euler.temp)
+        end
+        mul!(Euler.df,Euler.temp,f)
+
+    end
     # improve allocations with LU decomp??
-    Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
-    Euler.temp ./= Euler.df_temp
-    #mul!(g.df,@view(g.FluxM.Ap_Flux[1,:,:])\g.temp,f)
-    mul!(Euler.df,Euler.temp,f)
+    #Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
+    #Euler.temp ./= Euler.df_temp
+    #mul!(Euler.df,Euler.temp,f)
+    
     @. df = Euler.df
 
     #println("$df")
@@ -117,23 +156,21 @@ function update_Big_Bin!(method::SteppingMethodType,f)
 
         mul!(tempView,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
 
-        #println(maximum(method.BigM.M_Bin[:,168+144]))
-        #println(method.M_Bin_Mul_Step[169:168+408,168+144])
-        #println(method.M_Bin_Mul_Step[169:168+408,24])
-        #println(Vol[off_space+1])
-        #println(sum(fView))
-        #println("")
-
-
         # multiply by volume element
         tempView .*= Vol[off_space+1]
 
         # assign jacobian elements
-        if method.Implicit
+        #=if method.Implicit
             JacView = @view method.Jac[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
             @. JacView += 2*method.M_Bin_Mul_Step 
         end 
+        =#
 
+    end
+
+    if method.Implicit
+        # assign jacobian elements
+        @. method.Jac += 2*method.M_Bin_Mul_Step 
     end
 
     return nothing
@@ -184,4 +221,76 @@ function update_Big_Emi!(method::SteppingMethodType,f)
 
     return nothing
 
+end
+
+# to be removed in julia 1.12#
+
+function generic_lufact!(A::AbstractMatrix{T}, pivot::Union{RowMaximum,NoPivot,RowNonZero} = lupivottype(T), ipiv::AbstractVector{LinearAlgebra.BlasInt} = Vector{LinearAlgebra.BlasInt}(undef,min(size(A)...));
+                         check::Bool = true, allowsingular::Bool = false) where {T}
+    check && LAPACK.chkfinite(A)
+    # Extract values
+    m, n = size(A)
+    minmn = min(m,n)
+
+    # Initialize variables
+    info = 0
+    @inbounds begin
+        for k = 1:minmn
+            # find index max
+            kp = k
+            if pivot === RowMaximum() && k < m
+                amax = abs(A[k, k])
+                for i = k+1:m
+                    absi = abs(A[i,k])
+                    if absi > amax
+                        kp = i
+                        amax = absi
+                    end
+                end
+            elseif pivot === RowNonZero()
+                for i = k:m
+                    if !iszero(A[i,k])
+                        kp = i
+                        break
+                    end
+                end
+            end
+            ipiv[k] = kp
+            if !iszero(A[kp,k])
+                if k != kp
+                    # Interchange
+                    for i = 1:n
+                        tmp = A[k,i]
+                        A[k,i] = A[kp,i]
+                        A[kp,i] = tmp
+                    end
+                end
+                # Scale first column
+                Akkinv = inv(A[k,k])
+                for i = k+1:m
+                    A[i,k] *= Akkinv
+                end
+            elseif info == 0
+                info = k
+            end
+            # Update the rest
+            for j = k+1:n
+                for i = k+1:m
+                    A[i,j] -= A[i,k]*A[k,j]
+                end
+            end
+        end
+    end
+    if pivot === NoPivot()
+        # Use a negative value to distinguish a failed factorization (zero in pivot
+        # position during unpivoted LU) from a valid but rank-deficient factorization
+        info = -info
+    end
+    check && LinearAlgebra._check_lu_success(info, allowsingular)
+    return LU{T,typeof(A),typeof(ipiv)}(A, ipiv, convert(LinearAlgebra.BlasInt, info))
+end
+
+function lu!(F::LU{<:Any,<:AbstractMatrix}, A; check::Bool = true, allowsingular::Bool = false)
+    copyto!(F.factors, Float64.(A))
+    return generic_lufact!(F.factors, LinearAlgebra.lupivottype(eltype(A)), F.ipiv; check, allowsingular)
 end

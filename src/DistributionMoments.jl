@@ -136,18 +136,12 @@ function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     return Tab
 end
 
-function ScalarNumberDensity(Na,Ua)
+function ScalarNumberDensity(Nᵃ,Uₐ)
 
-    metric = zeros(Float64,4,4)
-    metric[1,1] = -1
-    metric[2,2] = 1
-    metric[3,3] = 1
-    metric[4,4] = 1
-
-    if Na[1] == 0
+    if Nᵃ[1] == 0
         n = 0
     else
-        n = -Na'*metric*Ua
+        n = - dot(Nᵃ,Uₐ)
     end
 
     return n

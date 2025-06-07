@@ -251,7 +251,7 @@ end
 
 A struct for storing the big matrices associated with interactions in the simulation.
 """
-mutable struct BigMatricesStruct <: Function
+#=mutable struct BigMatricesStruct <: Function
     
     M_Bin::Array{Float32,2}    # big matrix for binary interactions
 
@@ -275,9 +275,22 @@ mutable struct BigMatricesStruct <: Function
         return self
     end
 
+end=#
+
+"""
+    BigMatricesStruct()
+
+A struct for storing the big matrices associated with interactions in the simulation.
+"""
+struct BigMatricesStruct{M<:AbstractMatrix{<:AbstractFloat}}
+    
+    M_Bin::M  # big matrix for binary interactions
+
+    M_Emi::M  # big matrix for emission interactions
+
 end
 
-mutable struct FluxMatricesStruct <: Function
+#=mutable struct FluxMatricesStruct <: Function
 
     # time fluxes
     Ap_Flux::Array{Float32,2}
@@ -304,6 +317,29 @@ mutable struct FluxMatricesStruct <: Function
         return self
 
     end
+end=#
+
+"""
+    FluxMatricesStruct()
+
+A struct for storing the flux matrices associated with the simulation.
+"""
+struct FluxMatricesStruct{M<:AbstractMatrix{<:AbstractFloat},V<:AbstractVector{<:AbstractFloat}}
+
+    # time fluxes
+    Ap_Flux::M
+    Am_Flux::M
+    # space fluxes
+    B_Flux::M
+    C_Flux::M
+    D_Flux::M
+    # momentum fluxes
+    I_Flux::M
+    J_Flux::M
+    K_Flux::M
+    # space time volume element vector
+    Vol::V
+
 end
 
 
