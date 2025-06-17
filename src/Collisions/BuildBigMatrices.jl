@@ -28,7 +28,7 @@ end
 
 Allocates a big matrix `M_Bin` which stores the interaction rates for binary interactions between all particles in the simulation. If `n` is the size of the momentum domain, then `M_Bin` is an `n^2 x n` matrix. The size of `M_Bin` in memory is printed to the console upon allocation.
 """
-function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,MatrixType::AbstractMatrix{<:AbstractFloat})
+function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,MatrixType::DataType)
 
     Momentum = PhaseSpace.Momentum
 

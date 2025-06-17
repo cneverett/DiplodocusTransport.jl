@@ -54,7 +54,7 @@ function HydroFourVelocity(Na::Vector{Float64})
 
 end
 
-function ProjectionTensor(Ua::Vector{Float64})
+function ProjectionTensor(Uₐ::Vector{Float64})
 
     Δab = zeros(Float64,4,4)
 
@@ -65,7 +65,7 @@ function ProjectionTensor(Ua::Vector{Float64})
     metric[4,4] = 1
 
     for i in 1:4, j in 1:4
-        Δab[i,j] = metric[i,j] + Ua[i]*Ua[j]
+        Δab[i,j] = metric[i,j] + Uₐ[i]*Uₐ[j]
     end
 
     return Δab
@@ -148,15 +148,9 @@ function ScalarNumberDensity(Nᵃ,Uₐ)
 
 end
 
-function ScalarEnergyDensity(Tab,Ua,n)
+function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n)
 
-    metric = zeros(Float64,4,4)
-    metric[1,1] = -1
-    metric[2,2] = 1
-    metric[3,3] = 1
-    metric[4,4] = 1
-
-    en = (metric * Ua)' * Tab * (metric * Ua)
+    en = Uₐ' * Tᵃᵇ * Uₐ
 
     if n == 0
         e = 0
@@ -168,7 +162,7 @@ function ScalarEnergyDensity(Tab,Ua,n)
 
 end
 
-function ScalarPressure(Tab,Δab)
+function ScalarPressure(Tᵃᵇ,Δab)
 
     metric = zeros(Float64,4,4)
     metric[1,1] = -1
@@ -176,7 +170,8 @@ function ScalarPressure(Tab,Δab)
     metric[3,3] = 1
     metric[4,4] = 1
 
-    p = (1/3) * sum(Tab .* (metric * Δab * metric))
+    #p = (1/3) * sum(Tab .* (metric * Δab * metric))
+    p = (1/3) * sum(Tᵃᵇ .* Δab)
 
     return p
 

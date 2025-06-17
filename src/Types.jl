@@ -17,7 +17,15 @@ struct Ani <: ModeType end
 
 # CoordinateType Structs: 
 struct Spherical <: CoordinateType end
-struct Cylindrical <: CoordinateType end
+struct Cylindrical <: CoordinateType
+    α::Float64 # != 0 not implemented
+    β::Float64
+    γ::Float64 # != 0 not implemented  
+end
+struct CylindricalMag <: CoordinateType 
+    b1::Float64
+    b2::Float64
+end
 
 # ForceType Structs: 
 struct CoordinateForce <: ForceType end
