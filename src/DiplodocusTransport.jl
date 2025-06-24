@@ -20,6 +20,7 @@ include("DistributionFunctions.jl")
 include("DistributionMoments.jl")
 include("InitialConditions.jl")
 include("ValuesOnTheGrid.jl")
+include("DataReading.jl")
 
 # Collisions
 include("Collisions/BuildBigMatrices.jl")
