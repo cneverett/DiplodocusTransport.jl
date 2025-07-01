@@ -8,7 +8,7 @@ function MaxwellJuttner_Distribution(meanp::Vector{Float64},T::Float64,mass::Flo
     MJPoints = zeros(Float64,size(meanp))
     # besselk doesn't do well with small T besselkx = besselk * e^x does better.
     theta = mEle*c^2/(kb*T)
-    @. MJPoints = (meanp^2)*(n*theta/(2*m^2))* (1/besselkx(2,m*theta)) * exp((m-sqrt(m^2+meanp^2))*theta)
+    @. MJPoints = (meanp^2)*(n*theta/(2*mass^2))* (1/besselkx(2,mass*theta)) * exp((m-sqrt(mass^2+meanp^2))*theta)
 
     return MJPoints
 
