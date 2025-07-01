@@ -1,13 +1,13 @@
 module DiplodocusTransport
 
-    export Solver, LoadMatrices, BigMatrices, FluxMatrices
+    export LoadMatrices, BigMatrices, FluxMatrices
     export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
     export BinaryStruct, EmiStruct, ForceType
     export Cylindrical, Spherical, Cartesian, Axi
     export SyncRadReact
     export BuildBigMatrices, BuildFluxMatrices
     export Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw
-
+    export Solve, EulerStruct
 
     using JLD2
     import DiplodocusCollisions as DC
