@@ -1,38 +1,3 @@
-function InitialConditions(Lists::ListStruct)
-
-    name_list = Lists.name_list
-    p_num_list = Lists.p_num_list
-    u_num_list = Lists.u_num_list
-
-    num_species = length(name_list)
-    f0_list2D = Vector{Array{Float32,2}}(undef,num_species)
-    for i in 1:num_species
-        f0_list2D[i] = fill(Float32(0),p_num_list[i],u_num_list[i])
-    end
-
-    for i in eachindex(name_list)
-        f0_list2D[i][40:41,:] .= 1f3 
-    end
-
-    f0_list = Vector{Vector{Float32}}(undef,num_species)
-    for i in 1:num_species
-        f0_list[i] = reshape(f0_list2D[i],p_num_list[i]*u_num_list[i])
-    end
-
-    u0 = zeros(Float32,sum(p_num_list.*u_num_list))
-
-    f_list_to_u!(u0,f0_list)
-
-    #test = reshape(u0,(p_num_list[1],u_num_list[1]))
-    
-    #test[40:41,:] .= 1f3
-
-    #u0 .= reshape(test,prod(size(test)))
-
-    return u0
-
-end
-
 """
     Initial_PowerLaw(Lists,species,pmin,pmax,index,num_Init)
 
@@ -50,8 +15,19 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
 
+    Grids = PhaseSpace.Grids
+    pr_list = Grids.pxr_list
+    mp_list = Grids.mpx_list
+    mu_list = Grids.mpy_list
+    dp_list = Grids.dpx_list
+    du_list = Grids.dpy_list
+
     species_index = findfirst(==(species),name_list)
-    u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
+    pr = pr_list[species_index]
+    dp = dp_list[species_index]
+    du = du_list[species_index]
+
+    u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
 
     # Set initial conditions goes here
     pu = Float64(p_up_list[species_index])
@@ -60,9 +36,9 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     p_grid = p_grid_list[species_index]
     u_num = u_num_list[species_index]
     u_grid = u_grid_list[species_index]
-    pr = DC.bounds(pl,pu,p_num,p_grid)
-    dp = DC.deltaVector(pr)
-    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
+    #pr = DC.bounds(pl,pu,p_num,p_grid)
+    #dp = DC.deltaVector(pr)
+    #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
     mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
     type = zero(T)
@@ -95,11 +71,9 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
         u0_2D_species[i,j] *= dp[i] * du[j]
     end
 
-    u0_2D_species = Float32.(u0_2D_species)
-
     u0_species = reshape(u0_2D_species,p_num*u_num)
 
-    return u0_species
+    return Float32.(u0_species)
 end
 
 function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32) where T <: Union{Float32,Int64}
@@ -114,7 +88,13 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
 
+    Grids = PhaseSpace.Grids
+    dp_list = Grids.dpx_list
+    du_list = Grids.dpy_list
+
     species_index = findfirst(==(species),name_list)
+    dp = dp_list[species_index]
+    du = du_list[species_index]
     u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
 
     pu = p_up_list[species_index]
@@ -137,8 +117,8 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
         umax_index = umax
     end
 
-    dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
-    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
+    #dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
+    #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
 
     # set values and normalise to initial number density (in m^{-3})
     for i in pmin_index:pmax_index, j in umin_index:umax_index
@@ -148,7 +128,6 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     num = dp' * u0_2D_species * du
     #num = sum(u0_2D_species)
     u0_2D_species *= num_Init/num
-    u0_2D_species = Float32.(u0_2D_species)
 
     # scale by dp*du 
     for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
@@ -162,18 +141,27 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     #    u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
     #end
 
-    return u0_species
+    return Float32.(u0_species)
 end
 
-function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_Init::Float32;mode="AXI")
-    
-    name_list = Lists.name_list
-    p_up_list = Lists.p_up_list
-    p_low_list = Lists.p_low_list
-    p_grid_list = Lists.p_grid_list
-    p_num_list = Lists.p_num_list
-    u_grid_list = Lists.u_grid_list
-    u_num_list = Lists.u_num_list
+function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,num_Init::Float64;mode="AXI")
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+
+    name_list = PhaseSpace.name_list
+    p_up_list = Momentum.px_up_list
+    p_low_list = Momentum.px_low_list
+    p_grid_list = Momentum.px_grid_list
+    p_num_list = Momentum.px_num_list
+    u_grid_list = Momentum.py_grid_list
+    u_num_list = Momentum.py_num_list
+
+    Grids = PhaseSpace.Grids
+    mp_list = Grids.mpx_list
+    mu_list = Grids.mpy_list
+    dp_list = Grids.dpx_list
+    du_list = Grids.dpy_list
 
     species_index = findfirst(==(species),name_list)
     pu = p_up_list[species_index]
@@ -182,15 +170,18 @@ function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_In
     p_num = p_num_list[species_index]
     u_num = u_num_list[species_index]
     u_grid = u_grid_list[species_index]
+    meanp = mp_list[species_index]
+    dp = dp_list[species_index]
+    du = du_list[species_index]
 
     u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
 
-    meanp = DC.meanVector(DC.bounds(pl,pu,p_num,p_grid))
-    dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
-    du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
+    #meanp = DC.meanVector(DC.bounds(pl,pu,p_num,p_grid))
+    #dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
+    #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
     mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
-    u0_2D_species .= MaxwellJuttner_Distribution(Float32.(meanp),T,Float32(mass))
+    u0_2D_species .= MaxwellJuttner_Distribution(meanp,T,mass)
     
     # set values and normalise to initial number density (in m^{-3})
     num = dp' * u0_2D_species * du
@@ -201,8 +192,6 @@ function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_In
         u0_2D_species[i,j] *= dp[i] * du[j]
     end
 
-    u0_2D_species = Float32.(u0_2D_species)
-
     if mode=="AXI"
         u0_species = reshape(u0_2D_species,p_num_list[species_index]*u_num_list[species_index])
     elseif mode=="ISO"
@@ -210,7 +199,7 @@ function Initial_Temperature(Lists::ListStruct,species::String,T::Float32,num_In
         u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
     end
 
-    return u0_species
+    return Float32.(u0_species)
 
 end
 

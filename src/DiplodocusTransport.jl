@@ -1,45 +1,50 @@
 module DiplodocusTransport
 
-export Solver, InitialConditions, LoadMatrices, BigMatrices, FluxMatrices
-export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
-export BinaryStruct, EmiStruct 
+    export Solver, LoadMatrices, BigMatrices, FluxMatrices
+    export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
+    export BinaryStruct, EmiStruct, ForceType
+    export Cylindrical, Spherical, Cartesian, Axi
+    export SyncRadReact
+    export BuildBigMatrices, BuildFluxMatrices
+    export Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw
 
-using JLD2
-import DiplodocusCollisions as DC
-using LinearAlgebra
-using ProgressMeter
-using Bessels
-using Statistics
-using RecursiveArrayTools
-using CairoMakie
 
-include("Types.jl")
-include("StructsAndDictionaries.jl")
-include("PhaseSpaceFactors.jl")
-include("MatrixResizing.jl")
-include("DistributionFunctions.jl")
-include("DistributionMoments.jl")
-include("InitialConditions.jl")
-include("ValuesOnTheGrid.jl")
-include("DataReading.jl")
+    using JLD2
+    import DiplodocusCollisions as DC
+    using LinearAlgebra
+    using ProgressMeter
+    using Bessels
+    using Statistics
+    using RecursiveArrayTools
+    using CairoMakie
 
-# Collisions
-include("Collisions/BuildBigMatrices.jl")
-include("Collisions/LoadMatrices.jl")
+    include("Types.jl")
+    include("StructsAndDictionaries.jl")
+    include("PhaseSpaceFactors.jl")
+    include("MatrixResizing.jl")
+    include("DistributionFunctions.jl")
+    include("DistributionMoments.jl")
+    include("InitialConditions.jl")
+    include("ValuesOnTheGrid.jl")
+    include("DataReading.jl")
 
-# Fluxes
-include("Fluxes/BuildFluxMatrices.jl")
-include("Fluxes/FluxFunctionsCoordinate.jl")
-include("Fluxes/FluxFunctionsForces.jl")
+    # Collisions
+    include("Collisions/BuildBigMatrices.jl")
+    include("Collisions/LoadMatrices.jl")
 
-# Stepping 
-include("SteppingStructs.jl")
-include("SteppingMethods.jl")
+    # Fluxes
+    include("Fluxes/BuildFluxMatrices.jl")
+    include("Fluxes/FluxFunctionsCoordinate.jl")
+    include("Fluxes/FluxFunctionsForces.jl")
 
-# Solver
-include("Solver.jl")
+    # Stepping 
+    include("SteppingStructs.jl")
+    include("SteppingMethods.jl")
 
-# post-processing
-include("Plotting.jl")
+    # Solver
+    include("Solver.jl")
+
+    # post-processing
+    include("Plotting.jl")
 
 end
