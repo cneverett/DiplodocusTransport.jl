@@ -346,12 +346,14 @@ end
 mutable struct OutputStruct
     
     f::fType
+    f_ext::fType
     t::Vector{Float64}
 
     function OutputStruct(f0::fType,n_save::Int64)
 
         self = new()
         self.f = Vector{typeof(f0)}(undef,n_save)
+        self.f_ext = Vector{typeof(f0)}(undef,n_save)
         self.t = Vector{Float64}(undef,n_save)
 
         return self

@@ -1,7 +1,7 @@
 module DiplodocusTransport
 
 export Solver, InitialConditions, LoadMatrices, BigMatrices, FluxMatrices
-export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct 
+export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
 
 using JLD2
 import DiplodocusCollisions as DC

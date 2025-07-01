@@ -1,5 +1,60 @@
 
-figure_theme = Theme(backgroundcolor=(:black,0),
+function DiplodocusDark()
+    return Theme(backgroundcolor=(:black,0),
+    fonts = Attributes(
+            :bold => Makie.texfont(:bold),
+            :bolditalic => Makie.texfont(:bolditalic),
+            :italic => Makie.texfont(:italic),
+            :regular => Makie.texfont(:regular)
+        ),
+    Figure = (
+        backgroundcolor=(:black,0),
+        size=(1200,1200),
+        fontsize = 20.0f0
+        ),
+    Axis = (
+        backgroundcolor=(:black,0),
+        titlesize = 20.0f0,
+        xlabelsize = 20.0f0,
+        ylabelsize = 20.0f0,
+        titlecolor= RGBAf(250, 250, 250, 1.0),
+        ylabelcolor=RGBAf(250, 250, 250, 1.0),
+        xlabelcolor=RGBAf(250, 250, 250, 1.0),
+        bottomspinecolor=RGBAf(200, 200, 200, 1.0),
+        leftspinecolor=RGBAf(200, 200, 200, 1.0),
+        rightspinecolor=RGBAf(200, 200, 200, 1.0),
+        topspinecolor=RGBAf(200, 200, 200, 1.0),
+        spinewidth = 2.0,
+        xgridcolor=RGBAf(100, 100, 100, 0.5),
+        ygridcolor=RGBAf(100, 100, 100, 0.5),
+        xgridwidth=1.0,
+        ygridwidth=1.0,
+        xminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        yminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        xminorgridwidth=1.0,
+        yminorgridwidth=1.0,
+        xtickcolor=RGBAf(200, 200, 200, 1.0),
+        ytickcolor=RGBAf(200, 200, 200, 1.0),
+        xticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        yticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        ),
+    Colorbar = (
+        labelcolor=RGBAf(200,200,200,1.0),
+        bottomspinecolor = RGBAf(200,200,200,1.0),
+        topspinecolor = RGBAf(200,200,200,1.0),
+        leftspinecolor = RGBAf(200,200,200,1.0),
+        rightspinecolor = RGBAf(200,200,200,1.0),
+        minortickcolor=RGBAf(100,100,100,1.0),
+        tickcolor=RGBAf(200,200,200,1.0),
+        ticklabelcolor=RGBAf(200,200,200,1.0),
+        spinewidth=1.5,
+        labelsize = 20.0f0
+        ),
+    )
+end
+
+function DiplodocusLight()
+    return Theme(backgroundcolor=(:black,0),
     Figure = (backgroundcolor=(:black,0),
         size=(600,600),
         fontsize = 20.0f0),
@@ -29,7 +84,8 @@ figure_theme = Theme(backgroundcolor=(:black,0),
         yticklabelcolor=RGBAf(200, 200, 200, 1.0),
         ),
     )
-set_theme!(merge(theme_latexfonts(),figure_theme))
+end
+
 
 """
     FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
@@ -607,7 +663,9 @@ end
 
 Returns a collation of figures for analysing the output of the simulation.
 """
-function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,filename,fps::Int;istart=nothing,istop=nothing,iframe=nothing,thermal=false,initial=false)
+function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,filename;fps=24,istart=nothing,istop=nothing,iframe=nothing,thermal=false,initial=false,step=1)
+
+    #set_theme!(theme)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -691,7 +749,7 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
         if 1 < num_species
         rowgap!(grid,2,-30)
         end
-        colgap!(grid,3,-53)
+        colgap!(grid,3,-35)
 
         #rowsize!(grid,1,Relative(1/(4)))
         #rowsize!(grid,2,Relative(3/5 / (num_species)))
@@ -705,7 +763,6 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
                 fill!(d_null,NaN)
                 hm = heatmap!(ax1,[-14.0; log10.(pr_list[j])],ur_list[j],d_null, colormap = cmap) 
                 hideydecorations!(ax1,grid=false)
-
             end
             if j == num_species && num_species != 1
                 d_null = zeros(Float32,(p_num_list[j],u_num_list[j]))
@@ -735,6 +792,7 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
         num = zeros(Float32,num_species)
         num0 = zeros(Float32,num_species)
         eng = zeros(Float32,num_species)
+        eng0 = zeros(Float32,num_species)
 
         # time 
         time = Observable(0.0) 
@@ -749,14 +807,19 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
         end
 
         d = Vector{Matrix{Float32}}(undef,num_species)
+        dp = Vector{Vector{Float32}}(undef,num_species)
+        du = Vector{Vector{Float32}}(undef,num_species)
+        dpu = Vector{Matrix{Float32}}(undef,num_species)
         dinitial = Vector{Matrix{Float32}}(undef,num_species)
         dthermal = Vector{Matrix{Float32}}(undef,num_species)
         for j in 1:num_species
             d[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dpu[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dp[j] = zeros(Float32,p_num_list[j])
+            du[j] = zeros(Float32,u_num_list[j])
             dinitial[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
             dthermal[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
             dinitial[j] .= reshape(sol.f[1].x[j],(p_num_list[j],u_num_list[j]))
-            println(istop)
             dthermal[j] .= reshape(sol.f[istop].x[j],(p_num_list[j],u_num_list[j]))
         end
 
@@ -765,7 +828,8 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
             for i in eachindex(name_list)
                 Na = FourFlow(sol.f[istop].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
                 #println(Na)
-                Ua = HydroFourVelocity(Na)
+                #Ua = HydroFourVelocity(Na)
+                Ua = [-1,0,0,0] # static observer
                 #println(Ua)
                 Δab = ProjectionTensor(Ua)
                 #println(Δab)
@@ -789,8 +853,9 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
         end
 
     # animation settings
-    itterator = range(istart,istop,step=1)
+    itterator = range(istart,istop,step=step)
     framerate = fps
+    p = Progress(length(itterator))
     record(fig,filename,itterator; framerate=framerate) do itter
 
         time[] = sol.t[itter]
@@ -798,7 +863,7 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
         empty!(axp)
         empty!(axu)
 
-        for j in 1:num_species
+        for j in 1:num_species # setup j loop
             dj = d[j]
             dj .= reshape(sol.f[itter].x[j],(p_num_list[j],u_num_list[j]))
             # unscale by dp*du 
@@ -810,10 +875,10 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
             # u averaged distribution plot
 
                 if initial
-                    dp = log10.(dinitial[j]*du_list[j])
+                    dpinitial .= log10.(dinitial[j]*du_list[j])
                     replace!(dp,-Inf32=>NaN)
                     replace!(dp,Inf32=>NaN)
-                    stairs!(axp,log10.(meanp_list[j]),dp,color=:white,step=:center,linewidth=3.0)
+                    stairs!(axp,log10.(meanp_list[j]),dpinitial,color=:white,step=:center,linewidth=3.0)
                 end
 
                 if thermal
@@ -827,49 +892,47 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
                     scatterlines!(axp,log10.(meanp_list[j]),MJPoints,color=:blue,markersize = 0.0)
                 end
 
-                dp = log10.(dj*du_list[j] .* dp_list[j] ) 
-                replace!(dp,-Inf32=>NaN)
-                replace!(dp,Inf32=>NaN)
-                stairs!(axp,log10.(meanp_list[j]),dp,color=my_colors[j],step=:center,linewidth=3.0)
+                dp[j] .= log10.(dj*du_list[j] .* dp_list[j]) # dp Σduf(p,u) = dp f(p)
+                replace!(dp[j],-Inf32=>NaN)
+                replace!(dp[j],Inf32=>NaN)
+                #stairs!(axp,log10.(meanp_list[j]),dp[j],color=my_colors[j],step=:center,linewidth=3.0)
 
             # p averaged distribution plot
 
                 if initial
-                    du = (dp_list[j]' * dinitial[j])' 
-                    stairs!(axu,([du[1]; du].-mean(du))./mean(du),ur_list[j][1:end],color=:white,step=:post,linewidth=3.0)
+                    du_initial = (dp_list[j]' * dinitial[j])' 
+                    stairs!(axu,([du_initial[1]; du_initial].-mean(du_initial))./mean(du_initial),ur_list[j][1:end],color=:white,step=:post,linewidth=3.0)
                 end
 
-                du = (dp_list[j]' * dj)'
-                stairs!(axu,([du[1]; du].-mean(du))./mean(du),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=3.0)
+                du[j] = (dp_list[j]' * dj)' # Σdpf(p,u) = f(u)
+                #stairs!(axu,([du[j][1]; du[j]].-mean(du[j]))./mean(du[j]),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=3.0)
 
             # distribution heat map
-                dpu = log10.(dj)
-                replace!(dpu,-Inf32=>NaN)
+                #dpu[j] .= log10.(dj) # f(p,u)
+                dpu[j] .= log10.(dp_list[j] .* dj) # dp f(p,u)
+                replace!(dpu[j],-Inf32=>NaN)
 
-                if j == 1
+                #=if j == 1
                     empty!(ax1)
-                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-30,30),overdraw=true)
-                    Colorbar(gl[1,1],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0),spinewidth=1.5)
+                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(maximum(dpu)-10,maximum(dpu)+5),overdraw=true)
+                    cb = Colorbar(gl[1,1],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0),spinewidth=1.5)
                 elseif j == num_species && num_species != 1
                     empty!(ax2)
-                    hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-30,30),overdraw=true)
+                    hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(-30,30),overdraw=true)
                 else
-                    hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],dpu, colormap = cmap,colorrange=(-30,30),overdraw=true)
-                end
+                    hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(-30,30),overdraw=true)
+                end=#
 
             # frac number density 
                 if itter == 1
                     num0[j] = numInit_list[j]
                 else
-                    #if isnothing(iframe)
-                        num0[j] = num[j]
-                    #else
-                    #    num0[j] = numInit_list[j]+1f0 # to account for is 0
-                    #end
+                    num0[j] = num[j]
                 end
-                Na = FourFlow(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
-                Ua = HydroFourVelocity(Na)
-                num[j] = ScalarNumberDensity(Na,Ua)
+                Nᵃ = FourFlow(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+                #Ua = HydroFourVelocity(Na)
+                Uₐ = [-1,0,0,0] # static observer
+                num[j] = ScalarNumberDensity(Nᵃ,Uₐ)
 #=                 if itter != 1
                     val = (num[j]-num0[j])/num[j]
                     #scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
@@ -877,33 +940,60 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
                 end =#
 
             # energy plot
+                if itter == 1
+                    eng0[j] = engInit_list[j]
+                else
+                    eng0[j] = eng[j]
+                end
                 Tab = StressEnergyTensor(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
 
-                eng[j] = ScalarEnergyDensity(Tab,Ua,num[j])
+                eng[j] = ScalarEnergyDensity(Tab,Uₐ,num[j])
 
 #=                 if eng[j] != 0
                     scatter!(axe,sol.t[itter],log10(eng[j]),marker=:circle,colormap=:viridis,color = my_colors[j])
                 end =#  
 
-        end # j loop 
+        end # setup j loop 
+
+        max_dpu = maximum(x->isnan(x) ? -Inf : x,VectorOfArray(dpu))
+
+        for j in 1:num_species # plotting j loop
+            stairs!(axp,log10.(meanp_list[j]),dp[j],color=my_colors[j],step=:center,linewidth=3.0)
+            stairs!(axu,([du[j][1]; du[j]].-mean(du[j]))./mean(du[j]),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=3.0)
+            if j == 1
+                    empty!(ax1)
+                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-20,max_dpu+5),overdraw=true)
+                    Colorbar(gl[1,1],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0),spinewidth=1.5)
+            elseif j == num_species && num_species != 1
+                empty!(ax2)
+                hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-10,max_dpu+5),overdraw=true)
+            else
+                hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-10,max_dpu+5),overdraw=true)
+            end
+        end
 
         if itter != 1
             val = (sum(num)-sum(num0))/sum(num)
-            #scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
+            ##scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
             scatter!(axn,sol.t[itter],val,marker = :circle,color = :white)
 
             if sum(eng) != 0
+                #val = (sum(eng)-sum(eng0))/sum(eng)
                 scatter!(axe,sol.t[itter],log10(sum(eng)),marker=:circle,colormap=:viridis,color = :white)
+                #scatter!(axe,sol.t[itter],val,marker=:circle,colormap=:viridis,color = :white)
             end
         end
 
         autolimits!(axp)
-        ylims!(axp,2,16)
+        ylims!(axp,0,8)
         autolimits!(axu)
         autolimits!(axe)
         autolimits!(axn)
+
+        next!(p)
         
     end
+    finish!(p)
     if isnothing(iframe) == false
         return fig
     end
@@ -911,7 +1001,9 @@ function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,fil
 end
 
 
-function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false,plot_limits=(nothing,nothing))
+function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false,plot_limits=(nothing,nothing),theme=DiplodocusDark())
+
+    with_theme(theme) do
 
     fig = Figure()
     ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
@@ -959,7 +1051,7 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
         @. d = d*(d!=Inf)
 
         if uDis
-            dj .= log10.(d .* dp)[:,1:3:4] # print just aligned and antialigned with field
+            dj .= log10.(d .* dp)[:,4:3:8] # print just aligned and antialigned with field
 
             #replace!(x -> x>=1f-20 ? x : NaN, dj)
             
@@ -994,6 +1086,8 @@ function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=
     
     return fig
 
+    end # with_theme
+
 end
 
 
@@ -1002,7 +1096,15 @@ end
 
 Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
 """
-function FracNumPlot(sol::OutputStruct,species::String,PhaseSpace::PhaseSpaceStruct;fig=nothing)
+function FracNumPlot(sol::OutputStruct,species::String,PhaseSpace::PhaseSpaceStruct;fig=nothing,theme="dark")
+
+    if theme == "light"
+        theme = DiplodocusLight
+    elseif theme == "dark"
+        theme = DiplodocusDark
+    end
+
+    with_theme(theme) do
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -1048,6 +1150,8 @@ function FracNumPlot(sol::OutputStruct,species::String,PhaseSpace::PhaseSpaceStr
         scatter!(ax,log10(sol.t[i]),num/num0#=num/numInit_list[j]=#-1,marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
     
     end
+
+    end # with_theme
 
     return fig
 end
@@ -1103,4 +1207,170 @@ function NumPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct,numInit_list;m
     end
 
     return fig
+end
+
+
+############ OBERSERVER plots
+
+function ObserverFlux(PhaseSpace::PhaseSpaceStruct,sol::OutputStruct,ObserverAngles::Vector{Float64},ObserverDistance::Float64)
+
+    Space = PhaseSpace.Space
+    Time = PhaseSpace.Time
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    name_list = PhaseSpace.name_list
+
+    if typeof(Space.space_coordinates) != Cylindrical
+        error("ObserverFlux is only implemented for cylindrical coordinates.")
+    end
+
+    photon_index = findfirst(x->x=="Pho",name_list)
+
+    β = Space.space_coordinates.β # local frame angle
+    sβ, cβ = sincospi(β)
+
+    d = ObserverDistance
+    to_r = ObserverAngles
+
+    dz = Grids.dz[1]
+    R = Grids.xr[2]
+
+    ur = Grids.pyr_list[photon_index]
+    mp = Grids.mpx_list[photon_index]
+
+    Iν = zeros(length(sol.t),length(ObserverAngles),Momentum.px_num_list[photon_index])
+
+    for (θ_idx, θ) in enumerate(ObserverAngles)
+
+        sθ, cθ = sincospi(θ)
+
+        a = sθ*sβ
+        b = cθ*cβ
+
+        u_low = cospi(θ+β)
+        u_up = cospi(θ-β)
+
+        println("$a,$b")
+
+        for t in 1:length(sol.t)
+
+            photon_f = reshape(sol.f[t].x[photon_index],(
+                Momentum.px_num_list[photon_index],
+                Momentum.py_num_list[photon_index],
+                Momentum.pz_num_list[photon_index]
+            ))
+
+            for py in 1:(length(ur)-1)
+                if ur[py] <= u_low < ur[py+1] <= u_up  
+                    u0 = u_low
+                    u1 = ur[py+1]
+                elseif ur[py] <= u_low < u_up <= ur[py+1]
+                    u0 = u_low
+                    u1 = u_up
+                elseif u_low <= ur[py] < ur[py+1] <= u_up
+                    u0 = ur[py]
+                    u1 = ur[py+1]
+                elseif u_low <= ur[py] < u_up <= ur[py+1]
+                    u0 = ur[py]
+                    u1 = u_up
+                elseif u_low == u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif ur[py] <= ur[py+1] < u_low <= u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  u_low < u_up <= ur[py] < ur[py+1] 
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  ur[py] < ur[py+1] <= u_low < u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  u_low < u_up <= ur[py] < ur[py+1]
+                    u0 = u1 = 1.0 # i.e. no integration
+                else
+                    println("$u_low, $u_up, $(ur[py]), $(ur[py+1])")
+                    error("Didn't account for this")
+                end
+
+                for px in 1:(Momentum.px_num_list[photon_index]-1)
+
+                    #println("$u_low, $u_up, $(ur[py]), $(ur[py+1]), $u0, $u1, $a, $b")
+                    #println("$(a+b)")
+                    #println("$β")
+                    if u0 != u1 && u0 != u_low && u1 != u_up
+                        val = mp[px] * photon_f[px,py,1] * (-atan(sqrt(a^2-(b-u1)^2),(u1-b))+atan(sqrt(a^2-(b-u0)^2),(u0-b)))
+                    elseif u0 != u1 && u0 == u_low 
+                        val = mp[px] * photon_f[px,py,1] * (-atan(sqrt(a^2-(b-u1)^2),(u1-b)) + (sign(u0-b)==1 ? 0 : pi))
+                    elseif u0 != u1 && u1 == u_up
+                        val = mp[px] * photon_f[px,py,1] * (-(sign(u1-b)==1 ? 0 : pi)+atan(sqrt(a^2-(b-u0)^2),(u0-b)))
+                    else
+                        val = 0.0
+                    end
+
+                    if β == 0.0
+                        val = mp[px] * photon_f[px,py,1] * ((ur[py] <= cθ <= ur[py+1]) ? 1.0 : 0.0) * pi 
+                    end
+
+                    if val < 0
+                        println("Negative value encountered: $val at px=$px, py=$py, θ=$θ")
+                        println("$u_low, $u_up, $(ur[py]), $(ur[py+1]), $u0, $u1, $a, $b")
+                        println("$(a+b)")
+                        println("$β")
+                        println("$(photon_f[px,py,1])")
+                    end
+
+                    Iν[t,θ_idx,px] += val
+                    Iν[t,θ_idx,px] *= R*dz/(4*pi*d^2)
+
+                end                
+
+            end
+
+        end
+
+    end
+
+    return Iν
+
+end
+
+
+function ObserverFluxPlot(PhaseSpace::PhaseSpaceStruct,sol::OutputStruct,ObserverAngles::Vector{Float64},ObserverDistance::Float64;plot_limits=(nothing,nothing))
+
+    GLMakie.activate!(inline=false)
+
+    name_list = PhaseSpace.name_list
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    β = Space.space_coordinates.β # local frame angle
+
+    photon_index = findfirst(x->x=="Pho",name_list)
+
+    ur = Grids.pyr_list[photon_index]
+    mp = Grids.mpx_list[photon_index]
+
+    Iν = ObserverFlux(PhaseSpace,sol,ObserverAngles,ObserverDistance)
+
+    sg = SliderGrid(fig[2,1],
+    (label = "t_idx", range = 1:length(p1_m), startvalue = 1, update_while_dragging = false),
+    )
+
+    t_idx = sg.sliders[1].value
+
+    fig = Figure()
+    ax = Axis(fig[1,1],title = "Observed Flux at angle θ to jet z axis, with B-Field at an angle of β =$(β)π",xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+    ax.limits = plot_limits
+
+    flux_val = @lift(log10.(Iν[$t_idx,:,:]))
+
+    for θ in 1:length(ObserverAngles)
+
+        scatterlines!(ax,log10.(mp),flux_val[θ,:],linewidth=2.0,markersize=1.0,label= "θ=$(ObserverAngles[θ])π")
+
+    end
+
+    axislegend(ax)
+
+
+    return fig
+
 end

@@ -1,4 +1,4 @@
-function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress=false)
+function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress=false,fileName::String=nothing,fileLocation::String=cwd())
 
     PhaseSpace = method.PhaseSpace
     Time = PhaseSpace.Time
@@ -54,6 +54,15 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
     if progress
         finish!(p)
     end
+
+    if !isnothing(fileName)
+        # save output to file
+        println("Saving Simulation output")
+
+        fsave(output,PhaseSpace,fileLocation,fileName)
+
+    end
+
 
     return output
 

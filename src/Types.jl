@@ -22,6 +22,8 @@ struct Cylindrical <: CoordinateType
     β::Float64
     γ::Float64 # != 0 not implemented  
 end
+Cylindrical() =  Cylindrical(0.0, 0.0, 0.0)
+
 struct CylindricalMag <: CoordinateType 
     b1::Float64
     b2::Float64
