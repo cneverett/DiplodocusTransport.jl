@@ -1,6 +1,6 @@
-using BoltzmannEquationSolver
+using DiplodocusTransport
 using Test
 
-@testset "BoltzmannEquationSolver.jl" begin
+@testset "DiplodocusTransport.jl" begin
     # Write your tests here.
 end

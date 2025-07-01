@@ -33,7 +33,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
     u4_r = DC.bounds(DC.u_low,DC.u_up,u4_num,u4_grid);
     u4_d = DC.deltaVector(u4_r);
 
-#=     for k in axes(SMatrix3,3), l in axes(SMatrix3, 4), m in axes(SMatrix3,5), n in axes(SMatrix3,6)
+    #=     for k in axes(SMatrix3,3), l in axes(SMatrix3, 4), m in axes(SMatrix3,5), n in axes(SMatrix3,6)
         SsumN3 = zero(T)
         SsumN4 = zero(T)
         TsumN1 = zero(T)
@@ -237,12 +237,12 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
 
         #Parameters = (name1,name2,name3,name4,mu1,mu2,mu3,mu4,p1_low,p1_up,p1_grid,p1_num,u1_grid,u1_num,p2_low,p2_up,p2_grid,p2_num,u2_grid,u2_num,p3_low,p3_up,p3_grid,p3_num,u3_grid,u3_num,p4_low,p4_up,p4_grid,p4_num,u4_grid,u4_num)
 
-        filename = "CompTestWeighted14.jld2"
+        filename = "CompTestWeighted22.jld2"
 
         println(filename)
 
-        #Output = DC.fload_Matrix(DataDirectory,filename) # UNCOMMENT LATER
-        Output = fload_Matrix(DataDirectory,filename)
+        Output = DC.fload_Matrix(DataDirectory,filename,corrected=true) # UNCOMMENT LATER
+        #Output = fload_Matrix(DataDirectory,filename,corrected=true)
         Parameters = Output[1]
         GainMatrix3 = Output[2]
         GainMatrix4 = Output[3]
@@ -296,14 +296,12 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
             #PhaseSpaceFactors_Binary_Undo!(pxr3,pyr3,pzr3,pxr4,pyr4,pzr4,pxr1,pyr1,pzr1,pxr2,pyr2,pzr2,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
 
             # print conversion statistic
-            #DC.DoesConserve2(Output) # UNCOMMENT LATER
-            DC.DoesConserve2(Output)
+            DC.DoesConserve2(Output) # UNCOMMENT LATER
             GainCorrection!(Output)
             println("")
             println("GainCorrected:")
             println("")
-            #DC.DoesConserve2(Output) # UNCOMMENT LATER
-            DoesConserve2(Output)
+            DC.DoesConserve2(Output) # UNCOMMENT LATER
             
             #Fill_M_Bin!(BigM.M_Bin,interaction,PhaseSpace;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3],TMatrix2=matrices[4])
             Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
