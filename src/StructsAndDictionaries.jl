@@ -277,11 +277,11 @@ A struct for storing the big matrices associated with interactions in the simula
 
 end=#
 
-"""
+#="""
     BigMatricesStruct()
 
 A struct for storing the big matrices associated with interactions in the simulation.
-"""
+"""=#
 struct BigMatricesStruct{M<:AbstractMatrix{<:AbstractFloat}}
     
     M_Bin::M  # big matrix for binary interactions
