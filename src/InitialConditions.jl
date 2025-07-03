@@ -114,7 +114,7 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     h_grid = h_grid_list[species_index]
 
     type = zero(T)
-    if typeof(type)== (Float32 || Float64) 
+    if (typeof(type) == Float32) || (typeof(type) == Float64) 
         pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
         pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
         umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
