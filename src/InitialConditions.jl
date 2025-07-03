@@ -92,8 +92,8 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     p_num_list = Momentum.px_num_list
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
-    h_num_list = PhaseSpace.h_num_list
-    h_grid_list = PhaseSpace.h_grid_list
+    h_num_list = PhaseSpace.pz_num_list
+    h_grid_list = PhaseSpace.pz_grid_list
 
     #Grids = PhaseSpace.Grids
     #dp_list = Grids.dpx_list
