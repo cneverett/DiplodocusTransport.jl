@@ -241,7 +241,7 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
 
         println(filename)
 
-        Output = BinaryFileLoad_Matrix(DataDirectory,filename,corrected=true)
+        Output = DC.BinaryFileLoad_Matrix(DataDirectory,filename,corrected=true)
         Parameters = Output[1]
         GainMatrix3 = Output[2]
         GainMatrix4 = Output[3]
@@ -292,7 +292,7 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
     
         if name1 != name2 && name3 != name4
 =#
-            DoesConserve(Output) # print conversion statistic
+            DC.DoesConserve(Output) # print conversion statistic
             Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
 #=
         end
