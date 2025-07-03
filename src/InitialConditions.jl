@@ -76,7 +76,12 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     return Float32.(u0_species)
 end
 
-function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32) where T <: Union{Float32,Int64}
+"""
+    Initial_Constant(PhaseSpace,species,pmin,pmax,umin,umax,hmin,hmax,num_Init)
+
+Divides the initial number density `num_Init` equally among momentum-space bins in the range of `pmin` to `pmax`, `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
+"""
+function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32) where T <: Union{Float32,Float64,Int64}
 
     Momentum = PhaseSpace.Momentum
 
@@ -88,14 +93,14 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
 
-    Grids = PhaseSpace.Grids
-    dp_list = Grids.dpx_list
-    du_list = Grids.dpy_list
+    #Grids = PhaseSpace.Grids
+    #dp_list = Grids.dpx_list
+    #du_list = Grids.dpy_list
 
     species_index = findfirst(==(species),name_list)
-    dp = dp_list[species_index]
-    du = du_list[species_index]
-    u0_2D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index])
+    #dp = dp_list[species_index]
+    #du = du_list[species_index]
+    f0_3D_species = zeros(Float32,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
     pu = p_up_list[species_index]
     pl = p_low_list[species_index]
@@ -105,43 +110,33 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     u_num = u_num_list[species_index]
 
     type = zero(T)
-    if typeof(type)==Float32
+    if typeof(type)== (Float32 || Float64) 
         pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
         pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
         umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
         umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
+        hmin_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmin),h_grid)
+        hmax_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmax),h_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
         umin_index = umin
         umax_index = umax
+        hmin_index = hmin
+        hmax_index = hmax
     end
-
-    #dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
-    #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
 
     # set values and normalise to initial number density (in m^{-3})
-    for i in pmin_index:pmax_index, j in umin_index:umax_index
-        u0_2D_species[i,j] = 1e0
-        #u0_2D_species[i,j] = dp[i] * du[j]
-    end
-    num = dp' * u0_2D_species * du
-    #num = sum(u0_2D_species)
-    u0_2D_species *= num_Init/num
-
-    # scale by dp*du 
-    for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
-        u0_2D_species[i,j] *= dp[i] * du[j]
+    for px in pmin_index:pmax_index, py in umin_index:umax_index, pz in hmin_index:hmax_index 
+        f0_2D_species[px,py,pz] = 1e0
     end
 
-    #if mode=="AXI"
-        u0_species = reshape(u0_2D_species,p_num*u_num)
-    #elseif mode=="ISO"
-        # f(p) = 2*f(p,μ)
-    #    u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
-    #end
+    num = sum(f0_3D_species)
+    f0_3D_species *= num_Init/num
 
-    return Float32.(u0_species)
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
+
+    return Float32.(f0_species)
 end
 
 function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,num_Init::Float64;mode="AXI")
