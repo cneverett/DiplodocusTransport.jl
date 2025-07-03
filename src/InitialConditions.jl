@@ -132,7 +132,7 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
 
     # set values and normalise to initial number density (in m^{-3})
     for px in pmin_index:pmax_index, py in umin_index:umax_index, pz in hmin_index:hmax_index 
-        f0_2D_species[px,py,pz] = 1e0
+        f0_3D_species[px,py,pz] = 1e0
     end
 
     num = sum(f0_3D_species)
