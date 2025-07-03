@@ -3,7 +3,7 @@
 
 Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BigMatricesStruct`.
 """
-function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=true,MatrixType::DataType=Matrix{Float32})
+function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=false,MatrixType::DataType=Matrix{Float32})
 
     if isempty(PhaseSpace.Binary_list) 
         M_Bin = MatrixType(undef,0,0)
@@ -119,6 +119,7 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
     name3_loc = findfirst(==(name3),name_list)
     name4_loc = findfirst(==(name4),name_list)
 
+#=
     if name1 == name2 && name3 == name4
 
         if typeof(Mode) == Axi
@@ -205,30 +206,9 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
         GC.gc()
 
     end
+=#
 
-    if name1 != name2 && name3 != name4
-
-        #=if typeof(Mode) == Axi
-
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
-
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-            dpy4 = Grids.dpy[name4_loc]
-
-            GainMatrix_to_M_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
-            LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-            LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
-
-        end=#
+    #if name1 != name2 && name3 != name4
 
         GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
         GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
@@ -242,7 +222,7 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
 
         GC.gc()
 
-    end
+    #end
 
 end
 
