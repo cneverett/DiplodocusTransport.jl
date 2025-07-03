@@ -81,7 +81,7 @@ end
 
 Divides the initial number density `num_Init` equally among momentum-space bins in the range of `pmin` to `pmax`, `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,num_Init::Float32) where T <: Union{Float32,Float64,Int64}
+function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,hmin::T,hmax::T,num_Init::AbstractFloat) where T <: Union{Float32,Float64,Int64}
 
     Momentum = PhaseSpace.Momentum
 
