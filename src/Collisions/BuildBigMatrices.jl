@@ -344,7 +344,7 @@ end
 
 function GainMatrix_to_M_Bin!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64) where F<:AbstractFloat
 
-    px3_num = size(GainMatrix,1)-1 # ignore overflow bin
+    px3_num = size(GainMatrix,1)#-1 # ignore overflow bin
     py3_num = size(GainMatrix,2)
     pz3_num = size(GainMatrix,3)
     px1_num = size(GainMatrix,4)  
