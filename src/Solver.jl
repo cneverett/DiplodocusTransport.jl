@@ -59,7 +59,7 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
         # save output to file
         println("Saving Simulation output")
 
-        fsave(output,PhaseSpace,fileLocation,fileName)
+        SolutionFileSave(output,PhaseSpace,fileLocation,fileName)
 
     end
 

@@ -1,9 +1,9 @@
 """
-    fload(fileLocation::String, fileName::String)
+    SolutionFileLoad(fileLocation::String, fileName::String)
 
 Loads the solution and PhaseSpace struct from a file at the specified `fileLocation` with the given `fileName`.
 """
-function fload(fileLocation::String,fileName::String)
+function SolutionFileLoad(fileLocation::String,fileName::String)
         
     filePath = fileLocation*"\\"*fileName
     fileExist = isfile(filePath)
@@ -24,11 +24,11 @@ function fload(fileLocation::String,fileName::String)
 end
 
 """
-    fsave(sol,output,fileLocation,fileName)
+    SolutionFileSave(sol,output,fileLocation,fileName)
 
 Saves the solution `sol` and the `PhaseSpace` struct to a file at the specified `fileLocation` with the given `fileName`.
 """
-function fsave(sol::OutputStruct,PhaseSpace::PhaseSpaceStruct,fileLocation::String,fileName::String)
+function SolutionFileSave(sol::OutputStruct,PhaseSpace::PhaseSpaceStruct,fileLocation::String,fileName::String)
         
     filePath = fileLocation*"\\"*fileName
 

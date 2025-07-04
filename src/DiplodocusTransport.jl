@@ -8,6 +8,7 @@ module DiplodocusTransport
     export BuildBigMatrices, BuildFluxMatrices
     export Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw
     export Solve, EulerStruct
+    export SolutionFileLoad
 
     using JLD2
     import DiplodocusCollisions as DC
