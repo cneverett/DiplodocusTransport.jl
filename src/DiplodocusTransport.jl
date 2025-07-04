@@ -9,6 +9,7 @@ module DiplodocusTransport
     export Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw
     export Solve, EulerStruct
     export SolutionFileLoad
+    export MaxwellJuttner_Distribution
 
     using JLD2
     import DiplodocusCollisions as DC
