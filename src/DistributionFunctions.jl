@@ -1,5 +1,5 @@
 """
-    MaxwellJuttner_Distribution(meanp,T,maxx;n=1e0)
+    MaxwellJuttner_Distribution(PhaseSpace,species,T,mass;n=1.0)
 
 Generates a Maxwell-Juttner distribution in momentum space: 
 ```math
