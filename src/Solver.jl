@@ -9,7 +9,9 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
     dt0 = tr[2] - tr[1]
     t_num = length(tr)-1
 
-    n_save = ceil(Int64,t_num/save_steps+1)
+    save_idx = unique([1 ; range(save_steps,t_num,step=save_steps)]) # saves first time step and then on an interval of save_steps (no duplicates)
+
+    n_save = length(save_idx)+1 # +1 for the initial state
 
     tmp = copy(f0)
     dtmp = similar(f0)
@@ -34,13 +36,13 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
         method(dtmp,tmp,dt0,dt,t)
         @. tmp += dtmp
 
-        # removing values less than 0f0
+        # removing negative values
         @. tmp = tmp*(tmp>=0f0)
         # hackey fix for inf values
         @. tmp = tmp*(tmp!=Inf)
 
         # saving state
-        if ((i)%save_steps == 0 || i == 2) # save steps and the first step to view kernel
+        if (i in save_idx)
             save_count += 1
             t = tr[i+1]
             output.f[save_count] = copy(tmp)
