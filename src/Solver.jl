@@ -40,7 +40,7 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
         @. tmp = tmp*(tmp!=Inf)
 
         # saving state
-        if (i)%save_steps == 0
+        if ((i)%save_steps == 0 || i == 2) # save steps and the first step to view kernel
             save_count += 1
             t = tr[i+1]
             output.f[save_count] = copy(tmp)
