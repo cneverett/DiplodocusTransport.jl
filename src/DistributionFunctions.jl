@@ -10,7 +10,7 @@ where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``.
 As f(p,u,ϕ)ΔpΔuΔϕ is the normalised distribution function in a single momentum-space bin. The value of the distribution function in each bin is given by the mean value of the Maxwell-Juttner distribution at the mean momentum of the bin. 
 
 """
-function MaxwellJuttner_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,mass::Float64;n::Float64=1e0)
+function MaxwellJuttner_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;n::Float64=1e0)
     # Generates the height of the MJ distribution at positions of the mean momentum per bin
 
     name_list = PhaseSpace.name_list
@@ -23,6 +23,7 @@ function MaxwellJuttner_Distribution(PhaseSpace::PhaseSpaceStruct,species::Strin
     #du = Grids.dpy_list[species_index] # angle averaged therefore not used and dudh = 4π
     #dh = Grids.dpz_list[species_index]
     meanp = Grids.mpx_list[species_index]
+    mass = Grids.mass_list[species_index]
 
     mEle = 9.11e-31
     c = 3e8
