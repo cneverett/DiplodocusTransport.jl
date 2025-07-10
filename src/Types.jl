@@ -33,6 +33,7 @@ end
 struct CoordinateForce <: ForceType end
 struct SyncRadReact <: ForceType
     mode::ModeType
+    B::Float64
 end
 
 # InteractionType definitions

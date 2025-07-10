@@ -5,6 +5,7 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     # Evaluate the flux through the I surface i.e. surface of constant p
 
     mode = force.mode
+    B = force.B
 
     # convert p to Float64 to ensure no floating point issues
     p64 = Float64(p)
@@ -16,22 +17,24 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    # TOFIX Variable B
-    B = 1f-4
-
     fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c 
 
     if m == 0 || Z == 0
         return flux = 0f0
     else
-        if typeof(mode) == Axi
+        if typeof(mode) == Ani
             flux = 1/(6*m^2)
             flux *= p64*sqrt(m^2 + p64^2) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (phi0 - phi1)
             flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             flux *= fluxScale
-        elseif typeof(mode) == Iso
-            flux = 1/(24*m^2*pi)
-            flux *= p64*sqrt(m^2 + p64^2) * (phi0 - phi1)
+        elseif typeof(mode) == Axi # average over azimuthal angles
+            flux = 1/(6*m^2)
+            flux *= p64*sqrt(m^2 + p64^2) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (phi0 - phi1)
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
+            flux *= fluxScale
+        elseif typeof(mode) == Iso # averaged force over all angles
+            flux = -1/(3*m^2)
+            flux *= p64*sqrt(m^2 + p64^2) * (phi0 - phi1) * (u0 - u1)
             flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             flux *= fluxScale
         else
@@ -48,6 +51,7 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     # Evaluate the flux through the J surface i.e. surface of constant u
 
     mode = force.mode
+    B = force.B
 
     # convert p to Float64 to ensure no floating point issues
     p064 = Float64(p0)
@@ -60,15 +64,17 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    # TOFIX Variable B
-    B = 1f-4
-
     fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c 
 
     if m == 0 || Z == 0
         flux = 0f0
     else
-        if typeof(mode) == Axi
+        if typeof(mode) == Ani
+            flux = 1/4
+            flux *= u * (-1 + u^2) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2) / (m^2 * (p064 + sqrt(m^2 + p064^2))))
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
+            flux *= fluxScale
+        elseif typeof(mode) == Axi
             flux = 1/4
             flux *= u * (-1 + u^2) * (phi0 - phi1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2) / (m^2 * (p064 + sqrt(m^2 + p064^2))))
             flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
@@ -86,6 +92,9 @@ function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
 
     # Evaluate the flux through the K surface i.e. surface of constant phi
 
+    mode = force.mode
+    B = force.B
+
     # convert p to Float64 to ensure no floating point issues
     p064 = Float64(p0)
     p164 = Float64(p1)
@@ -96,9 +105,6 @@ function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     Z = getfield(DC,Symbol("z"*name))
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
-
-    # TOFIX Variable B
-    B = 1f-4
 
     fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c
 

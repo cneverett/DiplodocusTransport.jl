@@ -143,7 +143,7 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     return Float32.(f0_species)
 end
 
-function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,num_Init::Float64;mode="AXI")
+function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,num_Init::AbstractFloat)
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -155,48 +155,20 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     p_num_list = Momentum.px_num_list
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
-
-    Grids = PhaseSpace.Grids
-    mp_list = Grids.mpx_list
-    mu_list = Grids.mpy_list
-    dp_list = Grids.dpx_list
-    du_list = Grids.dpy_list
+    h_num_list = Momentum.pz_num_list
+    h_grid_list = Momentum.pz_grid_list
 
     species_index = findfirst(==(species),name_list)
-    pu = p_up_list[species_index]
-    pl = p_low_list[species_index]
-    p_grid = p_grid_list[species_index]
-    p_num = p_num_list[species_index]
-    u_num = u_num_list[species_index]
-    u_grid = u_grid_list[species_index]
-    meanp = mp_list[species_index]
-    dp = dp_list[species_index]
-    du = du_list[species_index]
 
-    u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
+    u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
-    #meanp = DC.meanVector(DC.bounds(pl,pu,p_num,p_grid))
-    #dp = DC.deltaVector(DC.bounds(pl,pu,p_num,p_grid))
-    #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
-    mass = getfield(DC,Symbol("mu"*name_list[species_index]))
-
-    u0_2D_species .= MaxwellJuttner_Distribution(meanp,T,mass)
+    u0_3D_species .= MaxwellJuttner_Distribution(PhaseSpace,"Sph",T;n=num_Init)
     
     # set values and normalise to initial number density (in m^{-3})
-    num = dp' * u0_2D_species * du
-    u0_2D_species *= num_Init/num
+    num = sum(u0_2D_species)
+    u0_2D_species .*= num_Init/num
 
-    # scale by dp*du 
-    for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
-        u0_2D_species[i,j] *= dp[i] * du[j]
-    end
-
-    if mode=="AXI"
-        u0_species = reshape(u0_2D_species,p_num_list[species_index]*u_num_list[species_index])
-    elseif mode=="ISO"
-        # f(p) = 2*f(p,μ)
-        u0_species = dropdims(sum(u0_2D_species,dims=2),dims=2) * 2 / u_num_list[species_index]
-    end
+    u0_species = reshape(u0_2D_species,p_num_list[species_index]*u_num_list[species_index]*h_num_list[species_index])
 
     return Float32.(u0_species)
 
