@@ -162,7 +162,7 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
 
     u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
-    u0_3D_species .= MaxwellJuttner_Distribution(PhaseSpace,"Sph",T;n=num_Init)
+    u0_3D_species .= MaxwellJuttner_Distribution(PhaseSpace,species,T;n=num_Init)
     
     # set values and normalise to initial number density (in m^{-3})
     num = sum(u0_2D_species)
