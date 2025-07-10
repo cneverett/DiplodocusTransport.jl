@@ -95,7 +95,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
 
         
         if isdiag(Euler.FluxM.Ap_Flux)
-            Euler.df_temp .= diagonal(Euler.FluxM.Ap_Flux)
+            Euler.df_temp .= diag(Euler.FluxM.Ap_Flux)
             Euler.temp ./= Euler.df_temp
             #ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
             #println("$(sum(Euler.temp))")
