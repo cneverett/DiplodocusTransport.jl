@@ -95,7 +95,9 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
 
         
         if isdiag(Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
+            Euler.df_temp .= diagonal(Euler.FluxM.Ap_Flux)
+            Euler.temp ./= Euler.df_temp
+            #ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
             #println("$(sum(Euler.temp))")
             # CFL ish check
             #println("t = $t")
@@ -108,10 +110,6 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
         mul!(Euler.df,Euler.temp,f)
 
     end
-    # improve allocations with LU decomp??
-    #Euler.df_temp .= Euler.FluxM.Ap_Flux * ones(Float32,size(Euler.temp,1)) # make vector as diagonal
-    #Euler.temp ./= Euler.df_temp
-    #mul!(Euler.df,Euler.temp,f)
     
     @. df = Euler.df
 
