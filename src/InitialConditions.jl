@@ -143,7 +143,12 @@ function Initial_Constant(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     return Float32.(f0_species)
 end
 
-function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,num_Init::AbstractFloat)
+"""
+    Initial_MaxwellJuttner(PhaseSpace,species,T,umin,umax,hmin,hmax,num_Init)
+
+Returns initial conditions for `species` as a Maxwell-Juttner distribution of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
+"""
+function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,umin::T,umax::T,hmin::T,hmax::T,num_Init::AbstractFloat)  where T <: Union{Float32,Float64,Int64}
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -158,11 +163,31 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     h_num_list = Momentum.pz_num_list
     h_grid_list = Momentum.pz_grid_list
 
+    u_grid = u_grid_list[species_index]
+    u_num = u_num_list[species_index]
+    h_num = h_num_list[species_index]
+    h_grid = h_grid_list[species_index]
+
+    type = zero(T)
+    if (typeof(type) == Float32) || (typeof(type) == Float64) 
+        umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
+        umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
+        hmin_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmin),h_grid)
+        hmax_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmax),h_grid)
+    elseif typeof(type)==Int64
+        umin_index = umin
+        umax_index = umax
+        hmin_index = hmin
+        hmax_index = hmax
+    end
+
     species_index = findfirst(==(species),name_list)
 
     u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
-    u0_3D_species .= MaxwellJuttner_Distribution(PhaseSpace,species,T;n=num_Init)
+    for py in umin_index:umax_index, pz in hmin_index:hmax_index 
+        f0_3D_species[:,py,pz] .= MaxwellJuttner_Distribution(PhaseSpace,species,T)
+    end
     
     # set values and normalise to initial number density (in m^{-3})
     num = sum(u0_3D_species)

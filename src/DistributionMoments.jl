@@ -138,8 +138,10 @@ end
 
 function ScalarNumberDensity(Nᵃ,Uₐ)
 
+    n::Float64 = 0.0
+
     if Nᵃ[1] == 0
-        n = 0
+        n = 0.0
     else
         n = - dot(Nᵃ,Uₐ)
     end
@@ -148,12 +150,13 @@ function ScalarNumberDensity(Nᵃ,Uₐ)
 
 end
 
-function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n)
+function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n::Float64)
 
-    en = Uₐ' * Tᵃᵇ * Uₐ
+    e::Float64 = 0.0
+    en::Float64 = Uₐ' * Tᵃᵇ * Uₐ
 
-    if n == 0
-        e = 0
+    if n == 0.0
+        e = 0.0
     else
         e = en/n
     end
@@ -163,6 +166,8 @@ function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n)
 end
 
 function ScalarPressure(Tᵃᵇ,Δab)
+
+    p::Float64 = 0.0
 
     metric = zeros(Float64,4,4)
     metric[1,1] = -1
@@ -178,6 +183,8 @@ function ScalarPressure(Tᵃᵇ,Δab)
 end
 
 function ScalarTemperature(p,n)
+
+    T::Float64 = 0.0
 
     kb = 1.38f-23
     c = 3f8
