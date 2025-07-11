@@ -163,6 +163,8 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     h_num_list = Momentum.pz_num_list
     h_grid_list = Momentum.pz_grid_list
 
+    species_index = findfirst(==(species),name_list)
+
     u_grid = u_grid_list[species_index]
     u_num = u_num_list[species_index]
     h_num = h_num_list[species_index]
@@ -180,8 +182,6 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
         hmin_index = hmin
         hmax_index = hmax
     end
-
-    species_index = findfirst(==(species),name_list)
 
     u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
