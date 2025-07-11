@@ -34,8 +34,8 @@ mutable struct EulerStruct <: SteppingMethodType
         self.df = zeros(Float32,length(f0))
         self.df_temp = zeros(Float32,length(f0))
         self.temp = zeros(Float32,length(f0),length(f0))
-        self.LU32 = lu(similar(self.temp)+I)
-        self.LU64 = lu(Float64.(similar(self.temp)+I))
+        self.LU32 = lu(zeros(Float32,length(f0),length(f0))+I)
+        self.LU64 = lu(zeros(Float64,length(f0),length(f0))+I)
 
         return self
     end
