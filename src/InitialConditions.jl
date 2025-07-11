@@ -183,19 +183,19 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
         hmax_index = hmax
     end
 
-    u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
+    f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
     for py in umin_index:umax_index, pz in hmin_index:hmax_index 
         @view(f0_3D_species[:,py,pz]) .= MaxwellJuttner_Distribution(PhaseSpace,species,T)
     end
     
     # set values and normalise to initial number density (in m^{-3})
-    num = sum(u0_3D_species)
-    u0_3D_species .*= num_Init/num
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
 
-    u0_species = reshape(u0_3D_species,p_num_list[species_index]*u_num_list[species_index]*h_num_list[species_index])
+    f0_species = reshape(f0_3D_species,p_num_list[species_index]*u_num_list[species_index]*h_num_list[species_index])
 
-    return Float32.(u0_species)
+    return Float32.(f0_species)
 
 end
 
