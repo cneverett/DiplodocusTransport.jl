@@ -148,7 +148,7 @@ end
 
 Returns initial conditions for `species` as a Maxwell-Juttner distribution of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,umin::T,umax::T,hmin::T,hmax::T,num_Init::AbstractFloat)  where T <: Union{Float32,Float64,Int64}
+function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat)  where S <: Union{Float32,Float64,Int64}
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -168,7 +168,7 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     h_num = h_num_list[species_index]
     h_grid = h_grid_list[species_index]
 
-    type = zero(T)
+    type = zero(S)
     if (typeof(type) == Float32) || (typeof(type) == Float64) 
         umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
         umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
@@ -186,7 +186,7 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     u0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
     for py in umin_index:umax_index, pz in hmin_index:hmax_index 
-        f0_3D_species[:,py,pz] .= MaxwellJuttner_Distribution(PhaseSpace,species,T)
+        @view(f0_3D_species[:,py,pz]) .= MaxwellJuttner_Distribution(PhaseSpace,species,T)
     end
     
     # set values and normalise to initial number density (in m^{-3})
