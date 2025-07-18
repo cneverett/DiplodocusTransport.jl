@@ -477,9 +477,9 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
 
         val = 0.0 # py pz averaged GainMatrix term
         for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
-            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] #=* dpy2[py2] * dpy1[py1]=# * dpz2[pz2] * dpz1[pz1] # check order
+            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] #=* dpy2[py2]=# * dpy1[py1] #=* dpz2[pz2=# * dpz1[pz1] # check order
         end
-        val /= #=sum(dpy2)*sum(dpy1)*=#sum(dpz2)*sum(dpz1)
+        val /= #=sum(dpy2)*=#sum(dpy1)#=*sum(dpz2)=#*sum(dpz1)
 
         for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
 
