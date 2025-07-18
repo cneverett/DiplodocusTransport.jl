@@ -3,7 +3,7 @@
 
 A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
-function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::Float32,num_Init::AbstractFloat) where S <: Union{Float32,Float64,Int64}
+function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat) where S <: Union{Float32,Float64,Int64}
 
     Momentum = PhaseSpace.Momentum
 
