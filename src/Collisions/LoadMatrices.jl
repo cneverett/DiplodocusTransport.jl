@@ -154,18 +154,18 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
         pz3_grid::String = pz_grid_list[name3_loc]
         pz4_grid::String = pz_grid_list[name4_loc]
 
-        px1_num::Int = px_num_list[name1_loc]
-        px2_num::Int = px_num_list[name2_loc]
-        px3_num::Int = px_num_list[name3_loc]
-        px4_num::Int = px_num_list[name4_loc]
-        py1_num::Int = py_num_list[name1_loc]
-        py2_num::Int = py_num_list[name2_loc]
-        py3_num::Int = py_num_list[name3_loc]
-        py4_num::Int = py_num_list[name4_loc]
-        pz1_num::Int = pz_num_list[name1_loc]
-        pz2_num::Int = pz_num_list[name2_loc]
-        pz3_num::Int = pz_num_list[name3_loc]
-        pz4_num::Int = pz_num_list[name4_loc]
+        px1_num::Int64 = px_num_list[name1_loc]
+        px2_num::Int64 = px_num_list[name2_loc]
+        px3_num::Int64 = px_num_list[name3_loc]
+        px4_num::Int64 = px_num_list[name4_loc]
+        py1_num::Int64 = py_num_list[name1_loc]
+        py2_num::Int64 = py_num_list[name2_loc]
+        py3_num::Int64 = py_num_list[name3_loc]
+        py4_num::Int64 = py_num_list[name4_loc]
+        pz1_num::Int64 = pz_num_list[name1_loc]
+        pz2_num::Int64 = pz_num_list[name2_loc]
+        pz3_num::Int64 = pz_num_list[name3_loc]
+        pz4_num::Int64 = pz_num_list[name4_loc]
 
         px1_low::Float64 = px_low_list[name1_loc]
         px2_low::Float64 = px_low_list[name2_loc]
@@ -338,16 +338,16 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         pz2_grid::String = pz_grid_list[name2_loc]
         pz3_grid::String = pz_grid_list[name3_loc]
     
-        px1_num::String = string(px_num_list[name1_loc])
-        px2_num::String = string(px_num_list[name2_loc])
-        px3_num::String = string(px_num_list[name3_loc])
-        py1_num::String = string(py_num_list[name1_loc])
-        py2_num::String = string(py_num_list[name2_loc])
-        py3_num::String = string(py_num_list[name3_loc])
-        pz1_num::String = string(pz_num_list[name1_loc])
-        pz2_num::String = string(pz_num_list[name2_loc])
-        pz3_num::String = string(pz_num_list[name3_loc])
-    
+        px1_num::Int64 = px_num_list[name1_loc]
+        px2_num::Int64 = px_num_list[name2_loc]
+        px3_num::Int64 = px_num_list[name3_loc]
+        py1_num::Int64 = py_num_list[name1_loc]
+        py2_num::Int64 = py_num_list[name2_loc]
+        py3_num::Int64 = py_num_list[name3_loc]
+        pz1_num::Int64 = pz_num_list[name1_loc]
+        pz2_num::Int64 = pz_num_list[name2_loc]
+        pz3_num::Int64 = pz_num_list[name3_loc]
+
         px1_low::String = string(px_low_list[name1_loc])
         px2_low::String = string(px_low_list[name2_loc])
         px3_low::String = string(px_low_list[name3_loc])
