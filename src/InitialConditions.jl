@@ -1,9 +1,9 @@
 """
     Initial_PowerLaw(Lists,species,pmin,pmax,index,num_Init)
 
-A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evalution at the cell bounds.
+A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
-function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,pmax::T,umin::T,umax::T,index::Float32,num_Init::Float32) where T <: Union{Float32,Int64}
+function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::Float32,num_Init::AbstractFloat) where S <: Union{Float32,Float64,Int64}
 
     Momentum = PhaseSpace.Momentum
 
@@ -14,6 +14,8 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     p_num_list = Momentum.px_num_list
     u_grid_list = Momentum.py_grid_list
     u_num_list = Momentum.py_num_list
+    h_num_list = Momentum.pz_num_list
+    h_grid_list = Momentum.pz_grid_list
 
     Grids = PhaseSpace.Grids
     pr_list = Grids.pxr_list
@@ -27,7 +29,7 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     dp = dp_list[species_index]
     du = du_list[species_index]
 
-    u0_2D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index])
+    f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
     # Set initial conditions goes here
     pu = Float64(p_up_list[species_index])
@@ -36,44 +38,50 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::T,p
     p_grid = p_grid_list[species_index]
     u_num = u_num_list[species_index]
     u_grid = u_grid_list[species_index]
+    h_num = h_num_list[species_index]
+    h_grid = h_grid_list[species_index]
     #pr = DC.bounds(pl,pu,p_num,p_grid)
     #dp = DC.deltaVector(pr)
     #du = DC.deltaVector(DC.bounds(DC.u_low,DC.u_up,u_num,u_grid))
     mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
-    type = zero(T)
+    type = zero(S)
     if typeof(type)==Float32
         pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
         pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
         umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
         umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
+        hmin_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmin),h_grid)
+        hmax_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmax),h_grid)
     elseif typeof(type)==Int64
         pmin_index = pmin
         pmax_index = pmax
         umin_index = umin
         umax_index = umax
+        hmin_index = hmin
+        hmax_index = hmax
     end
     
-    println(pmin_index,pmax_index,umin_index,umax_index)
+    #println(pmin_index,pmax_index,umin_index,umax_index)
 
     # power law averaged over cell width.
-    for i in pmin_index:pmax_index, j in umin_index:umax_index
-        u0_2D_species[i,j] = sqrt(mass^2+pr[i+1]^2)^(1-index) - sqrt(mass^2+pr[i]^2)^(1-index)
-        u0_2D_species[i,j] /= 1-index
-        u0_2D_species[i,j] /= (pr[i+1]-pr[i])
+    for px in pmin_index:pmax_index, py in umin_index:umax_index, pz in hmin_index:hmax_index 
+        f0_3D_species[px,py,pz] = sqrt(mass^2+pr[px+1]^2)^(1-index) - sqrt(mass^2+pr[px]^2)^(1-index)
+        f0_3D_species[px,py,pz] /= 1-index
+        #f0_3D_species[px,py,pz] /= (pr[px+1]-pr[px])
     end
     # set values and normlaise to initial number density (in m^{-3})
-    num = dp' * u0_2D_species * du
-    u0_2D_species *= num_Init/num
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
 
     # scale by dp*du 
-    for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
+    #=for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
         u0_2D_species[i,j] *= dp[i] * du[j]
-    end
+    end=#
 
-    u0_species = reshape(u0_2D_species,p_num*u_num)
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    return Float32.(u0_species)
+    return Float32.(f0_species)
 end
 
 """
