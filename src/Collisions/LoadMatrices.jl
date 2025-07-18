@@ -348,13 +348,13 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         pz2_num::Int64 = pz_num_list[name2_loc]
         pz3_num::Int64 = pz_num_list[name3_loc]
 
-        px1_low::String = string(px_low_list[name1_loc])
-        px2_low::String = string(px_low_list[name2_loc])
-        px3_low::String = string(px_low_list[name3_loc])
-        
-        px1_up::String = string(px_up_list[name1_loc])
-        px2_up::String = string(px_up_list[name2_loc])
-        px3_up::String = string(px_up_list[name3_loc])
+        px1_low::Float64 = px_low_list[name1_loc]
+        px2_low::Float64 = px_low_list[name2_loc]
+        px3_low::Float64 = px_low_list[name3_loc]
+
+        px1_up::Float64 = px_up_list[name1_loc]
+        px2_up::Float64 = px_up_list[name2_loc]
+        px3_up::Float64 = px_up_list[name3_loc]
 
         Parameters = (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext)
 
@@ -370,7 +370,7 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
 
         #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
         #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
-        matrix = EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
+        matrix = DC.EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
             
         # some SMatrix values are greater than float32 precision!
         #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
