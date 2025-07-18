@@ -312,7 +312,7 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         name1::String = interaction.name1
         name2::String = interaction.name2
         name3::String = interaction.name3
-        type::String = interaction.type
+        type::String = interaction.EmiName
 
         Ext::Vector{Float64} = interaction.Ext
 
