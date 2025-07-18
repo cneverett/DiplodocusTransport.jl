@@ -157,6 +157,7 @@ mutable struct GridsStruct <: Function
             num_species = length(name_list);
 
             self.mass_list = Vector{Float64}(undef,num_species)
+            self.charge_list =Vector{Float64}(undef,num_species)
 
             self.pxr_list = Vector{Vector{Float64}}(undef,num_species);
             self.pyr_list = Vector{Vector{Float64}}(undef,num_species);
@@ -174,6 +175,7 @@ mutable struct GridsStruct <: Function
             for i in eachindex(name_list)
 
                 self.mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
+                self.charge_list[i] = getfield(DC,Symbol("z"*name_list[i]));
 
                 self.pxr_list[i] = DC.bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
                 self.pyr_list[i] = DC.bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);

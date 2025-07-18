@@ -141,79 +141,50 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
             name4 = "Pho"
         end
 
-        px1_grid = px_grid_list[name1_loc]
-        px2_grid = px_grid_list[name2_loc]
-        px3_grid = px_grid_list[name3_loc]
-        px4_grid = px_grid_list[name4_loc]
-        py1_grid = py_grid_list[name1_loc]
-        py2_grid = py_grid_list[name2_loc]
-        py3_grid = py_grid_list[name3_loc]
-        py4_grid = py_grid_list[name4_loc]
-        pz1_grid = pz_grid_list[name1_loc]
-        pz2_grid = pz_grid_list[name2_loc]
-        pz3_grid = pz_grid_list[name3_loc]
-        pz4_grid = pz_grid_list[name4_loc]
+        px1_grid::String = px_grid_list[name1_loc]
+        px2_grid::String = px_grid_list[name2_loc]
+        px3_grid::String = px_grid_list[name3_loc]
+        px4_grid::String = px_grid_list[name4_loc]
+        py1_grid::String = py_grid_list[name1_loc]
+        py2_grid::String = py_grid_list[name2_loc]
+        py3_grid::String = py_grid_list[name3_loc]
+        py4_grid::String = py_grid_list[name4_loc]
+        pz1_grid::String = pz_grid_list[name1_loc]
+        pz2_grid::String = pz_grid_list[name2_loc]
+        pz3_grid::String = pz_grid_list[name3_loc]
+        pz4_grid::String = pz_grid_list[name4_loc]
 
-        px1_num = px_num_list[name1_loc]
-        px2_num = px_num_list[name2_loc]
-        px3_num = px_num_list[name3_loc]
-        px4_num = px_num_list[name4_loc]
-        py1_num = py_num_list[name1_loc]
-        py2_num = py_num_list[name2_loc]
-        py3_num = py_num_list[name3_loc]
-        py4_num = py_num_list[name4_loc]
-        pz1_num = pz_num_list[name1_loc]
-        pz2_num = pz_num_list[name2_loc]
-        pz3_num = pz_num_list[name3_loc]
-        pz4_num = pz_num_list[name4_loc]
+        px1_num::Int = px_num_list[name1_loc]
+        px2_num::Int = px_num_list[name2_loc]
+        px3_num::Int = px_num_list[name3_loc]
+        px4_num::Int = px_num_list[name4_loc]
+        py1_num::Int = py_num_list[name1_loc]
+        py2_num::Int = py_num_list[name2_loc]
+        py3_num::Int = py_num_list[name3_loc]
+        py4_num::Int = py_num_list[name4_loc]
+        pz1_num::Int = pz_num_list[name1_loc]
+        pz2_num::Int = pz_num_list[name2_loc]
+        pz3_num::Int = pz_num_list[name3_loc]
+        pz4_num::Int = pz_num_list[name4_loc]
 
-        px1_low = px_low_list[name1_loc]
-        px2_low = px_low_list[name2_loc]
-        px3_low = px_low_list[name3_loc]
-        px4_low = px_low_list[name4_loc]
-        #=py1_low = py_low_list[name1_loc]
-        py2_low = py_low_list[name2_loc]
-        py3_low = py_low_list[name3_loc]
-        py4_low = py_low_list[name4_loc]
-        pz1_low = pz_low_list[name1_loc]
-        pz2_low = pz_low_list[name2_loc]
-        pz3_low = pz_low_list[name3_loc]
-        pz4_low = pz_low_list[name4_loc]=#
-        
-        px1_up = px_up_list[name1_loc]
-        px2_up = px_up_list[name2_loc]
-        px3_up = px_up_list[name3_loc]
-        px4_up = px_up_list[name4_loc]
-        #=py1_up = py_up_list[name1_loc]
-        py2_up = py_up_list[name2_loc]
-        py3_up = py_up_list[name3_loc]
-        py4_up = py_up_list[name4_loc]
-        pz1_up = pz_up_list[name1_loc]
-        pz2_up = pz_up_list[name2_loc]
-        pz3_up = pz_up_list[name3_loc]
-        pz4_up = pz_up_list[name4_loc]=#
+        px1_low::Float64 = px_low_list[name1_loc]
+        px2_low::Float64 = px_low_list[name2_loc]
+        px3_low::Float64 = px_low_list[name3_loc]
+        px4_low::Float64 = px_low_list[name4_loc]
 
-        m1 = PhaseSpace.Grids.mass_list[name1_loc]
-        m2 = PhaseSpace.Grids.mass_list[name2_loc]
-        m3 = PhaseSpace.Grids.mass_list[name3_loc]
-        m4 = PhaseSpace.Grids.mass_list[name4_loc]
+        px1_up::Float64 = px_up_list[name1_loc]
+        px2_up::Float64 = px_up_list[name2_loc]
+        px3_up::Float64 = px_up_list[name3_loc]
+        px4_up::Float64 = px_up_list[name4_loc]
 
-        pxr1::Vector{Float64} = PhaseSpace.Grids.pxr_list[name1_loc]
-        pxr2::Vector{Float64} = PhaseSpace.Grids.pxr_list[name2_loc]
-        pxr3::Vector{Float64} = PhaseSpace.Grids.pxr_list[name3_loc]
-        pxr4::Vector{Float64} = PhaseSpace.Grids.pxr_list[name4_loc]
-        pyr1::Vector{Float64} = PhaseSpace.Grids.pyr_list[name1_loc]
-        pyr2::Vector{Float64} = PhaseSpace.Grids.pyr_list[name2_loc]
-        pyr3::Vector{Float64} = PhaseSpace.Grids.pyr_list[name3_loc]
-        pyr4::Vector{Float64} = PhaseSpace.Grids.pyr_list[name4_loc]
-        pzr1::Vector{Float64} = PhaseSpace.Grids.pzr_list[name1_loc]
-        pzr2::Vector{Float64} = PhaseSpace.Grids.pzr_list[name2_loc]
-        pzr3::Vector{Float64} = PhaseSpace.Grids.pzr_list[name3_loc]
-        pzr4::Vector{Float64} = PhaseSpace.Grids.pzr_list[name4_loc]
+        m1::Float64 = PhaseSpace.Grids.mass_list[name1_loc]
+        m2::Float64 = PhaseSpace.Grids.mass_list[name2_loc]
+        m3::Float64 = PhaseSpace.Grids.mass_list[name3_loc]
+        m4::Float64 = PhaseSpace.Grids.mass_list[name4_loc]
 
         #filename = name1*name2*name3*name4*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px2_low*"-"*px2_up*px2_grid*px2_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*px4_low*"-"*px4_up*px4_grid*px4_num*"#"*py1_grid*py1_num*"#"*py2_grid*py2_num*"#"*py3_grid*py3_num*"#"*py4_grid*py4_num*".jld2"
 
-        filename = name1*name2*name3*name4
+        #=filename = name1*name2*name3*name4
         filename *= "#"*string(px1_low)*"-"*string(px1_up)*px1_grid*string(px1_num)
         filename *= "#"*py1_grid*string(py1_num)
         filename *= "#"*pz1_grid*string(pz1_num)
@@ -230,7 +201,11 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
         filename *= "#"*py4_grid*string(py4_num)
         filename *= "#"*pz4_grid*string(pz4_num)
         
-        filename *= ".jld2";
+        filename *= ".jld2";=#
+
+        Parameters = (name1,name2,name3,name4,m1,m2,m3,m4,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,px4_low,px4_up,px4_grid,px4_num,py4_grid,py4_num,pz4_grid,pz4_num)
+
+        filename::String = DC.BinaryFileName(Parameters)
 
         #Parameters=(name1,name2,name3,name4,m1,m2,m3,m4,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,px4_low,px4_up,px4_grid,px4_num,py4_grid,py4_num,pz4_grid,pz4_num)
         #filename = DC.FileName(Parameters)
@@ -334,13 +309,23 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
 
         interaction = Emi_list[i]
 
-        name1 = interaction.name1
-        name2 = interaction.name2
-        name3 = interaction.name3
+        name1::String = interaction.name1
+        name2::String = interaction.name2
+        name3::String = interaction.name3
+
+        Ext::Vector{Float64} = interaction.Ext
 
         name1_loc = findfirst(==(name1),name_list)
         name2_loc = findfirst(==(name2),name_list)
         name3_loc = findfirst(==(name3),name_list)
+
+        m1::Float64 = PhaseSpace.Grids.mass_list[name1_loc]
+        m2::Float64 = PhaseSpace.Grids.mass_list[name2_loc]
+        m3::Float64 = PhaseSpace.Grids.mass_list[name3_loc]
+
+        z1::Float64 = PhaseSpace.Grids.charge_list[name1_loc]
+        z2::Float64 = PhaseSpace.Grids.charge_list[name2_loc]
+        z3::Float64 = PhaseSpace.Grids.charge_list[name3_loc]
 
         px1_grid::String = px_grid_list[name1_loc]
         px2_grid::String = px_grid_list[name2_loc]
@@ -365,44 +350,26 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         px1_low::String = string(px_low_list[name1_loc])
         px2_low::String = string(px_low_list[name2_loc])
         px3_low::String = string(px_low_list[name3_loc])
-        py1_low::String = string(py_low_list[name1_loc])
-        py2_low::String = string(py_low_list[name2_loc])
-        py3_low::String = string(py_low_list[name3_loc])
-        pz1_low::String = string(pz_low_list[name1_loc])
-        pz2_low::String = string(pz_low_list[name2_loc])
-        pz3_low::String = string(pz_low_list[name3_loc])
         
         px1_up::String = string(px_up_list[name1_loc])
         px2_up::String = string(px_up_list[name2_loc])
         px3_up::String = string(px_up_list[name3_loc])
-        py1_up::String = string(py_up_list[name1_loc])
-        py2_up::String = string(py_up_list[name2_loc])
-        py3_up::String = string(py_up_list[name3_loc])
-        pz1_up::String = string(pz_up_list[name1_loc])
-        pz2_up::String = string(pz_up_list[name2_loc])
-        pz3_up::String = string(pz_up_list[name3_loc])
-    
-        pxr1::Vector{Float64} = PhaseSpace.Grids.pxr_list[name1_loc]
-        pxr2::Vector{Float64} = PhaseSpace.Grids.pxr_list[name2_loc]
-        pxr3::Vector{Float64} = PhaseSpace.Grids.pxr_list[name3_loc]
-        pyr1::Vector{Float64} = PhaseSpace.Grids.pyr_list[name1_loc]
-        pyr2::Vector{Float64} = PhaseSpace.Grids.pyr_list[name2_loc]
-        pyr3::Vector{Float64} = PhaseSpace.Grids.pyr_list[name3_loc]
-        pzr1::Vector{Float64} = PhaseSpace.Grids.pzr_list[name1_loc]
-        pzr2::Vector{Float64} = PhaseSpace.Grids.pzr_list[name2_loc]
-        pzr3::Vector{Float64} = PhaseSpace.Grids.pzr_list[name3_loc]
+
+        Parameters = (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext)
+
+        filename = DC.EmissionFileName(Parameters)
 
         #filename = "sync"*name2*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*py1_grid*py1_num*"#"*py3_grid*py3_num_st*".jld2";
 
         #filename = "syncEle#-14.0#4.0#72#-5.0#4.0#72#8#8.jld2";
         #filename = "syncEle#-14.0-7.0l84#0.0-7.0l56#u8#u8.jld2";
-        filename = "syncTest3.jld2"
+        #filename = "syncTest3.jld2"
 
         println(filename)
 
         #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
         #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
-        matrix = fload_Matrix_Sync(DataDirectory,filename)[2] # remove later
+        matrix = EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
             
         # some SMatrix values are greater than float32 precision!
         #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)

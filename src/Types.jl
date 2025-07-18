@@ -48,5 +48,6 @@ struct EmiStruct <: InteractionType
     name2::String
     name3::String
     EmiName::String
+    Ext::Vector{Float64}
     mode::ModeType
 end
