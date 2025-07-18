@@ -161,7 +161,7 @@ function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n::Float64)
         e = en/n
     end
 
-    return e
+    return en # not sure if this is correct 
 
 end
 
