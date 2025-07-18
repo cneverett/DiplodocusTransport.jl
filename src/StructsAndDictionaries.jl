@@ -74,6 +74,7 @@ A struct for storing the grid values for each particle in the simulation.
 mutable struct GridsStruct <: Function
 
     mass_list::Vector{Float64}
+    charge_list::Vector{Float64}
 
     tr::Vector{Float64}
     dt::Vector{Float64}
