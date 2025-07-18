@@ -1,5 +1,5 @@
 """
-    Initial_PowerLaw(Lists,species,pmin,pmax,index,num_Init)
+    Initial_PowerLaw(Lists,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Init)
 
 A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
