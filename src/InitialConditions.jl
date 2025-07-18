@@ -46,7 +46,7 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,p
     mass = getfield(DC,Symbol("mu"*name_list[species_index]))
 
     type = zero(S)
-    if typeof(type)==Float32
+    if (typeof(type) == Float32) || (typeof(type) == Float64) 
         pmin_index = DC.location(pl,pu,p_num,Float64(pmin),p_grid)
         pmax_index = DC.location(pl,pu,p_num,Float64(pmax),p_grid)
         umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
