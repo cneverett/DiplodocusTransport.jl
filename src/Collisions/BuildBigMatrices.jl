@@ -319,9 +319,11 @@ function Fill_M_Emi!(M_Emi::AbstractMatrix{<:AbstractFloat},interaction::EmiStru
 
         Grids = PhaseSpace.Grids
         mpx1 = Grids.mpx_list[name1_loc]
+        mpx3 = Grids.mpx_list[name3_loc]
+
 
         #GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix2,offset[name2_loc],offset[name1_loc])
-        GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc],mpx1)
+        GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc],mpx1,mpx3)
         #LossMatrix_to_M_Emi_Ani!(M_Emi,LossMatrix1,offset[name1_loc])
 
     elseif typeof(mode) == Axi
@@ -413,7 +415,7 @@ function LossMatrix_to_M_Bin!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64
 
 end
 
-function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64,meanpx1)
+function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64)
 
     # 1 is incident particle, 2 is emitted particle
 
@@ -429,7 +431,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) * meanpx1[px1]
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) * 8 * pi # hacky fix no idea why this is needed
 
     end
 
@@ -450,16 +452,16 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
 
         val = 0.0 # pz averaged GainMatrix term
         for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
-            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] * dpz2[pz2] * dpz1[pz1] # check order
+            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] #= * dpz2[pz2] =# * dpz1[pz1] # check order
         end
-        val /= sum(dpz2)*sum(dpz1)
+        val /= #= sum(dpz2)* =#sum(dpz1)
 
         for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
 
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val)
+            M_Emi[a,b] += convert(eltype(M_Emi),val) * 8 * pi # hacky fix no idea why this is needed
 
         end
 
@@ -489,7 +491,7 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val)
+            M_Emi[a,b] += convert(eltype(M_Emi),val) * 2 # hacky fix no idea why this is needed
 
         end
 
