@@ -323,7 +323,7 @@ function Fill_M_Emi!(M_Emi::AbstractMatrix{<:AbstractFloat},interaction::EmiStru
 
 
         #GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix2,offset[name2_loc],offset[name1_loc])
-        GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc],mpx1,mpx3)
+        GainMatrix_to_M_Emi_Ani!(M_Emi,GainMatrix3,offset[name3_loc],offset[name1_loc])
         #LossMatrix_to_M_Emi_Ani!(M_Emi,LossMatrix1,offset[name1_loc])
 
     elseif typeof(mode) == Axi
