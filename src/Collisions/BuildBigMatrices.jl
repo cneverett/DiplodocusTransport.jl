@@ -465,7 +465,7 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             # weight for the size of the incoming phase space
             w = dpz1[pz1] / sum(dpz1)
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w) * 16*pi^2 # hacky fix no idea why this is needed
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) * 8*pi^2 # hacky fix no idea why this is needed
 
         end
 
@@ -545,7 +545,7 @@ function LossMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},LossMat
 
 end
 
-##  TO BE REMOVED LATER
+##  TO BE REMOVED LATER ============================================ ##
 
 function GainMatrix_to_M_Bin_Axi!(M_Bin::Array{Float32,2},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64)
 
