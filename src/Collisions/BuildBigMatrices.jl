@@ -431,7 +431,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) * 8 * pi # hacky fix no idea why this is needed
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) #* 8 * pi # hacky fix no idea why this is needed
 
     end
 
@@ -448,20 +448,24 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
     py1_num = size(GainMatrix,5)
     pz1_num = size(GainMatrix,6)
 
-    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2) 
+    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3) 
 
         val = 0.0 # pz averaged GainMatrix term
-        for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
-            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] #= * dpz2[pz2] =# * dpz1[pz1] # check order
+        # average over incoming phi angles
+        for pz1 in axes(GainMatrix,6)
+            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] ##= * dpz2[pz2] =# * dpz1[pz1] # check order
         end
-        val /= #= sum(dpz2)* =#sum(dpz1)
+        #val /= (dpz1[end] - dpz1[1])
 
-        for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
+        for pz1 in axes(GainMatrix,6)
 
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val) * 8 * pi # hacky fix no idea why this is needed
+            # weight for the size of the incoming phase space
+            w = dpz1[pz1] / abs((dpz1[end] - dpz1[1]))
+
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) #* 8 * pi # hacky fix no idea why this is needed
 
         end
 
@@ -478,20 +482,24 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
     py1_num = size(GainMatrix,5)
     pz1_num = size(GainMatrix,6)
 
-    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1)
+    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
 
         val = 0.0 # py pz averaged GainMatrix term
-        for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
-            val += GainMatrix[px2,py2,pz2,px1,py1,pz1] #=* dpy2[py2]=# * dpy1[py1] #=* dpz2[pz2=# * dpz1[pz1] # check order
+        # average over incoming u and phi angles
+        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6)
+            val += GainMatrix[px2,py2,pz2,px1,py1,pz1]# * dpy1[py1] * dpz1[pz1] 
         end
-        val /= #=sum(dpy2)*=#sum(dpy1)#=*sum(dpz2)=#*sum(dpz1)
+        #val /= abs((dpz1[end] - dpz1[1]) * (dpy1[end] - dpy1[1]))
 
-        for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
+        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6)
 
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val) * 2 # hacky fix no idea why this is needed
+            # weight for the size of the incoming phase space
+            w = dpy1[py1] * dpz1[pz1] / abs((dpz1[end] - dpz1[1]) * (dpy1[end] - dpy1[1]))
+
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) * 2 # hacky fix no idea why this is needed
 
         end
 
