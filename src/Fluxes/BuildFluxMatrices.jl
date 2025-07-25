@@ -281,7 +281,7 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     ________________________________
                     a |  I_m   | I_m+I_p | I_p    |
                     __|________|_________|________|_
-                        b-1        b        b+1  
+                         b-1       b        b+1  
                     =#
 
                     # normalised fluxes

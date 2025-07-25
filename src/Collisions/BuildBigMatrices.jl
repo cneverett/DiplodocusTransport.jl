@@ -419,7 +419,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
 
     # 1 is incident particle, 2 is emitted particle
 
-    px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
+    px2_num = size(GainMatrix,1)
     py2_num = size(GainMatrix,2)
     pz2_num = size(GainMatrix,3)
     px1_num = size(GainMatrix,4)  
@@ -441,7 +441,7 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
 
     # 1 is incident particle, 2 is emitted particle
 
-    px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
+    px2_num = size(GainMatrix,1)
     py2_num = size(GainMatrix,2)
     pz2_num = size(GainMatrix,3)
     px1_num = size(GainMatrix,4)  
@@ -475,7 +475,7 @@ end
 
 function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMatrix::Array{Float64,6},offset2::Int64,offset1::Int64,dpy2,dpy1,dpz2,dpz1)
 
-    px2_num = size(GainMatrix,1)#-1 # ignore overflow bin
+    px2_num = size(GainMatrix,1)
     py2_num = size(GainMatrix,2)
     pz2_num = size(GainMatrix,3)
     px1_num = size(GainMatrix,4)  
