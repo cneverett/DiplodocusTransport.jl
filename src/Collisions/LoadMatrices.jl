@@ -91,7 +91,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
 
 end
 
-function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct) where F<:AbstractFloat
 
     Binary_list = PhaseSpace.Binary_list
 
@@ -117,7 +117,7 @@ function LoadMatrices_Binary(M_Bin::Array{Float32,2},DataDirectory::String,Phase
     pz_grid_list = Momentum.pz_grid_list
     pz_num_list = Momentum.pz_num_list
 
-    fill!(M_Bin,0f0);
+    fill!(M_Bin,zero(F));
 
     for i in eachindex(Binary_list)
 

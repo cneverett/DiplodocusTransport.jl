@@ -85,6 +85,94 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,p
 end
 
 """
+    Initial_UnBoostedPowerLaw(Lists,species,pmin,pmax,Gamma,index,num_Init)
+
+Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and returns the distribution as observed by a static observer, with a number density of `num_Init`.
+"""
+function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat) where S <: Union{Float32,Float64}
+
+    Momentum = PhaseSpace.Momentum
+
+    name_list = PhaseSpace.name_list
+    p_up_list = Momentum.px_up_list
+    p_low_list = Momentum.px_low_list
+    p_grid_list = Momentum.px_grid_list
+    p_num_list = Momentum.px_num_list
+    u_grid_list = Momentum.py_grid_list
+    u_num_list = Momentum.py_num_list
+    h_num_list = Momentum.pz_num_list
+    h_grid_list = Momentum.pz_grid_list
+
+    Grids = PhaseSpace.Grids
+    species_index = findfirst(==(species),name_list)
+    mass = getfield(DC,Symbol("mu"*name_list[species_index]))
+    pu = Float64(p_up_list[species_index])
+    pl = Float64(p_low_list[species_index])
+    p_num = p_num_list[species_index]
+    p_grid = p_grid_list[species_index]
+    u_num = u_num_list[species_index]
+    u_grid = u_grid_list[species_index]
+    h_num = h_num_list[species_index]
+    h_grid = h_grid_list[species_index]
+
+    f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
+``
+    # Set Rapidity 
+    w::Float64 = arccosh(Gamma)
+    cw = cosh(w)
+    sw = sinh(w)
+    # de-boost pmin and pmax 
+    Emin::Float64 = sqrt(mass^2+pmin^2)
+    Emax::Float64 = sqrt(mass^2+pmax^2)
+    pmin_UB::Float64 = sqrt((cosh(w)*Emin-sinh(w)*pmin)^2-mass^2)
+    pmax_UB::Float64 = sqrt((cosh(w)*Emax-sinh(w)*pmax)^2-mass^2)
+    Emin_UB::Float64 = sqrt(mass^2+pmin_UB^2)
+    Emax_UB::Float64 = sqrt(mass^2+pmax_UB^2)
+
+
+    pmin_index = DC.location(pl,pu,p_num,pmin_UB,p_grid)
+    pmax_index = DC.location(pl,pu,p_num,pmax_UB,p_grid)
+
+    # power law averaged over cell width.
+    for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 
+        # f calculated using simple trapezium rule (fabc is f at the a bound of p, b bound of u and c bound of h)
+        pp = p_grid[px+1]
+        pm = p_grid[px]
+        up = u_grid[py+1]
+        um = u_grid[py]
+        hp = h_grid[pz+1]
+        hm = h_grid[pz]
+        fmmm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*um)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*um)^2-mass^2)
+        fpmm = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*um)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*um)^2-mass^2)
+        fmpm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
+        fmmp = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*um)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*um)^2-mass^2)
+        fppm = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
+        fpmp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*um)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*um)^2-mass^2)
+        fmpp = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
+        fppp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
+        f0_3D_species[px,py,pz] = (fmmm + fpmm + fmpm + fmmp + fppm + fpmp + fmpp + fppp) / 8
+        if px == pmin_index
+            f0_3D_species[px,py,pz] *= (p_grid[px+1]-pmin_UB) / (p_grid[px+1]-p_grid[px])
+        elseif px == pmax_index
+            f0_3D_species[px,py,pz] *= (pmax_UB-p_grid[px]) / (p_grid[px+1]-p_grid[px])
+        end
+    end
+
+    # set values and normlaise to initial number density (in m^{-3})
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
+
+    # scale by dp*du 
+    #=for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
+        u0_2D_species[i,j] *= dp[i] * du[j]
+    end=#
+
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
+
+    return Float32.(f0_species)
+end
+
+"""
     Initial_Constant(PhaseSpace,species,pmin,pmax,umin,umax,hmin,hmax,num_Init)
 
 Divides the initial number density `num_Init` equally among momentum-space bins in the range of `pmin` to `pmax`, `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
