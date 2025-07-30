@@ -3,7 +3,7 @@
 
 Returns the four-flow vector Ua 'vector{Float64}' from the flattened axisymmetric distribution function f1D.
 """
-function FourFlow(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
+function FourFlow(f1D::Vector{T},p_num,u_num,pr,ur,m) where T<:AbstractFloat
 
     f2D = zeros(Float64,p_num,u_num)
     f2D = Float64.(reshape(f1D,(p_num,u_num)))
@@ -72,7 +72,7 @@ function ProjectionTensor(Uₐ::Vector{Float64})
 
 end
 
-function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
+function StressEnergyTensor(f1D::Vector{T},p_num,u_num,pr,ur,m) where T<:AbstractFloat
 
     f2D = zeros(Float64,p_num,u_num)
     f2D = Float64.(reshape(f1D,(p_num,u_num)))
@@ -136,7 +136,7 @@ function StressEnergyTensor(f1D::Vector{Float32},p_num,u_num,pr,ur,m)
     return Tab
 end
 
-function ScalarNumberDensity(Nᵃ,Uₐ)
+function ScalarNumberDensity(Nᵃ::Vector{Float64},Uₐ::Vector{Float64})
 
     n::Float64 = 0.0
 
@@ -150,7 +150,7 @@ function ScalarNumberDensity(Nᵃ,Uₐ)
 
 end
 
-function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n::Float64)
+function ScalarEnergyDensity(Tᵃᵇ::Matrix{Float64},Uₐ::Vector{Float64},n::Float64)
 
     e::Float64 = 0.0
     en::Float64 = Uₐ' * Tᵃᵇ * Uₐ
@@ -165,7 +165,7 @@ function ScalarEnergyDensity(Tᵃᵇ,Uₐ,n::Float64)
 
 end
 
-function ScalarPressure(Tᵃᵇ,Δab)
+function ScalarPressure(Tᵃᵇ::Matrix{Float64},Δab::Matrix{Float64})
 
     p::Float64 = 0.0
 
@@ -182,7 +182,7 @@ function ScalarPressure(Tᵃᵇ,Δab)
 
 end
 
-function ScalarTemperature(p,n)
+function ScalarTemperature(p::Float64,n::Float64)
 
     T::Float64 = 0.0
 
