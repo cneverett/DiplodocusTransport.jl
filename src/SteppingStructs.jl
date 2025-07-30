@@ -1,22 +1,21 @@
 # Struct for storing the Boltzmann equation and its solution
-mutable struct EulerStruct <: SteppingMethodType
+mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
     PhaseSpace::PhaseSpaceStruct
-    BigM::BigMatricesStruct{Matrix{Float32}}
-    FluxM::FluxMatricesStruct{Matrix{Float32},Vector{Float32}}
+    BigM::BigMatricesStruct{Matrix{T}}
+    FluxM::FluxMatricesStruct{Matrix{T},Vector{T}}
 
     Implicit::Bool
 
-    M_Bin_Mul_Step::Matrix{Float32}  # temporary array for matrix multiplication of binary terms
-    M_Emi_Step::Matrix{Float32}      # temporary array for spatial evaluated emission terms
-    Jac::Matrix{Float32}           # jacobian for if Implicit==True
-    df::Vector{Float32}                     # change in distribution function
-    df_temp::Vector{Float32}                 # change in distribution function
-    temp::Matrix{Float32}
-    LU64::LinearAlgebra.LU{Float64, Matrix{Float64}, Vector{Int64}}
-    LU32::LinearAlgebra.LU{Float32, Matrix{Float32}, Vector{Int64}}
+    M_Bin_Mul_Step::Matrix{T}  # temporary array for matrix multiplication of binary terms
+    M_Emi_Step::Matrix{T}      # temporary array for spatial evaluated emission terms
+    Jac::Matrix{T}           # jacobian for if Implicit==True
+    df::Vector{T}                     # change in distribution function
+    df_temp::Vector{T}                 # change in distribution function
+    temp::Matrix{T}
+    LU::LinearAlgebra.LU{T, Matrix{T}, Vector{Int64}}
 
-    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct{Matrix{Float32}},Flux_Matrices::FluxMatricesStruct{Matrix{Float32},Vector{Float32}},Implicit::Bool)
+    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct{AbstractMatrix{T}},Flux_Matrices::FluxMatricesStruct{AbstractMatrix{T},AbstractVector{T}},Implicit::Bool) where T <: AbstractFloat
 
         self = new()
 
@@ -26,16 +25,15 @@ mutable struct EulerStruct <: SteppingMethodType
 
         self.Implicit = Implicit  
 
-        self.M_Bin_Mul_Step = zeros(Float32,length(f0),length(f0))
-        self.M_Emi_Step = zeros(Float32,length(f0),length(f0))
+        self.M_Bin_Mul_Step = zeros(T,length(f0),length(f0))
+        self.M_Emi_Step = zeros(T,length(f0),length(f0))
         if Implicit
-            self.Jac = zeros(Float32,length(f0),length(f0))
+            self.Jac = zeros(T,length(f0),length(f0))
         end
-        self.df = zeros(Float32,length(f0))
-        self.df_temp = zeros(Float32,length(f0))
-        self.temp = zeros(Float32,length(f0),length(f0))
-        self.LU32 = lu(zeros(Float32,length(f0),length(f0))+I)
-        self.LU64 = lu(zeros(Float64,length(f0),length(f0))+I)
+        self.df = zeros(T,length(f0))
+        self.df_temp = zeros(T,length(f0))
+        self.temp = zeros(T,length(f0),length(f0))
+        self.LU = lu(zeros(T,length(f0),length(f0))+I)
 
         return self
     end

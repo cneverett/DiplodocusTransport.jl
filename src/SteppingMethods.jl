@@ -70,10 +70,9 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
         mul!(Euler.df_temp,Euler.temp,f)
         println("t = $t")
         println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
-        lu!(Euler.LU64,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
-        @. Euler.LU32.factors = Float32.(Euler.LU64.factors)
-        @. Euler.LU32.ipiv = Euler.LU64.ipiv
-        ldiv!(Euler.df,Euler.LU32,Euler.df_temp)
+        lu!(Euler.LU,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
+        @. Euler.LU.ipiv = Euler.LU.ipiv
+        ldiv!(Euler.df,Euler.LU,Euler.df_temp)
         #@. g.Jac = 2*g.M_Bin_Mul_Step
         #g.df .= (I-dt*g.Jac)\g.df
         #@. df = dt*g.df
