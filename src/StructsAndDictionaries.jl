@@ -172,6 +172,7 @@ mutable struct GridsStruct <: Function
             self.mpy_list = Vector{Vector{Float64}}(undef,num_species);
             self.mpz_list = Vector{Vector{Float64}}(undef,num_species);
 
+            self.dE_list = Vector{Vector{Float64}}(undef,num_species);
 
             for i in eachindex(name_list)
 
@@ -189,6 +190,8 @@ mutable struct GridsStruct <: Function
                 self.mpx_list[i] = DC.meanVector(self.pxr_list[i]);
                 self.mpy_list[i] = DC.meanVector(self.pyr_list[i]);
                 self.mpz_list[i] = DC.meanVector(self.pzr_list[i]);
+
+                self.dE_list[i] = DC.deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.mpx_list[i];
 
             end
 
