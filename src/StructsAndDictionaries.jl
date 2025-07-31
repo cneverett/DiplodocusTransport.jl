@@ -99,6 +99,8 @@ mutable struct GridsStruct <: Function
     mpy_list::Vector{Vector{Float64}}
     mpz_list::Vector{Vector{Float64}}
 
+    dE_list::Vector{Vector{Float64}}
+
     function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
 
         self = new()
