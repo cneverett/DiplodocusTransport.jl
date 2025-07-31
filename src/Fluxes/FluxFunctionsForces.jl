@@ -17,7 +17,7 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c 
+    fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c 
 
     if m == 0 || Z == 0
         return flux = 0f0
@@ -64,7 +64,7 @@ function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c 
+    fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c 
 
     if m == 0 || Z == 0
         flux = 0f0
@@ -106,7 +106,7 @@ function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    fluxScale = (Z^4*B^2)/(μ0*m^3*mEle*c^2) # normalised by σT*c
+    fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
     # convert p to Float64 to ensure no floating point issues
     p064 = Float64(p0)
