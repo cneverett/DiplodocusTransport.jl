@@ -14,7 +14,7 @@
         flux *= (-p064 + p164) * (-u0 + u1) * (-phi0 + phi1)
 
         # hacky fix for time being dependent on grid size
-        flux *= (p164 + p064) / 2 / (p164 - p064) # mp/dp
+        flux *= (p164 + p064) / 2 / (p164 - p064) * 2pi # mp/dp
 
         return flux
 
