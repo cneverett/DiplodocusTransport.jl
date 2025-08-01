@@ -28,6 +28,8 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
         p = Progress(t_num)
     end
 
+    #filter_vector = zeros(Bool, length(tmp))
+
     for i in 1:t_num
 
         dt = tr[i+1] - tr[i]
@@ -35,6 +37,8 @@ function Solve(f1D0::fType,method::SteppingMethodType;save_steps::Int=1,progress
 
         method(dtmp,tmp,dt0,dt,t)
         @. tmp += dtmp
+
+        #Filter_Distribution!(tmp,PhaseSpace,filter_vector)
 
         # removing negative values
         @. tmp = tmp*(tmp>=0f0)

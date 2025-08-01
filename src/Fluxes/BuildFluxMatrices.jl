@@ -548,12 +548,12 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     =#
 
                     if b != bp
-                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+2]-pxr[px+1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
+                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pzp+1]-pzr[pzp]))
                         K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
                     end
                     if b != bm
                         K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
-                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px]-pxr[px-1])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
+                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pzm+1]-pzr[pzm]))
                     end
             end # force loop
             end

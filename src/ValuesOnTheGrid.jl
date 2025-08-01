@@ -87,6 +87,8 @@ function getInitialScaling(sol,PhaseSpace::PhaseSpaceStruct)
 end
 
 
+
+#=
 """
     deltaVector(valr)
 
@@ -304,3 +306,5 @@ function deltaEkinVector(pr::Vector{T},mu::T) where T <: Union{Float32,Float64}
 end
 
 # =============================================================== #
+
+=#
