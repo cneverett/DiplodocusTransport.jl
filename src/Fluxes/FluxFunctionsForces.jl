@@ -17,7 +17,7 @@ function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_co
     mEle = getfield(DC,Symbol("mEle"))
     c = getfield(DC,Symbol("c"))
 
-    fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) / (2pi) # normalised by σT*c, factor of 4pi^2 is to make sure timescale is correct, no idea why this is needed 
+    fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) / (4pi^2) / (p164 + p064) * 2 * (p164 - p064) # normalised by σT*c, factor of 4pi^2 is to make sure timescale is correct, no idea why this is needed 
 
     if m == 0 || Z == 0
         return flux = 0f0
