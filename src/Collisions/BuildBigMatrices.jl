@@ -431,7 +431,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) * 2pi#* 16*pi^2 # hacky fix no idea why this is needed
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) #* 16*pi^2 # hacky fix no idea why this is needed
 
     end
 
@@ -465,7 +465,7 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             # weight for the size of the incoming phase space
             w = dpz1[pz1] / sum(dpz1)
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w) * 2pi #* 16*pi^2 # hacky fix no idea why this is needed
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) #* 16*pi^2 # hacky fix no idea why this is needed
 
         end
 
@@ -499,7 +499,7 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             # weight for the size of the incoming phase space
             w = dpy1[py1] * dpz1[pz1] / (sum(dpz1) * sum(dpy1))
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w) * 2pi #* 16*pi^2 # hacky fix no idea why this is needed
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) #* 16*pi^2 # hacky fix no idea why this is needed
 
         end
 
