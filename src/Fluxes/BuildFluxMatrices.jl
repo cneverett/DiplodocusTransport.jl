@@ -286,12 +286,12 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
 
                     # normalised fluxes
                     if b != bp
-                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) #/ (pxr[pxp+1] + pxr[pxp]) * 2 * (pxr[pxp+1] - pxr[pxp])
-                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) #/ (pxr[px+1] + pxr[px]) * 2 * (pxr[px+1] - pxr[px])
+                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) / (pxr[pxp+1] + pxr[pxp]) * 2 * (pxr[pxp+1] - pxr[pxp])
+                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) / (pxr[px+1] + pxr[px]) * 2 * (pxr[px+1] - pxr[px])
                     end
                     if b != bm
-                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) #/ (pxr[px+1] + pxr[px]) * 2 * (pxr[px+1] - pxr[px])
-                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) #/ (pxr[pxm+1] + pxr[pxm]) * 2 * (pxr[pxm+1] - pxr[pxm])
+                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) / (pxr[px+1] + pxr[px]) * 2 * (pxr[px+1] - pxr[px])
+                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) / (pxr[pxm+1] + pxr[pxm]) * 2 * (pxr[pxm+1] - pxr[pxm])
                     end
 
                 end # Forces loop
