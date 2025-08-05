@@ -2,7 +2,7 @@
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "4840b9d3a521229a962b83005421ac9e12db93c7"
+project_hash = "c7e72bd7c58bd41c8fb65fd94782bd7c89ec8a87"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
@@ -169,10 +169,10 @@ version = "1.11.0"
 
 [[deps.DiplodocusCollisions]]
 deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter"]
-git-tree-sha1 = "a19a0f826889426fbce0526758b55e56c254bd24"
+git-tree-sha1 = "2c4eb6ae78d4ca13647a00dae7c723a8e92081b4"
 repo-rev = "dev"
 repo-url = "https://github.com/cneverett/DiplodocusCollisions.jl"
-uuid = "20179301-8dfd-43f5-a10b-08fddd2c788a"
+uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
 version = "0.0.1"
 
 [[deps.Distributed]]
