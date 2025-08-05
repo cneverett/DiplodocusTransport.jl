@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.6"
+julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "b19986b782908aa30b1b1f75ca554d7f9134c38a"
+project_hash = "1b11cf9e148d13348be35db292892f91148f1305"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -339,11 +339,11 @@ version = "1.6.4"
 
 [[deps.DiplodocusCollisions]]
 deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter"]
-git-tree-sha1 = "5135bacd3b75d8d0ad0a90966c8a3a20c17a85c5"
+git-tree-sha1 = "a19a0f826889426fbce0526758b55e56c254bd24"
 repo-rev = "dev"
 repo-url = "https://github.com/cneverett/DiplodocusCollisions.jl"
 uuid = "20179301-8dfd-43f5-a10b-08fddd2c788a"
-version = "2.2.4-dev"
+version = "0.0.1"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
