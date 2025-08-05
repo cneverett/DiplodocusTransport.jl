@@ -1,0 +1,1376 @@
+
+function DiplodocusDark()
+    return Theme(backgroundcolor=(:black,0),
+    fonts = Attributes(
+            :bold => Makie.texfont(:bold),
+            :bolditalic => Makie.texfont(:bolditalic),
+            :italic => Makie.texfont(:italic),
+            :regular => Makie.texfont(:regular)
+        ),
+    Figure = (
+        backgroundcolor=(:black,0),
+        size=(1200,1200),
+        fontsize = 20.0f0
+        ),
+    Axis = (
+        backgroundcolor=(:black,0),
+        titlesize = 20.0f0,
+        xlabelsize = 20.0f0,
+        ylabelsize = 20.0f0,
+        titlecolor= RGBAf(250, 250, 250, 1.0),
+        ylabelcolor=RGBAf(250, 250, 250, 1.0),
+        xlabelcolor=RGBAf(250, 250, 250, 1.0),
+        bottomspinecolor=RGBAf(200, 200, 200, 1.0),
+        leftspinecolor=RGBAf(200, 200, 200, 1.0),
+        rightspinecolor=RGBAf(200, 200, 200, 1.0),
+        topspinecolor=RGBAf(200, 200, 200, 1.0),
+        spinewidth = 2.0,
+        xgridcolor=RGBAf(100, 100, 100, 0.5),
+        ygridcolor=RGBAf(100, 100, 100, 0.5),
+        xgridwidth=1.0,
+        ygridwidth=1.0,
+        xminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        yminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        xminorgridwidth=1.0,
+        yminorgridwidth=1.0,
+        xtickcolor=RGBAf(200, 200, 200, 1.0),
+        ytickcolor=RGBAf(200, 200, 200, 1.0),
+        xticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        yticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        ),
+    Colorbar = (
+        labelcolor=RGBAf(200,200,200,1.0),
+        bottomspinecolor = RGBAf(200,200,200,1.0),
+        topspinecolor = RGBAf(200,200,200,1.0),
+        leftspinecolor = RGBAf(200,200,200,1.0),
+        rightspinecolor = RGBAf(200,200,200,1.0),
+        minortickcolor=RGBAf(100,100,100,1.0),
+        tickcolor=RGBAf(200,200,200,1.0),
+        ticklabelcolor=RGBAf(200,200,200,1.0),
+        spinewidth=1.5,
+        labelsize = 20.0f0
+        ),
+    )
+end
+
+function DiplodocusLight()
+    return Theme(backgroundcolor=(:black,0),
+    Figure = (backgroundcolor=(:black,0),
+        size=(600,600),
+        fontsize = 20.0f0),
+    Axis = (backgroundcolor=(:black,0),
+        titlesize = 20.0f0,
+        xlabelsize = 20.0f0,
+        ylabelsize = 20.0f0,
+        titlecolor= RGBAf(250, 250, 250, 1.0),
+        ylabelcolor=RGBAf(250, 250, 250, 1.0),
+        xlabelcolor=RGBAf(250, 250, 250, 1.0),
+        bottomspinecolor=RGBAf(200, 200, 200, 1.0),
+        leftspinecolor=RGBAf(200, 200, 200, 1.0),
+        rightspinecolor=RGBAf(200, 200, 200, 1.0),
+        topspinecolor=RGBAf(200, 200, 200, 1.0),
+        spinewidth = 2.0,
+        xgridcolor=RGBAf(100, 100, 100, 0.5),
+        ygridcolor=RGBAf(100, 100, 100, 0.5),
+        xgridwidth=1.0,
+        ygridwidth=1.0,
+        xminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        yminorgridcolor=RGBAf(100, 100, 100, 0.5),
+        xminorgridwidth=1.0,
+        yminorgridwidth=1.0,
+        xtickcolor=RGBAf(200, 200, 200, 1.0),
+        ytickcolor=RGBAf(200, 200, 200, 1.0),
+        xticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        yticklabelcolor=RGBAf(200, 200, 200, 1.0),
+        ),
+    )
+end
+
+
+"""
+    FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
+
+Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
+"""
+function FracNumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    end
+
+    for i in eachindex(sol.t)
+        for j in 1:num_species
+
+            Na = FourFlow(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num = ScalarNumberDensity(Na,Ua)
+
+            scatter!(ax,sol.t[i],num/numInit_list[j]-1,marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+        end
+    end
+
+    return fig
+end
+
+"""
+    NumPlot_AllSpecies(sol,num_species,dp_list,du_list,p_num_list,u_num_list;fig=nothing)
+
+Returns a plot of the number density of each species as a function of time.
+"""
+function NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Number Density",xlabel="Time",ylabel=L"$\log_{10}$ Number Density $[\mathrm{m}^3]$")
+    else
+        ax = Axis(fig,title="Number Density",xlabel="Time",ylabel=L"$\log_{10}$ Number Density $[\mathrm{m}^3]$")
+    end
+
+    num = zeros(Float64,num_species)
+
+    for i in eachindex(sol.t)
+        for j in 1:num_species
+
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num[j] = ScalarNumberDensity(Na,Ua)
+
+            if num[j] != 0
+                scatter!(ax,sol.t[i],log10(num[j]),marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+            end 
+    
+        end
+
+        num_tot = sum(num)
+        if num_tot != 0
+            scatter!(ax,sol.t[i],log10(num_tot),marker = :circle,color = :white)
+        end
+
+    end
+
+    return fig
+end
+
+"""
+    FracEnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,engInit_list,p_num_list,u_num_list;fig=nothing)
+
+Returns a plot of the relative energy (compaired to initial value) of each species as a function of time.
+"""
+function FracEnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Relative Energy",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Relatvie Energy",xlabel="Time",ylabel="Frac. Change")
+    end
+
+    for i in eachindex(sol.t)
+        for j in 1:num_species
+
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num = ScalarNumberDensity(Na,Ua)
+
+            Tab = StressEnergyTensor(sol.u[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+
+            eng = ScalarEnergyDensity(Tab,Ua,num)
+
+            scatter!(ax,sol.t[i],eng/engInit_list[j]-1,marker=:circle,colormap=:viridis,colorrange=[1,num_species+1],color=j)
+        end
+    end
+    return fig
+end
+
+"""
+    EnergyPlot_AllSpecies(sol,num_species,ΔE_list,dp_list,du_list,u_num_list;fig=nothing)
+
+Returns a plot of the energy of each species as a function of time.
+"""
+function EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,p_num_list,u_num_list,mass_list;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Energy",xlabel="Time",ylabel=L"$\log_{10}$ Energy $[m_\text{Ele}c]$")
+    else
+        ax = Axis(fig,title="Relatvie Energy",xlabel="Time",ylabel=L"$\log_{10}$ Energy $[m_\text{Ele}c]$")
+    end
+
+    eng = zeros(Float64,num_species)
+
+    for i in eachindex(sol.t)
+        for j in 1:num_species
+
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num = ScalarNumberDensity(Na,Ua)
+
+            Tab = StressEnergyTensor(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+
+            eng[j] = ScalarEnergyDensity(Tab,Ua,num)
+
+            if eng[j] != 0
+                scatter!(ax,sol.t[i],log10(eng[j]),marker=:circle,colormap=:viridis,colorrange=[1,num_species+1],color=j)
+            end
+        end
+
+        eng_tot = sum(eng)
+        if eng_tot != 0
+            scatter!(ax,sol.t[i],log10(eng_tot),marker = :circle,color = :white)
+        end
+    end
+    return fig
+end
+
+"""
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,outfreq;fig=nothing)
+
+Returns a plot of the momentum distribution (distribution integrated over angles) of each species as a function of time.
+
+# Optional Arguments
+- `Flux`: Default false, if true and a photon population is present then that population is multiplied by the mean momentum, converting it from the momentum distribution to a flux i.e. ``F_\\nu``.
+- `MaxwellJuttner`: Default true, if true the expected thermal distribtuion is plotted.
+"""
+function PDistributionPlot_AllSpecies(sol,num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing,animation=false,animation_end=0,time=0,MaxwellJuttner=true,Flux=false)
+
+    if isnothing(fig)
+        fig = Figure()
+        time = sol.t[end]
+        ax = Axis(fig[1,1],title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-20,5)))
+    else
+        if animation == true && length(sol.t) == 1
+            ax = Axis(fig[1,1],title="p-Distribution,   t=$(round(time,sigdigits=5))",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-40,5)))
+        elseif animation == true && length(sol.t) > 1
+            ax = current_axis(fig)
+            empty!(ax)
+            ax.title = "P-Distribution,   t=$(round(time,sigdigits=5))"
+        else
+            ax = Axis(fig,title="p-Distribution",xlabel=L"$\log_{10}$ Momentum",ylabel=L"$\log_{10}$ p-Distribution",limits=((nothing,nothing),(-40,5)))
+        end
+    end
+
+    max = -19
+    min = -20
+    # time dependent, not including initial state
+    count = 1
+    for i in 2:size(sol.t)[1]-1
+        if isapprox(sol.t[i],count*out_dt) # first output in that range
+            count += 1
+            #println(sol.t[i])
+            for j in 1:num_species
+                my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+                # integrate distribution over μ
+                if mode=="AXI"
+                    dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                    dist .= reshape(sol.f[i].x[j],(p_num_list[j],u_num_list[j]))
+                    # unscale by dp*du 
+                    for k in axes(dist,1), l in axes(dist,2)
+                        dist[k,l] /= dp_list[j][k] * du_list[j][l]
+                    end
+                    if Flux == true && name_list[j] == "Pho"
+                        for k in axes(dist,1)
+                            dist[k,:] .*= meanp_list[j][k]
+                        end
+                    end
+                    dist_p = dist*du_list[j]
+                elseif mode=="ISO"
+                    dist_p = sol.u[i].x[j] * 2
+                end
+                #stairs!(ax,log10.(meanp_list[j]),log10.(dist_p),color=my_colors[i],step=:center)
+                stairs!(ax,log10.(meanp_list[j]),sign.(dist_p).*(log10.(abs.(dist_p)).+45),color=my_colors[i],step=:center)
+                #println(dist_p)
+                #stairs!(ax,log10.(meanp_list[j]),log10.(abs.(dist_p)),colormap = (:viridis,sol.t[i]/sol.t[end]),colorrange = [1,num_species+1], color = j,step=:center)
+                
+                maxlocal = maximum(replace!(log10.(abs.(dist_p)),NaN=>-19))
+                if maxlocal == NaN
+                    maxlocal = -19
+                end
+                max = maximum([max,maxlocal])
+            end
+        end
+    end
+    #println(max)
+
+    # initial distribution
+    for j in 1:num_species
+        # integrate distribution over u
+        if mode=="AXI"
+            dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[1].x[j],(p_num_list[j],u_num_list[j]))
+                # unscale by dp*du 
+                for k in axes(dist,1), l in axes(dist,2)
+                    dist[k,l] /= dp_list[j][k] * du_list[j][l]
+                end
+                dist_p = dist*du_list[j]
+        elseif mode=="ISO"
+            dist_p = sol.u[i].x[j] * 2
+        end
+        stairs!(ax,log10.(meanp_list[j]),log10.(dist_p),color=:blue,step=:center)
+        maxlocal = maximum(log10.(dist_p))
+        if maxlocal == NaN
+            maxlocal = -19
+        end
+        max = maximum([max,maxlocal])
+    end
+
+    # expected distribution
+    if animation == false || (animation == true && length(sol.t) == animation_end)
+    if MaxwellJuttner == true
+        for j in 1:num_species
+            # MJ distribution for initial Temperature
+            MJPoints = MaxwellJuttner_Distribution(meanp_list[j],tempInit_list[j],mass_list[j])
+            #integrate distribution over μ
+            if mode=="AXI"
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[end-1].x[j],(p_num_list[j],u_num_list[j]))
+                # unscale by dp*du 
+                for k in axes(dist,1), l in axes(dist,2)
+                    dist[k,l] /= dp_list[j][k] * du_list[j][l]
+                end
+                dist_p = dist*du_list[j]
+            elseif mode=="ISO"
+                dist_p = sol.u[end].x[j] * 2
+            end
+            # plot expected distribution (normlised by last output)
+            points = log10.((MJPoints/maximum(MJPoints)*maximum(dist_p)))
+            maxlocal = maximum(points)
+            if maxlocal == NaN || maxlocal == -Inf 
+                maxlocal = -19
+            end
+            max = maximum([max,maxlocal])
+            replace!(points,-Inf=>NaN) 
+            scatterlines!(ax,log10.(meanp_list[j]),points,color=:red,markersize = 0.0)
+        end
+    end
+    end
+
+    # some straight lines
+    #line_points = log10.(meanp_list[2].^(-2/3))
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:red)
+    #line_points = log10.(meanp_list[2].^(1/3))
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:blue)
+    #line_points = log10.(meanp_list[2].^(-2)).+7
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:red)
+    #line_points = log10.(meanp_list[2].^(-1/2)).-3
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
+    #line_points = log10.(meanp_list[2].^(-3/2))
+    #lines!(ax,log10.(meanp_list[2]),line_points,color=:green)
+
+    ax.limits =((nothing,nothing),(-55,55)#= (min,max) =#)
+
+    return fig
+end
+
+"""
+    uDistributionPlot_AllSpecies(sol,num_species,meanμ_list,dp_list,p_num_list,u_num_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
+
+Returns a plot of the u distribution (distribution integrated over momenta) of each species as a function of time.
+"""
+function uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=nothing,animation=false,animation_end=0,time=0)
+
+    if isnothing(fig)
+        fig = Figure()
+        time = sol.t[end]
+        ax = Axis(fig[1,1],title="u-Distribution,   t=$time",xlabel="u",ylabel="u-Distribution",limits=((-1,1),(nothing,nothing)))
+    else
+        if animation == true && length(sol.t) == 1
+            ax = Axis(fig[1,1],title="u-Distribution,   t=$(round(time,sigdigits=5))",xlabel="u",ylabel="u-Distribution",limits=((-1,1),(-1e5,2.1e6)))
+        elseif animation == true && length(sol.t) > 1
+            ax = current_axis(fig)
+            empty!(ax)
+            ax.title = "u-Distribution,   t=$(round(time,sigdigits=5))"
+            ax.limits = ((-1,1),(nothing,nothing))
+        else
+            ax = Axis(fig,title="u-Distribution",xlabel="u",ylabel="u-Distribution",limits=((-1,1),(nothing,nothing)))
+        end
+    end
+
+    # time dependent
+    count =1
+    for i in 2:size(sol.t)[1]
+        if isapprox(sol.t[i],count*out_dt)
+            count +=1
+            for j in 1:num_species
+                my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+                # integrate distribution over p
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[i].x[j],(p_num_list[j],u_num_list[j]))
+                # unscale by dp*du 
+                for k in axes(dist,1), l in axes(dist,2)
+                    dist[k,l] /= dp_list[j][k] * du_list[j][l]
+                end
+                dist_u = (dp_list[j]' * dist)'
+                stairs!(ax,meanu_list[j],dist_u,color=my_colors[i],step=:center)
+            end
+        end
+    end
+
+    #initial distribution
+    for j in 1:num_species
+        dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+        dist .= reshape(sol.f[1].x[j],(p_num_list[j],u_num_list[j]))
+        # unscale by dp*du 
+        for k in axes(dist,1), l in axes(dist,2)
+            dist[k,l] /= dp_list[j][k] * du_list[j][l]
+        end
+        dist_u = (dp_list[j]' * dist)'
+        stairs!(ax,meanu_list[j],dist_u,color=:blue,step=:center)
+    end
+ 
+    return fig
+end
+
+
+"""
+    puDistributionPlot_AllSpecies(sol,num_species,meanμ_list,meanp_list,p_num_list,u_num_list,outfreq;fig=nothing)
+
+Returns a plot of the u distribution as a function of p of each species as a function of time.
+"""
+function puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="μ-Distribution as fun. of p",xlabel="p",ylabel="μ-Distribution",limits=((-14,4),(-1,1)))
+    else
+        ax = Axis(fig,title="u-Distribution as fun. of p",xlabel="p",ylabel="u-Distribution",limits=((-14,4),(-1,1)))
+    end
+
+    # time dependent
+    count = 1
+    for i in 2:size(sol.t)[1]
+        if isapprox(sol.t[i],count*out_dt) # first output in that range
+            count += 1
+            my_colors = [cgrad(:grayC,rev=false)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+            for j in 1:num_species
+                dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                dist .= reshape(sol.f[i].x[j],(p_num_list[j],u_num_list[j]))
+                # unscale by dp*du 
+                for k in axes(dist,1), l in axes(dist,2)
+                    dist[k,l] /= dp_list[j][k] * du_list[j][l]
+                end
+                dist_sec = zeros(Float32,u_num_list[j])
+                for k in axes(dist,1)
+                    dist_sec .= dist[k,:]                
+                    minval = minimum(dist_sec)
+                    maxval = maximum(dist_sec)
+                    meanval = mean(dist_sec)
+                    var = (maxval-minval)/meanval
+                    scatterlines!(ax,dist_sec/meanval.-1 .+ log10(meanp_list[j][k]),meanu_list[j],color=my_colors[i],markersize=0.0)
+                end
+            end
+        end
+    end
+
+    return fig
+end
+
+
+"""
+    AllPlots(sol,num_species,dp_list,du_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt)
+
+Returns a collation of figures for analysing the output of the simulation.
+"""
+function AllPlots(sol,num_species,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI")
+
+    if mode=="AXI"
+        figure = Figure(size=(1000,1000))
+    elseif mode=="ISO"
+        figure = Figure(size=(1000,455))
+    end
+
+    NumPlot_AllSpecies(sol,num_species,pr_list,ur_list,numInit_list,p_num_list,u_num_list,mass_list,fig=figure[1,1],mode=mode)
+    EnergyPlot_AllSpecies(sol,num_species,pr_list,ur_list,engInit_list,p_num_list,u_num_list,mass_list,fig=figure[1,2],mode=mode)
+    PDistributionPlot_AllSpecies(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt,fig=figure[2:3,1:2],mode=mode)
+    if mode=="AXI"
+        uDistributionPlot_AllSpecies(sol,num_species,meanu_list,dp_list,du_list,p_num_list,u_num_list,out_dt,fig=figure[4:5,1:2])
+        puDistributionPlot_AllSpecies(sol,num_species,meanu_list,meanp_list,dp_list,du_list,p_num_list,u_num_list,out_dt,fig=figure[6:7,1:2])
+    end
+
+    return figure
+
+end
+
+"""
+    PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,outfreq;fig=nothing)
+
+Returns a plot of the momentum distribution (distribution integrated over angles) of each species as a function of time.
+"""
+function PDistributionPlot_AllSpecies2(sol,num_species,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        ax = Axis(fig[1,1],title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    else
+        ax = Axis(fig,title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    end
+
+    max = 40
+    min = -20
+    # time dependent, not inlcuding initial state
+    count = 1
+    for i in 2:size(sol.t)[1]
+        if isapprox(sol.t[i],count*out_dt) # first output in that range
+            count += 1
+            #println(sol.t[i])
+            for j in 1:num_species
+                my_colors = [cgrad(:grayC,rev=true)[z] for z ∈ range(0.0, 1.0, length = size(sol.t)[1])]
+                # integrate distribution over μ
+                if mode=="AXI"
+                    distp = reshape(sol.u[i].x[j],(p_num_list[j],u_num_list[j]))
+                    distp = dropdims(sum(distp,dims=2),dims=2)
+                    distp ./= dp_list[j]
+                elseif mode=="ISO"
+                    distp = sol.u[i].x[j] * 2
+                end
+                stairs!(ax,log10.(meanp_list[j]),log10.(distp),color=my_colors[i],step=:center)
+                maxlocal = maximum(log10.(distp))
+                #max = maximum([max,maxlocal])
+            end
+        end
+    end
+
+    # initial distribution
+    for j in 1:num_species
+        # integrate distribution over μ
+        if mode=="AXI"
+            distp = reshape(sol.u[1].x[j],(p_num_list[j],u_num_list[j]))
+            distp = dropdims(sum(distp,dims=2),dims=2)
+            distp ./= dp_list[j]
+        elseif mode=="ISO"
+            distp = sol.u[1].x[j] /dp_list[i]
+        end
+        stairs!(ax,log10.(meanp_list[j]),log10.(distp),color=:blue,step=:center)
+        maxlocal = maximum(log10.(distp))
+        #max = maximum([max,maxlocal])
+    end
+
+    # expected distribution
+    for j in 1:num_species
+        # MJ distribution for initial Temperature
+        MJPoints = MaxwellJuttner(meanp_list[j],tempInit_list[j],mass_list[j])
+        #integrate distribution over μ
+        if mode=="AXI"
+            distp = reshape(sol.u[end].x[j],(p_num_list[j],u_num_list[j]))
+            distp = dropdims(sum(distp,dims=2),dims=2)
+            distp ./= dp_list[j]
+        elseif mode=="ISO"
+            distp = sol.u[end].x[j]/dp_list[i]
+        end
+        # plot expected distribution (normlised by last output)
+        scatterlines!(ax,log10.(meanp_list[j]),log10.((MJPoints/maximum(MJPoints)*maximum(distp))),color=:red,markersize = 0.0)
+        maxlocal = maximum(log10.((MJPoints/maximum(MJPoints)*maximum(distp))))
+        #max = maximum([max,maxlocal])
+    end
+    ax.limits =((nothing,nothing),(min,max+1))
+
+    return fig
+end
+
+
+function PDistributionPlot_AllSpecies_Ani(filename,sol,num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        #ax = Axis(fig[1,1],title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    else
+        ax = Axis(fig,title="p-Distribution",xlabel="Log10 Momentum",ylabel="Log10 p-Distribution",limits=((nothing,nothing),(-20,5)))
+    end
+
+    #time = Observable(0.0)
+
+    # animation settings
+    nframes = length(sol.t)
+    framerate = 5
+    itterator = range(1,nframes,step=1)
+    record(fig,filename,itterator; framerate=framerate) do itter
+        time = sol.t[itter]
+        PDistributionPlot_AllSpecies(sol[1:itter],num_species,name_list,meanp_list,dp_list,du_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=fig,animation=true,animation_end=nframes,time=time,MaxwellJuttner=false)
+    end
+    
+end
+
+
+function uDistributionPlot_AllSpecies_Ani(filename,sol,num_species,meanμ_list,dp_list,p_num_list,u_num_list,out_dt;mode="AXI",fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        #ax = Axis(fig[1,1],title="P-Distribution",xlabel="Log10 Momentum",ylabel="Log10 P-Distribution",limits=((nothing,nothing),(-20,5)))
+    else
+        ax = Axis(fig,title="u-Distribution",xlabel="u",ylabel="u-Distribution",limits=((-1,1),(nothing,nothing)))
+    end
+
+    #time = Observable(0.0)
+
+    # animation settings
+    nframes = length(sol.t)
+    framerate = 5
+    itterator = range(1,nframes,step=1)
+    record(fig,filename,itterator; framerate=framerate) do itter
+        time = sol.t[itter]
+        uDistributionPlot_AllSpecies(sol[1:itter],num_species,meanμ_list,dp_list,du_list,p_num_list,u_num_list,out_dt;fig=fig,animation=true,animation_end=nframes,time=time)
+    end
+    
+end
+
+
+"""
+    puDistributionPlot_AllSpecies_heatmap(sol,num_species,meanμ_list,meanp_list,p_num_list,u_num_list,outfreq;fig=nothing)
+
+Returns a plot of the u distribution as a function of p of each species as a function of time.
+"""
+function puDistributionPlot_AllSpecies_heatmap(sol,t_int,num_species,dp_list,du_list,p_num_list,u_num_list,pr_list,ur_list;fig=nothing)
+
+    if isnothing(fig)
+        fig = Figure()
+        #ax = Axis(fig[1,1],title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"Angle Cosine",limits=((-5,4),(-1,1)))
+    else
+        ax = Axis(fig,title="p-Distribution,   t=$time",xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$",ylabel=L"$ $Angle Cosine $ $",limits=((-5,4),(-1,1)))
+    end
+
+
+    for j in 1:num_species
+
+        ax  = Axis(fig[j,1])
+        if j == 1
+            ax.title = "p-Distribution,   t=$time"
+        end
+        dist = zeros(Float32,(p_num_list[j],u_num_list[j]))
+        dist .= reshape(sol.f[t_int].x[j],(p_num_list[j],u_num_list[j]))
+        # unscale by dp*du 
+        for k in axes(dist,1), l in axes(dist,2)
+            dist[k,l] /= dp_list[j][k] * du_list[j][l]
+        end
+
+        dist = log10.(dist)
+        replace!(dist,-Inf32=>NaN)
+
+    cmap = cgrad(:viridis,scale=:log10)
+    hm = heatmap!(ax,log10.(pr_list[j]),ur_list[j],dist, colormap = cmap)
+
+    Colorbar(fig[1:num_species,2],hm)
+
+    end
+
+    return fig
+end
+
+
+"""
+    AllPlots(sol,num_species,dp_list,du_list,ΔE_list,meanp_list,meanμ_list,numInit_list,engInit_list,tempInit_list,mass_list,p_num_list,u_num_list,out_dt)
+
+Returns a collation of figures for analysing the output of the simulation.
+"""
+function AllPlots_Ani(sol,PhaseSpace,numInit_list,engInit_list,tempInit_list,filename;fps=24,istart=nothing,istop=nothing,iframe=nothing,thermal=false,initial=false,step=1)
+
+    #set_theme!(theme)
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    p_num_list = Momentum.px_num_list
+    u_num_list = Momentum.py_num_list
+
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+    dp_list = Grids.dpx_list
+    du_list = Grids.dpy_list
+    meanp_list = Grids.mpx_list
+    meanu_list = Grids.mpy_list
+
+    mass_list = Grids.mass_list
+
+    num_species = length(name_list)
+
+    fig = Figure(size=(1000,700,))
+    #fig = Figure()
+
+    # layout setup
+    grid = fig[1,1] = GridLayout()
+    gp = grid[1,2:3] = GridLayout()
+    gu = grid[2,1] = GridLayout()
+    gpu1 = grid[2,2:3] = GridLayout()
+    #gpu = grid[3,2:3] = GridLayout()
+    gc = grid[1,1] = GridLayout()
+    gcn = grid[1,1][1,1:2] = GridLayout()
+    gce = grid[1,1][2,1:2] = GridLayout()
+    gl = grid[num_species+2,2:3] = GridLayout()
+
+    # colors for particles
+    my_colors = [cgrad(:roma)[z] for z ∈ range(0.0, 1.0, length = num_species+1)]
+    # colors for heatmaps
+    cmap = cgrad(:inferno,scale=:log10)
+
+    # set up axes
+        # u averaged distribution plot
+        axp = Axis(gp[1,1],ylabel=L"$\log_{10}f(p)$",yaxisposition = :right,xticklabelsvisible = false,xticksvisible=false)
+        # p averaged distribution plot
+        axu = Axis(gu[1,1],xlabel=L"$\left(f(u)- \overline{f(u)}\right)/ \overline{f(u)}$",ylabel = L"$u$")
+        # number density plot
+        axn = Axis(gcn[1,1],ylabel=L"$\Delta n /n$",xticklabelsvisible = false,xticksvisible=false)
+        # energy density plot
+        axe = Axis(gce[1,1],ylabel=L"$\log_{10}(e)$",xticklabelsvisible = false,xticksvisible=false)
+
+        ax1 = Axis(gpu1[1,1])
+        ax1.ylabel= L"$u$"
+        ax1.limits = ((-5,4),(-1,1))
+        if num_species == 1
+            ax1.xlabel=L"$\log_{10}(p)$  $[m_\text{Ele}c]$"
+        else
+            ax1.xticklabelsvisible = false
+            ax1.xticksvisible=false
+        end
+        if 1 < num_species < 3
+            ax2 = Axis(grid[3,2:3])
+        end
+        if 2 < num_species < 4
+            ax3 = Axis(grid[3,2:3])
+            ax2 = Axis(grid[4,2:3])
+        end
+
+
+        # nice labels on heatmaps
+        for (i, label) in enumerate(name_list)
+            if i == 1
+            Box(grid[2,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),strokewidth=2.0,cornerradius = (10,10,0,0),tellheight=false,width=56)
+            Label(grid[2,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=24)
+            else
+            Box(grid[i+1,4], color = (my_colors[i],0.5),strokecolor = RGBAf(200, 200, 200, 1.0),strokewidth=2.0,cornerradius = (10,10,0,0),tellheight=false,width=56)
+            Label(grid[i+1,4], label, rotation = pi/2, tellheight = false, color=RGBAf(200, 200, 200, 1.0),fontsize=20)
+            end
+        end
+
+        # col and row gaps
+        colgap!(grid,1,20)
+        rowgap!(gc,1,10)
+        if 1 < num_species
+        rowgap!(grid,2,-30)
+        end
+        colgap!(grid,3,-35)
+
+        #rowsize!(grid,1,Relative(1/(4)))
+        #rowsize!(grid,2,Relative(3/5 / (num_species)))
+        #rowsize!(grid,3,Relative(3/5 / (num_species)))
+        #rowsize!(grid,4,Relative(1/5))
+        
+        # set up non mutating axes 
+        for j in 1:num_species
+            if j == 1
+                d_null = zeros(Float32,(p_num_list[j]+1,u_num_list[j]))
+                fill!(d_null,NaN)
+                hm = heatmap!(ax1,[-14.0; log10.(pr_list[j])],ur_list[j],d_null, colormap = cmap) 
+                hideydecorations!(ax1,grid=false)
+            end
+            if j == num_species && num_species != 1
+                d_null = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                fill!(d_null,NaN)
+                hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],d_null, colormap = cmap)
+                ax2.xlabel=L"$\log_{10}$ Momentum $[m_\text{Ele}c]$"
+                ax2.yticklabelsvisible = false
+                ax2.yticksvisible=false
+                linkxaxes!(ax2,ax1) 
+            end
+            if j != 1 && j != num_species
+                d_null = zeros(Float32,(p_num_list[j],u_num_list[j]))
+                fill!(d_null,NaN)
+                hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],d_null, colormap = cmap)
+                ax3.yticklabelsvisible = false
+                ax3.yticksvisible=false
+                ax3.xticklabelsvisible = false
+                ax3.xticksvisible=false
+                linkxaxes!(ax2,ax3) 
+            end
+        end
+
+        linkxaxes!(ax1,axp) 
+        linkyaxes!(ax1,axu)
+
+        # temporary arrays
+        num = zeros(Float32,num_species)
+        num0 = zeros(Float32,num_species)
+        eng = zeros(Float32,num_species)
+        eng0 = zeros(Float32,num_species)
+
+        # time 
+        time = Observable(0.0) 
+        Label(grid[3,1],text=@lift("   t=$(round($time,sigdigits = 4))"),fontsize=24,tellheight=false,tellwidth=false,color=RGBAf(200,200,200,1.0),valign=:center,halign=:left)
+        Label(grid[3,1],text=L"               $[1/n\sigma_{T} c]$",fontsize=24,tellheight=false,tellwidth=false,color=RGBAf(200,200,200,1.0),valign=:center,halign=:center)
+
+        if isnothing(istart)
+            istart = 1
+        end
+        if isnothing(istop)
+            istop = length(sol.t)-1
+        end
+
+        d = Vector{Matrix{Float32}}(undef,num_species)
+        dp = Vector{Vector{Float32}}(undef,num_species)
+        du = Vector{Vector{Float32}}(undef,num_species)
+        dpu = Vector{Matrix{Float32}}(undef,num_species)
+        dinitial = Vector{Matrix{Float32}}(undef,num_species)
+        dthermal = Vector{Matrix{Float32}}(undef,num_species)
+        for j in 1:num_species
+            d[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dpu[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dp[j] = zeros(Float32,p_num_list[j])
+            du[j] = zeros(Float32,u_num_list[j])
+            dinitial[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dthermal[j] = zeros(Float32,(p_num_list[j],u_num_list[j]))
+            dinitial[j] .= reshape(sol.f[1].x[j],(p_num_list[j],u_num_list[j]))
+            dthermal[j] .= reshape(sol.f[istop].x[j],(p_num_list[j],u_num_list[j]))
+        end
+
+        if thermal 
+            tempFinal = zeros(Float32,num_species);
+            for i in eachindex(name_list)
+                Na = FourFlow(sol.f[istop].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
+                #println(Na)
+                #Ua = HydroFourVelocity(Na)
+                Ua = [-1,0,0,0] # static observer
+                #println(Ua)
+                Δab = ProjectionTensor(Ua)
+                #println(Δab)
+                Tab = StressEnergyTensor(sol.f[istop].x[i],p_num_list[i],u_num_list[i],pr_list[i],ur_list[i],mass_list[i])
+                #println(Tab)
+        
+                n = ScalarNumberDensity(Na,Ua)
+                #println(n)
+                e = ScalarEnergyDensity(Tab,Ua,n)
+                #println(e)
+                p = ScalarPressure(Tab,Δab)
+                #println(p)
+                T = ScalarTemperature(p,n)
+                #println(T)
+        
+                #numInit_list[i] = n
+                #engInit_list[i] = e
+                tempFinal[i] = T
+            end
+
+        end
+
+    # animation settings
+    itterator = range(istart,istop,step=step)
+    framerate = fps
+    p = Progress(length(itterator))
+    record(fig,filename,itterator; framerate=framerate) do itter
+
+        time[] = sol.t[itter]
+
+        empty!(axp)
+        empty!(axu)
+
+        for j in 1:num_species # setup j loop
+            dj = d[j]
+            dj .= reshape(sol.f[itter].x[j],(p_num_list[j],u_num_list[j]))
+            # unscale by dp*du 
+            for k in axes(dj,1), l in axes(dj,2)
+                #dj[k,l] /= (dp_list[j][k] * du_list[j][l])
+            end
+            @. dj = dj*(dj!=Inf)
+
+            # u averaged distribution plot
+
+                if initial
+                    dpinitial .= log10.(dinitial[j]*du_list[j])
+                    replace!(dp,-Inf32=>NaN)
+                    replace!(dp,Inf32=>NaN)
+                    stairs!(axp,log10.(meanp_list[j]),dpinitial,color=:white,step=:center,linewidth=3.0)
+                end
+
+                if thermal
+                    dpthermal = dthermal[j]*du_list[j] 
+                    MJPoints = MaxwellJuttner_Distribution(meanp_list[j],tempFinal[j],mass_list[j])
+                    # rescale as changed f definiton to number of particles
+                    MJPoints .= (MJPoints .* dp_list[j]) # need to fix du_list later
+                    # plot expected distribution (normlised by last output)
+                    MJPoints .= log10.((MJPoints/maximum(MJPoints)*maximum(dpthermal)))
+                    replace!(MJPoints,-Inf=>NaN) 
+                    scatterlines!(axp,log10.(meanp_list[j]),MJPoints,color=:blue,markersize = 0.0)
+                end
+
+                dp[j] .= log10.(dj*du_list[j] .* dp_list[j]) # dp Σduf(p,u) = dp f(p)
+                replace!(dp[j],-Inf32=>NaN)
+                replace!(dp[j],Inf32=>NaN)
+                #stairs!(axp,log10.(meanp_list[j]),dp[j],color=my_colors[j],step=:center,linewidth=3.0)
+
+            # p averaged distribution plot
+
+                if initial
+                    du_initial = (dp_list[j]' * dinitial[j])' 
+                    stairs!(axu,([du_initial[1]; du_initial].-mean(du_initial))./mean(du_initial),ur_list[j][1:end],color=:white,step=:post,linewidth=3.0)
+                end
+
+                du[j] = (dp_list[j]' * dj)' # Σdpf(p,u) = f(u)
+                #stairs!(axu,([du[j][1]; du[j]].-mean(du[j]))./mean(du[j]),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=3.0)
+
+            # distribution heat map
+                #dpu[j] .= log10.(dj) # f(p,u)
+                dpu[j] .= log10.(dp_list[j] .* dj) # dp f(p,u)
+                replace!(dpu[j],-Inf32=>NaN)
+
+                #=if j == 1
+                    empty!(ax1)
+                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(maximum(dpu)-10,maximum(dpu)+5),overdraw=true)
+                    cb = Colorbar(gl[1,1],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0),spinewidth=1.5)
+                elseif j == num_species && num_species != 1
+                    empty!(ax2)
+                    hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(-30,30),overdraw=true)
+                else
+                    hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(-30,30),overdraw=true)
+                end=#
+
+            # frac number density 
+                if itter == 1
+                    num0[j] = numInit_list[j]
+                else
+                    num0[j] = num[j]
+                end
+                Nᵃ = FourFlow(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+                #Ua = HydroFourVelocity(Na)
+                Uₐ = [-1,0,0,0] # static observer
+                num[j] = ScalarNumberDensity(Nᵃ,Uₐ)
+#=                 if itter != 1
+                    val = (num[j]-num0[j])/num[j]
+                    #scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
+                    scatter!(axn,sol.t[itter],val,marker = :circle,color = my_colors[j])
+                end =#
+
+            # energy plot
+                if itter == 1
+                    eng0[j] = engInit_list[j]
+                else
+                    eng0[j] = eng[j]
+                end
+                Tab = StressEnergyTensor(sol.f[itter].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+
+                eng[j] = ScalarEnergyDensity(Tab,Uₐ,num[j])
+
+#=                 if eng[j] != 0
+                    scatter!(axe,sol.t[itter],log10(eng[j]),marker=:circle,colormap=:viridis,color = my_colors[j])
+                end =#  
+
+        end # setup j loop 
+
+        max_dpu = maximum(x->isnan(x) ? -Inf : x,VectorOfArray(dpu))
+
+        for j in 1:num_species # plotting j loop
+            stairs!(axp,log10.(meanp_list[j]),dp[j],color=my_colors[j],step=:center,linewidth=3.0)
+            stairs!(axu,([du[j][1]; du[j]].-mean(du[j]))./mean(du[j]),ur_list[j][1:end],color=my_colors[j],step=:post,linewidth=3.0)
+            if j == 1
+                    empty!(ax1)
+                    hm = heatmap!(gpu1[1,1],log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-20,max_dpu+5),overdraw=true)
+                    Colorbar(gl[1,1],hm,vertical=false,flipaxis = false,labelsize=20,label = L"$\log_{10}f(p,u)$",labelcolor=RGBAf(200,200,200,1.0),bottomspinecolor = RGBAf(200,200,200,1.0),topspinecolor = RGBAf(200,200,200,1.0),leftspinecolor = RGBAf(200,200,200,1.0),rightspinecolor = RGBAf(200,200,200,1.0),minortickcolor=RGBAf(100,100,100,1.0),tickcolor=RGBAf(200,200,200,1.0),ticklabelcolor=RGBAf(200,200,200,1.0),spinewidth=1.5)
+            elseif j == num_species && num_species != 1
+                empty!(ax2)
+                hm = heatmap!(ax2,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-10,max_dpu+5),overdraw=true)
+            else
+                hm = heatmap!(ax3,log10.(pr_list[j]),ur_list[j],dpu[j], colormap = cmap,colorrange=(max_dpu-10,max_dpu+5),overdraw=true)
+            end
+        end
+
+        if itter != 1
+            val = (sum(num)-sum(num0))/sum(num)
+            ##scatter!(axn,sol.t[itter],(num[j]-num0[j])/num0[j],marker = :circle,color = my_colors[j])
+            scatter!(axn,sol.t[itter],val,marker = :circle,color = :white)
+
+            if sum(eng) != 0
+                #val = (sum(eng)-sum(eng0))/sum(eng)
+                scatter!(axe,sol.t[itter],log10(sum(eng)),marker=:circle,colormap=:viridis,color = :white)
+                #scatter!(axe,sol.t[itter],val,marker=:circle,colormap=:viridis,color = :white)
+            end
+        end
+
+        autolimits!(axp)
+        ylims!(axp,0,8)
+        autolimits!(axu)
+        autolimits!(axe)
+        autolimits!(axn)
+
+        next!(p)
+        
+    end
+    finish!(p)
+    if isnothing(iframe) == false
+        return fig
+    end
+
+end
+
+
+function PDistPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct;step=1,uDis=false,logt=false,plot_limits=(nothing,nothing),theme=DiplodocusDark())
+
+    with_theme(theme) do
+
+    fig = Figure()
+    ax = Axis(fig[1,1],xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+    ax.limits = plot_limits
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    species_index = findfirst(x->x==species,name_list)
+
+    p_num = Momentum.px_num_list[species_index]  
+    u_num = Momentum.py_num_list[species_index]
+    dp = Grids.dpx_list[species_index]
+    du = Grids.dpy_list[species_index]
+    meanp = Grids.mpx_list[species_index]
+
+    d = zeros(Float32,p_num,u_num)
+    dj = zeros(Float32,p_num,2)
+
+    t_save = length(sol.t)
+
+    t_plot = ceil(Int64,t_save/step)
+
+    color_counter = 1
+
+    if logt
+        log_t = log10.(sol.t)
+        values = findall(x->x%1==0,log_t)
+        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = length(values)+1)]
+    else
+        values = (1:t_save)*step
+        my_colors = [cgrad(:rainbow)[z] for z ∈ range(0.0, 1.0, length = t_plot+1)]
+    end
+
+    for i in 1:t_save
+
+    if i in values || i == 1
+
+        t = sol.t[i]
+
+        d .= reshape(sol.f[i].x[species_index],(p_num,u_num))
+
+        @. d = d*(d!=Inf)
+
+        if uDis
+            dj .= log10.(d .* dp)[:,4:3:8] # print just aligned and antialigned with field
+
+            #replace!(x -> x>=1f-20 ? x : NaN, dj)
+            
+            #scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=1.0,strokecolor = my_colors[color_counter])
+            #stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=1.0,color = my_colors[color_counter])
+            #stairs!(ax,log10.(meanp),dj[:,2],step=:center,linewidth=1.0,linestyle=:dash,color = my_colors[color_counter])
+
+            scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=2.0,color = my_colors[color_counter],markersize=1.0)
+            scatterlines!(ax,log10.(meanp),dj[:,2],linewidth=2.0,color = my_colors[color_counter],markersize=1.0,linestyle=:dash)
+        else
+            dj[:,1] .= log10.(d*du .* dp)
+
+            #replace!(x -> x>=1f-20 ? x : NaN, dj)
+
+            #stairs!(ax,log10.(meanp),dj[:,1],step=:center,linewidth=1.0,color = my_colors[color_counter])
+            scatterlines!(ax,log10.(meanp),dj[:,1],linewidth=2.0,color = my_colors[color_counter],markersize=1.0)
+        end
+
+        color_counter += 1
+
+    end
+
+    end
+
+#=     if species == "Pho"
+
+        vlines!([1,2,3,4,5,6,-3])
+
+    end =#
+
+    Colorbar(fig[1,2],colormap = my_colors,limits=(log10(sol.t[2]),log10(sol.t[end])),label=L"$\log_{10}(t)$ $[\text{s} * \sigma_{T}c]$")
+    
+    return fig
+
+    end # with_theme
+
+end
+
+
+"""
+    FracNumPlot(sol,species,PhaseSpace;fig=nothing)
+
+Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
+"""
+function FracNumPlot(sol::OutputStruct,species::String,PhaseSpace::PhaseSpaceStruct;fig=nothing,theme="dark")
+
+    if theme == "light"
+        theme = DiplodocusLight
+    elseif theme == "dark"
+        theme = DiplodocusDark
+    end
+
+    with_theme(theme) do
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    p_num_list = Momentum.px_num_list
+    u_num_list = Momentum.py_num_list
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+
+    mass_list = Grids.mass_list
+
+    num_species = length(name_list)
+
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    end
+
+    j = findfirst(x->x==species,name_list)
+
+    num = 0e0
+
+    for i in eachindex(sol.t)
+
+        if i == 1
+            Nᵃ = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            #Ua = HydroFourVelocity(Na)
+            Uₐ = [-1,0,0,0] # static observer
+            num = ScalarNumberDensity(Nᵃ,Uₐ)
+        end
+        num0 = num 
+
+        Nᵃ = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+        #Uₐ = HydroFourVelocity(Nᵃ)
+        Uₐ = [-1,0,0,0] # static observer
+        num = ScalarNumberDensity(Nᵃ,Uₐ)
+
+        scatter!(ax,log10(sol.t[i]),num/num0#=num/numInit_list[j]=#-1,marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+    
+    end
+
+    end # with_theme
+
+    return fig
+end
+
+"""
+    FracNumPlot_AllSpecies(sol,num_species,dp_list,du_list,numInit_list,p_num_list,u_num_list;fig=nothing)
+
+Returns a plot of the relative number density (compaired to initial values) of each species as a function of time.
+"""
+function NumPlot(sol,species::String,PhaseSpace::PhaseSpaceStruct,numInit_list;mode="AXI",fig=nothing)
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    p_num_list = Momentum.px_num_list
+    u_num_list = Momentum.py_num_list
+    pr_list = Grids.pxr_list
+    ur_list = Grids.pyr_list
+
+    mass_list = Grids.mass_list
+
+    num_species = length(name_list)
+
+
+    if isnothing(fig)
+        fig = Figure(size=(600,300))
+        ax = Axis(fig[1,1],title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    else
+        ax = Axis(fig,title="Number Density",xlabel="Time",ylabel="Frac. Change")
+    end
+
+    j = findfirst(x->x==species,name_list)
+
+    num = 0e0
+
+    for i in eachindex(sol.t)
+
+        if i == 1
+            Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+            Ua = HydroFourVelocity(Na)
+            num = ScalarNumberDensity(Na,Ua)
+        end
+        num0 = num 
+
+        Na = FourFlow(sol.f[i].x[j],p_num_list[j],u_num_list[j],pr_list[j],ur_list[j],mass_list[j])
+        Ua = HydroFourVelocity(Na)
+        num = ScalarNumberDensity(Na,Ua)
+
+        scatter!(ax,log10(sol.t[i]),num/num0#=num/numInit_list[j]=#-1,marker = :circle,colormap = :viridis, colorrange = [1, num_species+1],color = j)
+    
+    end
+
+    return fig
+end
+
+
+############ OBERSERVER plots
+
+function ObserverFlux(PhaseSpace::PhaseSpaceStruct,sol::OutputStruct,ObserverAngles::Vector{Float64},ObserverDistance::Float64)
+
+    Space = PhaseSpace.Space
+    Time = PhaseSpace.Time
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    name_list = PhaseSpace.name_list
+
+    if typeof(Space.space_coordinates) != Cylindrical
+        error("ObserverFlux is only implemented for cylindrical coordinates.")
+    end
+
+    photon_index = findfirst(x->x=="Pho",name_list)
+
+    β = Space.space_coordinates.β # local frame angle
+    sβ, cβ = sincospi(β)
+
+    d = ObserverDistance
+    to_r = ObserverAngles
+
+    dz = Grids.dz[1]
+    R = Grids.xr[2]
+
+    ur = Grids.pyr_list[photon_index]
+    mp = Grids.mpx_list[photon_index]
+
+    Iν = zeros(length(sol.t),length(ObserverAngles),Momentum.px_num_list[photon_index])
+
+    for (θ_idx, θ) in enumerate(ObserverAngles)
+
+        sθ, cθ = sincospi(θ)
+
+        a = sθ*sβ
+        b = cθ*cβ
+
+        u_low = cospi(θ+β)
+        u_up = cospi(θ-β)
+
+        println("$a,$b")
+
+        for t in 1:length(sol.t)
+
+            photon_f = reshape(sol.f[t].x[photon_index],(
+                Momentum.px_num_list[photon_index],
+                Momentum.py_num_list[photon_index],
+                Momentum.pz_num_list[photon_index]
+            ))
+
+            for py in 1:(length(ur)-1)
+                if ur[py] <= u_low < ur[py+1] <= u_up  
+                    u0 = u_low
+                    u1 = ur[py+1]
+                elseif ur[py] <= u_low < u_up <= ur[py+1]
+                    u0 = u_low
+                    u1 = u_up
+                elseif u_low <= ur[py] < ur[py+1] <= u_up
+                    u0 = ur[py]
+                    u1 = ur[py+1]
+                elseif u_low <= ur[py] < u_up <= ur[py+1]
+                    u0 = ur[py]
+                    u1 = u_up
+                elseif u_low == u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif ur[py] <= ur[py+1] < u_low <= u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  u_low < u_up <= ur[py] < ur[py+1] 
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  ur[py] < ur[py+1] <= u_low < u_up
+                    u0 = u1 = 1.0 # i.e. no integration
+                elseif  u_low < u_up <= ur[py] < ur[py+1]
+                    u0 = u1 = 1.0 # i.e. no integration
+                else
+                    println("$u_low, $u_up, $(ur[py]), $(ur[py+1])")
+                    error("Didn't account for this")
+                end
+
+                for px in 1:(Momentum.px_num_list[photon_index]-1)
+
+                    #println("$u_low, $u_up, $(ur[py]), $(ur[py+1]), $u0, $u1, $a, $b")
+                    #println("$(a+b)")
+                    #println("$β")
+                    if u0 != u1 && u0 != u_low && u1 != u_up
+                        val = mp[px] * photon_f[px,py,1] * (-atan(sqrt(a^2-(b-u1)^2),(u1-b))+atan(sqrt(a^2-(b-u0)^2),(u0-b)))
+                    elseif u0 != u1 && u0 == u_low 
+                        val = mp[px] * photon_f[px,py,1] * (-atan(sqrt(a^2-(b-u1)^2),(u1-b)) + (sign(u0-b)==1 ? 0 : pi))
+                    elseif u0 != u1 && u1 == u_up
+                        val = mp[px] * photon_f[px,py,1] * (-(sign(u1-b)==1 ? 0 : pi)+atan(sqrt(a^2-(b-u0)^2),(u0-b)))
+                    else
+                        val = 0.0
+                    end
+
+                    if β == 0.0
+                        val = mp[px] * photon_f[px,py,1] * ((ur[py] <= cθ <= ur[py+1]) ? 1.0 : 0.0) * pi 
+                    end
+
+                    if val < 0
+                        println("Negative value encountered: $val at px=$px, py=$py, θ=$θ")
+                        println("$u_low, $u_up, $(ur[py]), $(ur[py+1]), $u0, $u1, $a, $b")
+                        println("$(a+b)")
+                        println("$β")
+                        println("$(photon_f[px,py,1])")
+                    end
+
+                    Iν[t,θ_idx,px] += val
+                    Iν[t,θ_idx,px] *= R*dz/(4*pi*d^2)
+
+                end                
+
+            end
+
+        end
+
+    end
+
+    return Iν
+
+end
+
+
+function ObserverFluxPlot(PhaseSpace::PhaseSpaceStruct,sol::OutputStruct,ObserverAngles::Vector{Float64},ObserverDistance::Float64;plot_limits=(nothing,nothing))
+
+    GLMakie.activate!(inline=false)
+
+    name_list = PhaseSpace.name_list
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Time = PhaseSpace.Time
+
+    β = Space.space_coordinates.β # local frame angle
+
+    photon_index = findfirst(x->x=="Pho",name_list)
+
+    ur = Grids.pyr_list[photon_index]
+    mp = Grids.mpx_list[photon_index]
+
+    Iν = ObserverFlux(PhaseSpace,sol,ObserverAngles,ObserverDistance)
+
+    sg = SliderGrid(fig[2,1],
+    (label = "t_idx", range = 1:length(p1_m), startvalue = 1, update_while_dragging = false),
+    )
+
+    t_idx = sg.sliders[1].value
+
+    fig = Figure()
+    ax = Axis(fig[1,1],title = "Observed Flux at angle θ to jet z axis, with B-Field at an angle of β =$(β)π",xlabel=L"$\log_{10}p$ $[m_\text{Ele}c]$",ylabel=L"$\log_{10}\left(p^2\frac{\mathrm{d}N}{\mathrm{d}p\mathrm{d}V}\right)$ $[\text{m}^{-3}]$",aspect=DataAspect())
+    ax.limits = plot_limits
+
+    flux_val = @lift(log10.(Iν[$t_idx,:,:]))
+
+    for θ in 1:length(ObserverAngles)
+
+        scatterlines!(ax,log10.(mp),flux_val[θ,:],linewidth=2.0,markersize=1.0,label= "θ=$(ObserverAngles[θ])π")
+
+    end
+
+    axislegend(ax)
+
+
+    return fig
+
+end
