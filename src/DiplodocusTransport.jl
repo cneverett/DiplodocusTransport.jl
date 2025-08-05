@@ -18,7 +18,6 @@ module DiplodocusTransport
     using Bessels
     using Statistics
     using RecursiveArrayTools
-    using CairoMakie
 
     include("Types.jl")
     include("StructsAndDictionaries.jl")
@@ -47,6 +46,6 @@ module DiplodocusTransport
     include("Solver.jl")
 
     # post-processing
-    include("Plotting.jl")
+    #include("Plotting.jl")
 
 end
