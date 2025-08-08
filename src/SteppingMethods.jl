@@ -41,9 +41,10 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     #  @. Euler.temp -= Euler.FluxM.B_Flux
     #  @. Euler.temp -= Euler.FluxM.C_Flux
     #  @. Euler.temp -= Euler.FluxM.D_Flux
-    @. Euler.temp -= Euler.FluxM.K_Flux 
-    @. Euler.temp -= Euler.FluxM.J_Flux 
-    @. Euler.temp -= Euler.FluxM.I_Flux
+    #@. Euler.temp -= Euler.FluxM.K_Flux 
+    #@. Euler.temp -= Euler.FluxM.J_Flux 
+    #@. Euler.temp -= Euler.FluxM.I_Flux
+    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.J_Flux + Euler.K_Flux
     if Euler.Implicit
         @. Euler.Jac -= Euler.FluxM.K_Flux
         @. Euler.Jac -= Euler.FluxM.J_Flux
@@ -57,8 +58,9 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
         end
     end
     # add time fluxes to temp
-    @. Euler.temp -= Euler.FluxM.Ap_Flux
-    @. Euler.temp -= Euler.FluxM.Am_Flux
+    #@. Euler.temp -= Euler.FluxM.Ap_Flux
+    #@. Euler.temp -= Euler.FluxM.Am_Flux
+    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.Am_Flux
 
     if isinf(sum(Euler.temp))
         error("overflow in arrays")
@@ -93,8 +95,8 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
         end =#
 
         
-        if isdiag(Euler.FluxM.Ap_Flux)
-            Euler.df_temp .= diag(Euler.FluxM.Ap_Flux)
+        #if isdiag(Euler.FluxM.Ap_Flux)
+            Euler.df_temp .= diag(Euler.FluxM.Ap_Flux) # ASSUMING Ap_Flux is DIAGONAL, TO BE UPDATED LATER !!!!!!!!!!!
             Euler.temp ./= Euler.df_temp
             #ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
             #println("$(sum(Euler.temp))")
@@ -102,10 +104,10 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
             #println("t = $t")
             #println("max λ = $(maximum(abs.(eigvals(Euler.temp))))")
             #println("min λ = $(minimum(abs.(eigvals(Euler.temp))))")
-        else
-            lu!(Euler.LU,Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.temp,Euler.LU,Euler.temp)
-        end
+        #else
+        #    lu!(Euler.LU,Euler.FluxM.Ap_Flux)
+        #    ldiv!(Euler.temp,Euler.LU,Euler.temp)
+        #end
         mul!(Euler.df,Euler.temp,f)
 
     end
@@ -204,10 +206,10 @@ function update_Big_Emi!(method::SteppingMethodType,f)
 
         tempView = @view method.M_Emi_Step[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
 
-        tempView .= method.BigM.M_Emi
+        @. tempView = method.BigM.M_Emi * Vol[off_space+1]
 
         # multiply by volume element
-        tempView .*= Vol[off_space+1]
+        #tempView .*= Vol[off_space+1]
 
     end
 
