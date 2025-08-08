@@ -44,7 +44,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     #@. Euler.temp -= Euler.FluxM.K_Flux 
     #@. Euler.temp -= Euler.FluxM.J_Flux 
     #@. Euler.temp -= Euler.FluxM.I_Flux
-    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.J_Flux + Euler.K_Flux
+    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
     if Euler.Implicit
         @. Euler.Jac -= Euler.FluxM.K_Flux
         @. Euler.Jac -= Euler.FluxM.J_Flux
@@ -60,7 +60,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     # add time fluxes to temp
     #@. Euler.temp -= Euler.FluxM.Ap_Flux
     #@. Euler.temp -= Euler.FluxM.Am_Flux
-    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.Am_Flux
+    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.FluxM.Am_Flux
 
     if isinf(sum(Euler.temp))
         error("overflow in arrays")
