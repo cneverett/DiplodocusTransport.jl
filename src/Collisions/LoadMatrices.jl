@@ -314,6 +314,13 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         name3::String = interaction.name3
         type::String = interaction.EmiName
 
+        # ele pos swap for synchrotron
+        if name1 == "Pos" && name2 == "Pos" && name3 == "Pho"
+            name1 = "Ele"
+            name2 = "Ele"
+            name3 = "Pho"
+        end
+
         Ext::Vector{Float64} = interaction.Ext
 
         name1_loc = findfirst(==(name1),name_list)
