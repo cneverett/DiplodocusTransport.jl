@@ -18,7 +18,7 @@ function FourFlow(f1D::Vector{T},p_num,u_num,pr,ur,m) where T<:AbstractFloat
         du2[i] = (ur[i+1]^2-ur[i]^2)/2
     end
     for i in 1:p_num 
-        dE[i] = sqrt([pr[i+1]^2+m^2]) - sqrt(pr[i]^2+m^2)
+        dE[i] = sqrt(pr[i+1]^2+m^2) - sqrt(pr[i]^2+m^2)
         dp[i] = (pr[i+1]-pr[i])
     end
 
