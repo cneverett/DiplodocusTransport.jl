@@ -115,6 +115,7 @@
         phi0pi::Float64 = Float64(phi0/pi) # using sinpi rather than sin to avoid float issues 
         phi1pi::Float64 = Float64(phi1/pi) # using sinpi rather than sin to avoid float issues
 
+        m = getfield(DC,Symbol("mu"*name))
 
         flux::Float64 = -(1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2))*(-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1)
         flux *=  sinpi(β)*(sinpi(phi0pi) - sinpi(phi1pi))*(-2u*sqrt(1 - u^2)*sinpi(β) + (-1 + u^2)*cospi(β)*(sinpi(phi0pi) + sinpi(phi1pi)))
