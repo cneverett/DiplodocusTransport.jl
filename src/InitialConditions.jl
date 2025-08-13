@@ -114,6 +114,9 @@ function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,
     u_grid = u_grid_list[species_index]
     h_num = h_num_list[species_index]
     h_grid = h_grid_list[species_index]
+    p_r = Grids.pxr_list[species_index]
+    u_r = Grids.pyr_list[species_index]
+    h_r = Grids.pzr_list[species_indes]
 
     f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 ``
@@ -136,12 +139,12 @@ function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,
     # power law averaged over cell width.
     for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 
         # f calculated using simple trapezium rule (fabc is f at the a bound of p, b bound of u and c bound of h)
-        pp = p_grid[px+1]
-        pm = p_grid[px]
-        up = u_grid[py+1]
-        um = u_grid[py]
-        hp = h_grid[pz+1]
-        hm = h_grid[pz]
+        pp = p_r[px+1]
+        pm = p_r[px]
+        up = u_r[py+1]
+        um = u_r[py]
+        hp = h_r[pz+1]
+        hm = h_r[pz]
         fmmm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*um)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*um)^2-mass^2)
         fpmm = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*um)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*um)^2-mass^2)
         fmpm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
@@ -152,9 +155,9 @@ function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,
         fppp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
         f0_3D_species[px,py,pz] = (fmmm + fpmm + fmpm + fmmp + fppm + fpmp + fmpp + fppp) / 8
         if px == pmin_index
-            f0_3D_species[px,py,pz] *= (p_grid[px+1]-pmin_UB) / (p_grid[px+1]-p_grid[px])
+            f0_3D_species[px,py,pz] *= (p_r[px+1]-pmin_UB) / (p_r[px+1]-p_r[px])
         elseif px == pmax_index
-            f0_3D_species[px,py,pz] *= (pmax_UB-p_grid[px]) / (p_grid[px+1]-p_grid[px])
+            f0_3D_species[px,py,pz] *= (pmax_UB-p_r[px]) / (p_r[px+1]-p_r[px])
         end
     end
 
