@@ -85,7 +85,7 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,p
 end
 
 """
-    Initial_UnBoostedPowerLaw(Lists,species,pmin,pmax,Gamma,index,num_Init)
+    Initial_UnBoostedPowerLaw(PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and returns the distribution as observed by a static observer, with a number density of `num_Init`.
 """
@@ -118,7 +118,7 @@ function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,
     f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 ``
     # Set Rapidity 
-    w::Float64 = arccosh(Gamma)
+    w::Float64 = acosh(Gamma)
     cw = cosh(w)
     sw = sinh(w)
     # de-boost pmin and pmax 
