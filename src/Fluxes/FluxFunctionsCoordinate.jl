@@ -148,6 +148,9 @@
         flux::Float64 = -(1/8)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(t0 - t1)*(x0 - x1)*(y0 - y1)*(z0 - z1) 
         flux *= ((u0 - u1)*(u0 + u1)*(-3 + cospi(2phipi))*sinpi(2β) + 4(-asin(u0) + asin(u1) + (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2))*cospi(2β))*sinpi(phipi))
 
+        flux::Float64 = (1/4)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(t0 - t1)*(x0 - x1)*(y0 - y1)*(z0 - z1)
+        flux *= (-3u0^2*cospi(β)*sinpi(β) + 3u1^2*cospi(β)*sinpi(β) + u0^2*cospi(β)*cospi(phi)^2*sinpi(β) - u1^2*cospi(β)*cospi(phi)^2*sinpi(β) + 4acot_mod(u1)*sinpi(phi) - 4acot_mod(u0)*sinpi(phi) - 2*u0*sqrt(1 - u0^2)*cospi(β)^2*sinpi(phi) + 2u1*sqrt(1 - u1^2)*cospi(β)^2*sinpi(phi) + 2u0*sqrt(1 - u0^2)*sinpi(β)^2*sinpi(phi) - 2u1*sqrt(1 - u1^2)*sinpi(β)^2*sinpi(phi) - u0^2*cospi(β)*sinpi(β)*sinpi(phi)^2 + u1^2*cospi(β)*sinpi(β)*sinpi(phi)^2)
+
         return flux
 
     end
