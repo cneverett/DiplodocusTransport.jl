@@ -116,7 +116,7 @@ function Initial_UnBoostedPowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,
     h_grid = h_grid_list[species_index]
     p_r = Grids.pxr_list[species_index]
     u_r = Grids.pyr_list[species_index]
-    h_r = Grids.pzr_list[species_indes]
+    h_r = Grids.pzr_list[species_index]
 
     f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 ``
