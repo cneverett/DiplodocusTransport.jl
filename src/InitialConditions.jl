@@ -58,7 +58,7 @@ function Location_Species_To_StateVector(StateVector::Vector{Float32},PhaseSpace
     start_idx = 1+off_name+off_space
     end_idx = pz_num*px_num*py_num+off_name+off_space
 
-    return @view(Initial[start_idx:end_idx])
+    return @view(StateVector[start_idx:end_idx])
 
 end
 
