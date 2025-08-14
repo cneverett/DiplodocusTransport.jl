@@ -25,15 +25,20 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
         self.Implicit = Implicit  
 
-        self.M_Bin_Mul_Step = zeros(T,length(f0),length(f0))
-        self.M_Emi_Step = zeros(T,length(f0),length(f0))
-        if Implicit
-            self.Jac = zeros(T,length(f0),length(f0))
+        if isempty(PhaseSpace.Binary_list) == false
+            self.M_Bin_Mul_Step = zeros(T,length(f0),length(f0))
+        end
+        if isempty(PhaseSpace.Emi_list) == false
+            self.M_Emi_Step = zeros(T,length(f0),length(f0))
         end
         self.df = zeros(T,length(f0))
         self.df_temp = zeros(T,length(f0))
         self.temp = zeros(T,length(f0),length(f0))
-        self.LU = lu(zeros(T,length(f0),length(f0))+I)
+        if Implicit
+            self.Jac = zeros(T,length(f0),length(f0))
+            self.LU = lu(zeros(T,length(f0),length(f0))+I)
+        end
+
 
         return self
     end
