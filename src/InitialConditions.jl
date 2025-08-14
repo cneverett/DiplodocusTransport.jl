@@ -143,7 +143,7 @@ function Initial_PowerLaw(PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,p
     return Float32.(f0_species)
 end
 
-function Initial_PowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String,pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat) where S <: Union{Float32,Float64,Int64}
+function Initial_PowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64,Int64}
 
     Momentum = PhaseSpace.Momentum
 
