@@ -148,7 +148,7 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= convert(F,f0_species)
+    Initial_local .+= convert(typeof(Initial),f0_species)
 
     return nothing
 end
@@ -243,7 +243,7 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= convert(F,f0_species)
+    Initial_local .+= convert(typeof(Initial),f0_species)
 
     return nothing
 end
@@ -314,7 +314,7 @@ function Initial_Constant!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= convert(F,f0_species)
+    Initial_local .+= convert(typeof(Initial),f0_species)
 
     return nothing
 end
@@ -373,7 +373,7 @@ function Initial_MaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= convert(F,f0_species)
+    Initial_local .+= convert(typeof(Initial),f0_species)
 
     return nothing
 
