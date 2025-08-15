@@ -14,17 +14,17 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
+function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:AbstractFloat
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
     # reset arrays
-    fill!(df,Float32(0))
-    fill!(Euler.df,Float32(0))
-    fill!(Euler.temp,Float32(0))
+    fill!(df,zero(eltype(df)))
+    fill!(Euler.df,zero(eltype(Euler.df)))
+    fill!(Euler.temp,zero(eltype(Euler.temp)))
     if Euler.Implicit
-        fill!(Euler.Jac,Float32(0))
+        fill!(Euler.Jac,zero(eltype(Euler.Jac)))
     end
         
     # add binary terms to temp (jacobians are added in update_Big_Bin! if implicit)
