@@ -113,114 +113,23 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
         end
     end
 
-    # interaction = ["name1","name2","name3","name4"]
     name1_loc = findfirst(==(name1),name_list)
     name2_loc = findfirst(==(name2),name_list)
     name3_loc = findfirst(==(name3),name_list)
     name4_loc = findfirst(==(name4),name_list)
 
-#=
-    if name1 == name2 && name3 == name4
 
-        if typeof(Mode) == Axi
+    GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+    GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+    LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+    LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
 
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+    GainMatrix3 = nothing
+    GainMatrix4 = nothing
+    LossMatrix1 = nothing
+    LossMatrix2 = nothing
 
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-
-        else
-            error("Error: Momentum mode not recognised")
-        end
-
-        GainMatrix3 = nothing
-        LossMatrix1 = nothing
-
-        GC.gc()
-
-    end
-
-    if name1 == name2 && name3 != name4
-
-        if typeof(Mode) == Axi
-
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-            dpy4 = Grids.dpy[name4_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpy2,dpy3)
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-
-        end
-
-        GainMatrix3 = nothing
-        GainMatrix4 = nothing
-        LossMatrix1 = nothing
-
-        GC.gc()
-
-    end
-
-    if name1 != name2 && name3 == name4
-
-        if typeof(Mode) == Axi
-
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
-
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
-
-        end
-
-        GainMatrix3 = nothing
-        LossMatrix1 = nothing
-        LossMatrix2 = nothing
-
-        GC.gc()
-
-    end
-=#
-
-    #if name1 != name2 && name3 != name4
-
-        GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-        LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-        LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
-
-        GainMatrix3 = nothing
-        GainMatrix4 = nothing
-        LossMatrix1 = nothing
-        LossMatrix2 = nothing
-
-        GC.gc()
+    GC.gc()
 
     #end
 

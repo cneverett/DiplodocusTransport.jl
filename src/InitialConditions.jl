@@ -3,7 +3,7 @@
 
 Returns a zero vector with elements for the initial conditions of all particles at all positions in phase space. 
 """
-function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct)
+function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct;Type::DataType=Float32)
 
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list
@@ -15,7 +15,7 @@ function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct)
     n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*x_num*y_num*z_num
 
-    return zeros(Float32,m)
+    return zeros(Type,m)
 
 end
 
@@ -25,7 +25,7 @@ end
 Returns a `view` to the section of the `StateVector` corresponding to the momentum space of `species` at x coordinate `x_idx`, y coordinate `y_idx` and z coordinate `z_idx`. 
 
 """
-function Location_Species_To_StateVector(StateVector::Vector{Float32},PhaseSpace::PhaseSpaceStruct;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,species_index::Int64=0)
+function Location_Species_To_StateVector(StateVector::Vector{F},PhaseSpace::PhaseSpaceStruct;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,species_index::Int64=0) where F<:AbstractFloat
 
     if iszero(species_index)
         error("Species not defined")
@@ -68,7 +68,7 @@ end
 
 Modifies the initial state vector `Initial` with a power law distribution with `index` for `species`. A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
-function Initial_PowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64,Int64}
+function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -148,7 +148,7 @@ function Initial_PowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= f0_species
+    Initial_local .+= convert(F,f0_species)
 
     return nothing
 end
@@ -158,7 +158,7 @@ end
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and modifies the initial state vector (disribution), with a number density of `num_Init`.
 """
-function Initial_UnBoostedPowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64}
+function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -243,7 +243,7 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{Float32},PhaseSpace::PhaseSp
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= f0_species
+    Initial_local .+= convert(F,f0_species)
 
     return nothing
 end
@@ -253,7 +253,7 @@ end
 
 Divides the initial number density `num_Init` equally among momentum-space bins in the range of `pmin` to `pmax`, `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values. This is then applies to the initial state vector `Initial`.
 """
-function Initial_Constant!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String;pmin::T,pmax::T,umin::T,umax::T,hmin::T,hmax::T,num_Init::AbstractFloat=1.0) where T <: Union{Float32,Float64,Int64}
+function Initial_Constant!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::T,pmax::T,umin::T,umax::T,hmin::T,hmax::T,num_Init::AbstractFloat=1.0) where T <: Union{Float32,Float64,Int64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -314,7 +314,7 @@ function Initial_Constant!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= f0_species
+    Initial_local .+= convert(F,f0_species)
 
     return nothing
 end
@@ -324,7 +324,7 @@ end
 
 Modeifies the initial state vector `Initial` with a Maxwell-Juttner distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function Initial_MaxwellJuttner!(Initial::Vector{Float32},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat=1.0)  where S <: Union{Float32,Float64,Int64}
+function Initial_MaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat=1.0)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -373,7 +373,7 @@ function Initial_MaxwellJuttner!(Initial::Vector{Float32},PhaseSpace::PhaseSpace
 
     Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
 
-    Initial_local .+= f0_species
+    Initial_local .+= convert(F,f0_species)
 
     return nothing
 

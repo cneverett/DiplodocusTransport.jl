@@ -15,7 +15,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     temp::Matrix{T}
     LU::LinearAlgebra.LU{T, Matrix{T}, Vector{Int64}}
 
-    function EulerStruct(f0::fType,PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct{Matrix{T}},Flux_Matrices::FluxMatricesStruct{Matrix{T},Vector{T}},Implicit::Bool) where T<:AbstractFloat
+    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct{Matrix{T}},Flux_Matrices::FluxMatricesStruct{Matrix{T},Vector{T}},Implicit::Bool) where T<:AbstractFloat
 
         self = new{T}()
 
