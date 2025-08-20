@@ -6,7 +6,7 @@ module DiplodocusTransport
     export Cylindrical, Spherical, Cartesian, Ani, Axi, Iso
     export CoordinateForce, SyncRadReact
     export BuildBigMatrices, BuildFluxMatrices
-    export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!
+    export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_UnBoostedPowerLaw!
     export Solve, EulerStruct
     export SolutionFileLoad
     export MaxwellJuttner_Distribution
