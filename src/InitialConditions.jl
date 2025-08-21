@@ -196,8 +196,12 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
     # de-boost pmin and pmax 
     Emin::Float64 = sqrt(mass^2+pmin^2)
     Emax::Float64 = sqrt(mass^2+pmax^2)
-    pmin_UB::Float64 = sqrt((cosh(w)*Emin-sinh(w)*pmin)^2-mass^2)
-    pmax_UB::Float64 = sqrt((cosh(w)*Emax-sinh(w)*pmax)^2-mass^2)
+    p1 = sqrt((cw*Emin-sw*pmin)^2-mass^2)
+    p2 = sqrt((cw*Emin+sw*pmin)^2-mass^2)
+    p3 = sqrt((cw*Emax-sw*pmax)^2-mass^2)
+    p4 = sqrt((cw*Emax+sw*pmax)^2-mass^2)
+    pmin_UB::Float64 = min(p1,p2,p3,p4)
+    pmax_UB::Float64 = max(p1,p2,p3,p4)
     Emin_UB::Float64 = sqrt(mass^2+pmin_UB^2)
     Emax_UB::Float64 = sqrt(mass^2+pmax_UB^2)
 
