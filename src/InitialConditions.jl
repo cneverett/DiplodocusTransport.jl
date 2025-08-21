@@ -156,7 +156,7 @@ end
 """
     Initial_UnBoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
-Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and modifies the initial state vector (disribution), with a number density of `num_Init`.
+Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
 """
 function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64} where F<:AbstractFloat
 
@@ -223,6 +223,7 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
         fmpp = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
         fppp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
         f0_3D_species[px,py,pz] = (fmmm + fpmm + fmpm + fmmp + fppm + fpmp + fmpp + fppp) / 8
+        f0_3D_species[px,py,pz] *= (pp-pm)*(up-um)*(hp-hm)
         if px == pmin_index
             f0_3D_species[px,py,pz] *= (p_r[px+1]-pmin_UB) / (p_r[px+1]-p_r[px])
         elseif px == pmax_index
