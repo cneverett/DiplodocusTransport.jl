@@ -42,7 +42,7 @@ function MaxwellJuttner_Distribution(PhaseSpace::PhaseSpaceStruct,species::Strin
 end
 
 function BlackBody_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;n::Float64=1e0)
-    # Generates the height of the MJ distribution at positions of the mean momentum per bin
+    # Generates the height of the BB distribution at positions of the mean momentum per bin
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -65,7 +65,7 @@ function BlackBody_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::
     invtheta = mEle*c^2/(kb*T)
     @. BBPoints = (meanp^2) / (exp(meanp*invtheta)-1) * dp
 
-    num = sum(MJPoints)
+    num = sum(BBPoints)
     BBPoints = BBPoints ./ num .*n # scale to number density
 
     return BBPoints
