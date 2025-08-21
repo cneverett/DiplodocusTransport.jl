@@ -380,6 +380,66 @@ function Initial_MaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct
 
 end
 
+"""
+    Initial_BlackBody(PhaseSpace,species,T,umin,umax,hmin,hmax,num_Init)
+
+Modeifies the initial state vector `Initial` with a Black-Body distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
+"""
+function Initial_BlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat=1.0)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+
+    name_list = PhaseSpace.name_list
+    p_up_list = Momentum.px_up_list
+    p_low_list = Momentum.px_low_list
+    p_grid_list = Momentum.px_grid_list
+    p_num_list = Momentum.px_num_list
+    u_grid_list = Momentum.py_grid_list
+    u_num_list = Momentum.py_num_list
+    h_num_list = Momentum.pz_num_list
+    h_grid_list = Momentum.pz_grid_list
+
+    species_index = findfirst(==(species),name_list)
+
+    u_grid = u_grid_list[species_index]
+    u_num = u_num_list[species_index]
+    h_num = h_num_list[species_index]
+    h_grid = h_grid_list[species_index]
+
+    type = zero(S)
+    if (typeof(type) == Float32) || (typeof(type) == Float64) 
+        umin_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umin),u_grid)
+        umax_index = DC.location(DC.u_low,DC.u_up,u_num,Float64(umax),u_grid)
+        hmin_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmin),h_grid)
+        hmax_index = DC.location(DC.h_low,DC.h_up,h_num,Float64(hmax),h_grid)
+    elseif typeof(type)==Int64
+        umin_index = umin
+        umax_index = umax
+        hmin_index = hmin
+        hmax_index = hmax
+    end
+
+    f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
+
+    for py in umin_index:umax_index, pz in hmin_index:hmax_index 
+        @view(f0_3D_species[:,py,pz]) .= BlackBody_Distribution(PhaseSpace,species,T)
+    end
+    
+    # set values and normalise to initial number density (in m^{-3})
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
+
+    f0_species = reshape(f0_3D_species,p_num_list[species_index]*u_num_list[species_index]*h_num_list[species_index])
+
+    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index)
+
+    Initial_local .+= convert(typeof(Initial),f0_species)
+
+    return nothing
+
+end
+
 
 #================ OUTDATED ======================#
 #================================================#
