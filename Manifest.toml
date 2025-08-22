@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "8c632612f9db4371f179167fb26cd2f6fef3dc61"
+project_hash = "4b9dd733920d6bd79360294158168772ea3e1fbb"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -62,7 +62,7 @@ version = "1.11.0"
 deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter"]
 git-tree-sha1 = "df17d8feb49d11b9aefd5a30e736f4adbf28f543"
 uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
-version = "0.0.2"
+version = "0.1.0"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
