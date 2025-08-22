@@ -5,8 +5,6 @@ abstract type InteractionType end
 abstract type SteppingMethodType <: Function end
 abstract type ModeType end
 
-fType = Union{AbstractArray,ArrayPartition}
-
 # ModeType definitions
 #abstract type IsoType <: ModeType end
 struct Iso <: ModeType end

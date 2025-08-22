@@ -17,7 +17,6 @@ module DiplodocusTransport
     using ProgressMeter
     using Bessels
     using Statistics
-    using RecursiveArrayTools
 
     include("Types.jl")
     include("StructsAndDictionaries.jl")
