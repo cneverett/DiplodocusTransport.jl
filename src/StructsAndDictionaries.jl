@@ -353,11 +353,11 @@ end
 
 mutable struct OutputStruct
     
-    f::Vector{<:AbstractFloat}
-    f_ext::Vector{<:AbstractFloat}
+    f::AbstractVector
+    f_ext::AbstractVector
     t::Vector{Float64}
 
-    function OutputStruct(f0::Vector{<:AbstractFloat},n_save::Int64)
+    function OutputStruct(f0::AbstractVector,n_save::Int64)
 
         self = new()
         self.f = Vector{typeof(f0)}(undef,n_save)
