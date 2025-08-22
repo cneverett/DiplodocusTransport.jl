@@ -135,7 +135,7 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
         f0_3D_species[px,py,pz] /= 1-index
         #f0_3D_species[px,py,pz] /= (pr[px+1]-pr[px])
     end
-    # set values and normlaise to initial number density (in m^{-3})
+    # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
     f0_3D_species .*= num_Init/num
 
