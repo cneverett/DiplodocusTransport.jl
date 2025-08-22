@@ -113,114 +113,23 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
         end
     end
 
-    # interaction = ["name1","name2","name3","name4"]
     name1_loc = findfirst(==(name1),name_list)
     name2_loc = findfirst(==(name2),name_list)
     name3_loc = findfirst(==(name3),name_list)
     name4_loc = findfirst(==(name4),name_list)
 
-#=
-    if name1 == name2 && name3 == name4
 
-        if typeof(Mode) == Axi
+    GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
+    GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
+    LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+    LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
 
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
+    GainMatrix3 = nothing
+    GainMatrix4 = nothing
+    LossMatrix1 = nothing
+    LossMatrix2 = nothing
 
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-
-        else
-            error("Error: Momentum mode not recognised")
-        end
-
-        GainMatrix3 = nothing
-        LossMatrix1 = nothing
-
-        GC.gc()
-
-    end
-
-    if name1 == name2 && name3 != name4
-
-        if typeof(Mode) == Axi
-
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-            dpy4 = Grids.dpy[name4_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpy2,dpy3)
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy4,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-
-        end
-
-        GainMatrix3 = nothing
-        GainMatrix4 = nothing
-        LossMatrix1 = nothing
-
-        GC.gc()
-
-    end
-
-    if name1 != name2 && name3 == name4
-
-        if typeof(Mode) == Axi
-
-            GainMatrix_to_M_Bin_Axi!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-            LossMatrix_to_M_Bin_Axi!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
-
-        elseif typeof(Mode) == Iso
-
-            Grids = PhaseSpace.Grids
-            dpy1 = Grids.dpy[name1_loc]
-            dpy2 = Grids.dpy[name2_loc]
-            dpy3 = Grids.dpy[name3_loc]
-
-            GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy3,dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc],dpy1,dpy2)
-            LossMatrix_to_M_Bin_Iso!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc],dpy2,dpy1)
-
-        end
-
-        GainMatrix3 = nothing
-        LossMatrix1 = nothing
-        LossMatrix2 = nothing
-
-        GC.gc()
-
-    end
-=#
-
-    #if name1 != name2 && name3 != name4
-
-        GainMatrix_to_M_Bin!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc])
-        GainMatrix_to_M_Bin!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc])
-        LossMatrix_to_M_Bin!(M_Bin,LossMatrix1,offset[name1_loc],offset[name2_loc])
-        LossMatrix_to_M_Bin!(M_Bin,LossMatrix2,offset[name2_loc],offset[name1_loc])
-
-        GainMatrix3 = nothing
-        GainMatrix4 = nothing
-        LossMatrix1 = nothing
-        LossMatrix2 = nothing
-
-        GC.gc()
+    GC.gc()
 
     #end
 
@@ -431,7 +340,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]) #* 16*pi^2 # hacky fix no idea why this is needed
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1])
 
     end
 
@@ -448,24 +357,25 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
     py1_num = size(GainMatrix,5)
     pz1_num = size(GainMatrix,6)
 
-    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3) 
+    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2)
 
         val = 0.0 # pz averaged GainMatrix term
-        # average over incoming phi angles
-        for pz1 in axes(GainMatrix,6)
+        # average over incoming and outgoing phi angles
+        for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3) 
             val += GainMatrix[px2,py2,pz2,px1,py1,pz1] ##= * dpz2[pz2] =# * dpz1[pz1] # check order
         end
         #val /= (dpz1[end] - dpz1[1])
 
-        for pz1 in axes(GainMatrix,6)
+        for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3) 
 
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            # weight for the size of the incoming phase space
+            # weight for the size of the incoming and outgoing phase space
             w = dpz1[pz1] / sum(dpz1)
+            w *= dpz2[pz2] / sum(dpz2)
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w) #* 16*pi^2 # hacky fix no idea why this is needed
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w)
 
         end
 
@@ -482,24 +392,25 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
     py1_num = size(GainMatrix,5)
     pz1_num = size(GainMatrix,6)
 
-    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
+    for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1)
 
         val = 0.0 # py pz averaged GainMatrix term
-        # average over incoming u and phi angles
-        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6)
+        # average over incoming and outgoing u and phi angles
+        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
             val += GainMatrix[px2,py2,pz2,px1,py1,pz1]# * dpy1[py1] * dpz1[pz1] 
         end
         #val /= abs((dpz1[end] - dpz1[1]) * (dpy1[end] - dpy1[1]))
 
-        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6)
+        for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
 
             a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
             b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-            # weight for the size of the incoming phase space
+            # weight for the size of the incoming and outgoing phase space
             w = dpy1[py1] * dpz1[pz1] / (sum(dpz1) * sum(dpy1))
+            w *= dpy2[py2] * dpz2[pz2] / (sum(dpz2) * sum(dpy2))
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w) #* 16*pi^2 # hacky fix no idea why this is needed
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w) 
 
         end
 

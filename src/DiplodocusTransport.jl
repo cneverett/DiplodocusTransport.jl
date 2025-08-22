@@ -4,9 +4,9 @@ module DiplodocusTransport
     export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
     export BinaryStruct, EmiStruct, ForceType
     export Cylindrical, Spherical, Cartesian, Ani, Axi, Iso
-    export SyncRadReact
+    export CoordinateForce, SyncRadReact
     export BuildBigMatrices, BuildFluxMatrices
-    export Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw
+    export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_UnBoostedPowerLaw!, Initial_BlackBody!
     export Solve, EulerStruct
     export SolutionFileLoad
     export MaxwellJuttner_Distribution
@@ -17,7 +17,6 @@ module DiplodocusTransport
     using ProgressMeter
     using Bessels
     using Statistics
-    using RecursiveArrayTools
 
     include("Types.jl")
     include("StructsAndDictionaries.jl")

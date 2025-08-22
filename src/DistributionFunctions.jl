@@ -1,5 +1,5 @@
 """
-    MaxwellJuttner_Distribution(PhaseSpace,species,T,mass;n=1.0)
+    MaxwellJuttner_Distribution(PhaseSpace,species,T;n=1.0)
 
 Generates a Maxwell-Juttner distribution in momentum space: 
 ```math
@@ -38,5 +38,36 @@ function MaxwellJuttner_Distribution(PhaseSpace::PhaseSpaceStruct,species::Strin
     MJPoints = MJPoints ./ num .*n # scale to number density
 
     return MJPoints
+
+end
+
+function BlackBody_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;n::Float64=1e0)
+    # Generates the height of the BB distribution at positions of the mean momentum per bin
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    species_index = findfirst(x->x==species,name_list)
+
+    dp = Grids.dpx_list[species_index]
+    #du = Grids.dpy_list[species_index] # angle averaged therefore not used and dudh = 4π
+    #dh = Grids.dpz_list[species_index]
+    meanp = Grids.mpx_list[species_index]
+    mass = Grids.mass_list[species_index]
+
+    mEle = 9.11e-31
+    c = 3e8
+    kb = 1.38e-23
+    h = 6.62607015e-34
+
+    BBPoints = zeros(Float64,size(meanp))
+    invtheta = mEle*c^2/(kb*T)
+    @. BBPoints = (meanp^2) / (exp(meanp*invtheta)-1) * dp
+
+    num = sum(BBPoints)
+    BBPoints = BBPoints ./ num .*n # scale to number density
+
+    return BBPoints
 
 end

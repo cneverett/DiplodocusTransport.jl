@@ -182,27 +182,6 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         m3::Float64 = PhaseSpace.Grids.mass_list[name3_loc]
         m4::Float64 = PhaseSpace.Grids.mass_list[name4_loc]
 
-        #filename = name1*name2*name3*name4*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px2_low*"-"*px2_up*px2_grid*px2_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*px4_low*"-"*px4_up*px4_grid*px4_num*"#"*py1_grid*py1_num*"#"*py2_grid*py2_num*"#"*py3_grid*py3_num*"#"*py4_grid*py4_num*".jld2"
-
-        #=filename = name1*name2*name3*name4
-        filename *= "#"*string(px1_low)*"-"*string(px1_up)*px1_grid*string(px1_num)
-        filename *= "#"*py1_grid*string(py1_num)
-        filename *= "#"*pz1_grid*string(pz1_num)
-    
-        filename *= "#"*string(px2_low)*"-"*string(px2_up)*px2_grid*string(px2_num)
-        filename *= "#"*py2_grid*string(py2_num)
-        filename *= "#"*pz2_grid*string(pz2_num)
-    
-        filename *= "#"*string(px3_low)*"-"*string(px3_up)*px3_grid*string(px3_num)
-        filename *= "#"*py3_grid*string(py3_num)
-        filename *= "#"*pz3_grid*string(pz3_num)
-    
-        filename *= "#"*string(px4_low)*"-"*string(px4_up)*px4_grid*string(px4_num)
-        filename *= "#"*py4_grid*string(py4_num)
-        filename *= "#"*pz4_grid*string(pz4_num)
-        
-        filename *= ".jld2";=#
-
         Parameters = (name1,name2,name3,name4,m1,m2,m3,m4,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,px4_low,px4_up,px4_grid,px4_num,py4_grid,py4_num,pz4_grid,pz4_num)
 
         filename::String = DC.BinaryFileName(Parameters)
@@ -222,62 +201,15 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         GainMatrix4 = Output[3]
         LossMatrix1 = Output[4]
         LossMatrix2 = Output[5]
-#=
-        if name1 == name2 && name3 == name4
-            # print conversion statistic
-            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-            GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-            println("Scorrected:")
-            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
 
-            PhaseSpaceFactors_Binary_Undo!(pxr3,pyr3,pxr4,pyr4,pxr1,pyr1,pxr2,pyr2,SMatrix3=matrices[1],TMatrix1=matrices[2])
-
-            Fill_M_Bin!(BigM.M_Bin,interaction,PhaseSpace;SMatrix3=matrices[1],TMatrix1=matrices[2])
-
-        end
-    
-        if name1 == name2 && name3 != name4
-
-            # print conversion statistic
-            DC.DoesConserve(matrices[1],matrices[2],matrices[3],zeros(size(matrices[3])),Parameters)
-            #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-            #println("Scorrected:")
-            #DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-
-            PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
-            
-            Fill_M_Bin!(BigM.M_Bin,interaction,Lists;SMatrix3=matrices[1],SMatrix4=matrices[2],TMatrix1=matrices[3])
-
-
-        end
-    
-        if name1 != name2 && name3 == name4
-
-            # print conversion statistic
-            DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],matrices[3],Parameters)
-            #GainCorrection!(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-            #println("Scorrected:")
-            #DC.DoesConserve(matrices[1],zeros(size(matrices[1])),matrices[2],zeros(size(matrices[2])),Parameters)
-
-            PhaseSpaceFactors_Binary_Undo!(p3_r,u3_r,p4_r,u4_r,p1_r,u1_r,p2_r,u2_r,SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
-
-            Fill_M_Bin!(BigM.M_Bin,interaction,Lists;SMatrix3=matrices[1],TMatrix1=matrices[2],TMatrix2=matrices[3])
-
-        end
-    
-        if name1 != name2 && name3 != name4
-=#
-            DC.DoesConserve(Output) # print conversion statistic
-            Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
-#=
-        end
-=#
+        DC.DoesConserve(Output) # print conversion statistic
+        Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
 
     end # for
 
 end
 
-function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpace::PhaseSpaceStruct)
+function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct) where F<:AbstractFloat
 
     Emi_list = PhaseSpace.Emi_list
 
@@ -303,7 +235,7 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
     pz_grid_list = Momentum.pz_grid_list
     pz_num_list = Momentum.pz_num_list
 
-    fill!(M_Emi,0f0);
+    fill!(M_Emi,zero(F));
 
     for i in eachindex(Emi_list)
 
@@ -313,6 +245,13 @@ function LoadMatrices_Emi(M_Emi::Array{Float32,2},DataDirectory::String,PhaseSpa
         name2::String = interaction.name2
         name3::String = interaction.name3
         type::String = interaction.EmiName
+
+        # ele pos swap for synchrotron
+        if name1 == "Pos" && name2 == "Pos" && name3 == "Pho"
+            name1 = "Ele"
+            name2 = "Ele"
+            name3 = "Pho"
+        end
 
         Ext::Vector{Float64} = interaction.Ext
 

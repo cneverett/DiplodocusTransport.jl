@@ -14,17 +14,17 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
+function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:AbstractFloat
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
     # reset arrays
-    fill!(df,Float32(0))
-    fill!(Euler.df,Float32(0))
-    fill!(Euler.temp,Float32(0))
+    fill!(df,zero(eltype(df)))
+    fill!(Euler.df,zero(eltype(Euler.df)))
+    fill!(Euler.temp,zero(eltype(Euler.temp)))
     if Euler.Implicit
-        fill!(Euler.Jac,Float32(0))
+        fill!(Euler.Jac,zero(eltype(Euler.Jac)))
     end
         
     # add binary terms to temp (jacobians are added in update_Big_Bin! if implicit)
@@ -44,7 +44,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     #@. Euler.temp -= Euler.FluxM.K_Flux 
     #@. Euler.temp -= Euler.FluxM.J_Flux 
     #@. Euler.temp -= Euler.FluxM.I_Flux
-    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.J_Flux + Euler.K_Flux
+    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
     if Euler.Implicit
         @. Euler.Jac -= Euler.FluxM.K_Flux
         @. Euler.Jac -= Euler.FluxM.J_Flux
@@ -60,7 +60,7 @@ function (Euler::EulerStruct)(df::fType,f::fType,dt0,dt,t)
     # add time fluxes to temp
     #@. Euler.temp -= Euler.FluxM.Ap_Flux
     #@. Euler.temp -= Euler.FluxM.Am_Flux
-    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.Am_Flux
+    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.FluxM.Am_Flux
 
     if isinf(sum(Euler.temp))
         error("overflow in arrays")

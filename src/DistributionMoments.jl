@@ -11,13 +11,14 @@ function FourFlow(f1D::Vector{T},p_num,u_num,pr,ur,m) where T<:AbstractFloat
     du = zeros(Float64,u_num)
     du2 = zeros(Float64,u_num)
     dp = zeros(Float64,p_num)
-    dE = DC.deltaEVector(pr,m)
+    dE = zeros(Float64,p_num)
 
     for i in 1:u_num
         du[i] = ur[i+1]-ur[i]
         du2[i] = (ur[i+1]^2-ur[i]^2)/2
     end
     for i in 1:p_num 
+        dE[i] = sqrt(pr[i+1]^2+m^2) - sqrt(pr[i]^2+m^2)
         dp[i] = (pr[i+1]-pr[i])
     end
 
