@@ -141,7 +141,7 @@ function IFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Sph
     c = getfield(DC,Symbol("c"))
     σT = getfield(DC,Symbol("σT"))
 
-    fluxScale = (Z*q) / (m/mEle) / (σT*c) 
+    fluxScale = (Z*q) / (m*mEle) / (σT*c) 
 
     if m == 0 || Z == 0
         return flux = 0f0
@@ -177,7 +177,7 @@ function JFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Sph
     c = getfield(DC,Symbol("c"))
     σT = getfield(DC,Symbol("σT"))
 
-    fluxScale = (Z*q) / (m/mEle) / (σT*c) 
+    fluxScale = (Z*q) / (m*mEle) / (σT*c) 
 
     if m == 0 || Z == 0
         return flux = 0f0
