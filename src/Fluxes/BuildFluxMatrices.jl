@@ -48,6 +48,19 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorT
 
     n = n_momentum*n_space
 
+    size = n*n*sizeof(eltype(MatrixType))
+
+    println("Building flux matrices")
+        if size > 1e9
+            println("Flux is approx. $(size/1e9) GB in memory")
+        elseif size > 1e6
+            println("Flux is approx. $(size/1e6) MB in memory")
+        elseif size > 1e3
+            println("Flux is approx. $(size/1e3) KB in memory")
+        else
+            println("Flux is approx. $size bytes in memory")
+        end
+
     # boundary terms included in arrays
     # fluxes allocated with all zeros
     # time fluxes

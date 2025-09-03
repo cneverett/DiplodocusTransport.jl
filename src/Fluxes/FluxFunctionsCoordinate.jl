@@ -212,6 +212,9 @@
 
 function acot_mod(x)
 
+    # ArcCot[(1+x)/Sqrt[1-x^2]]
+    # this is actually just acos(x)/2
+
     if x == -1
         return pi/2
     elseif x == 1
