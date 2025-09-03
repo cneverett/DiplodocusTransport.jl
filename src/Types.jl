@@ -33,6 +33,10 @@ struct SyncRadReact <: ForceType
     mode::ModeType
     B::Float64
 end
+struct ExB <: ForceType
+    E0::Float64
+    B0::Float64
+end
 
 # InteractionType definitions
 struct BinaryStruct <: InteractionType
