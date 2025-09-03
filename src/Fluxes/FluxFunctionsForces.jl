@@ -216,7 +216,7 @@ function KFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Sph
         return flux = 0f0
     else
         flux = (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) 
-        flux *= (1/2 * B0 * (-u0 + u1) * log(((-p064 + sqrt(m^2 + p064^2)) * (p164 + sqrt(m^2 + p164^2))^2)/(m^2 * (p064 + sqrt(m^2 + p064^2)))) + 2*E0 * acot_mod(u0) * log(p164/p064) * sinpi(phipi) - 2*E0 * acot_mod(u1) * log(p164/p064) * sinpi(phipi))
+        flux *= (1/2 * B0 * (-u0 + u1) * (-asinh(p064/m) + asinh(p164/m)) + 2*E0 * acot_mod(u0) * log(p164/p064) * sinpi(phipi) - 2*E0 * acot_mod(u1) * log(p164/p064) * sinpi(phipi))
         flux *= fluxScale
     end
 
