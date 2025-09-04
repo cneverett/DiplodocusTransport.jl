@@ -13,8 +13,8 @@ function FourFlow(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T<:Abstract
     for p in 1:p_num, u in 1:u_num, h in 1:h_num
 
         Na[1] += f3D[p,u,h]
-        Na[2] += f3D[p,u,h]*((sqrt(m^2 + pr[p]^2) - sqrt(m^2 + pr[p+1]^2)) * (ur[u]*sqrt(1 - ur[u]^2) - ur[u+1]*sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1])) * (sin(hr[h]) - sin(hr[h+1])))/(2(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
-        Na[3] += f3D[p,u,h]*((sqrt(m^2 + pr[p]^2) - sqrt(m^2 + pr[p+1]^2)) * (ur[u]*sqrt(1 - ur[u]^2) - ur[u+1]*sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1])) * (cos(hr[h]) - cos(hr[h+1])))/(2(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
+        Na[2] += f3D[p,u,h]*((sqrt(m^2 + pr[p]^2) - sqrt(m^2 + pr[p+1]^2)) * (ur[u]*sqrt(1 - ur[u]^2) - ur[u+1]*sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1])) * (sinpi(hr[h]/pi) - sinpi(hr[h+1]/pi)))/(2(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
+        Na[3] += f3D[p,u,h]*((sqrt(m^2 + pr[p]^2) - sqrt(m^2 + pr[p+1]^2)) * (ur[u]*sqrt(1 - ur[u]^2) - ur[u+1]*sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1])) * (cospi(hr[h]/pi) - cospi(hr[h+1]/pi)))/(2(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
         Na[4] += f3D[p,u,h]*(sqrt(pr[p+1]^2+m^2) - sqrt(pr[p]^2+m^2)) * (ur[u+1]+ur[u]) / (pr[p+1]-pr[p]) / 2
 
     end
