@@ -134,7 +134,7 @@ function StressEnergyTensor(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T
             Tab[2,3] += f3D[p,u,h]*((pr[p] + pr[p+1])*(-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)*(cos(2hr[h]) - cos(2hr[h+1])))/(24(hr[h] - hr[h+1]))
             Tab[2,4] += f3D[p,u,h]*(-(((pr[p] + pr[p+1]) * ((1 - ur[u]^2)^(3/2) - (1 - ur[u+1]^2)^(3/2)) * (sin(hr[h]) - sin(hr[h+1])))/(6(ur[u] - ur[u+1]) * (hr[h] - hr[h+1]))))
 
-            Tab[3,3] += f3D[p,u,h]*(-(1/(12(hr[h] - hr[h+1])))(pr[p] + pr[p+1]) * (-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2) * (hr[h] - hr[h+1] - cos(hr[h])sin(hr[h]) + cos(hr[h+1])sin(hr[h+1])))
+            Tab[3,3] += f3D[p,u,h]*(-(1/(12(hr[h] - hr[h+1])))*(pr[p] + pr[p+1]) * (-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2) * (hr[h] - hr[h+1] - cos(hr[h])sin(hr[h]) + cos(hr[h+1])sin(hr[h+1])))
 
             Tab[3,4] += f3D[p,u,h]*(((pr[p] + pr[p+1]) * ((1 - ur[u]^2)^(3/2) - (1 - ur[u+1]^2)^(3/2)) * (cos(hr[h]) - cos(hr[h+1])))/(6(ur[u] - ur[u+1]) * (hr[h] - hr[h+1])))
 
