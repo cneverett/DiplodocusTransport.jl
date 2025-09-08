@@ -106,20 +106,20 @@ function StressEnergyTensor(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T
 
             Tab[1,1] += f3D[p,u,h]*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2*(asinh(pr[p]/m) - asinh(pr[p+1]/m)))/(2(pr[p] - pr[p+1]))
 
-            Tab[1,2] += f3D[p,u,h]*((pr[p] + pr[p+1])*(ur[u]sqrt(1 - ur[u]^2) - ur[u+1]sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1]))*(sin(hr[h]) - sin(hr[h+1])))/(4(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
-            Tab[1,3] += f3D[p,u,h]*(-((pr[p] + pr[p+1])*(ur[u]sqrt(1 - ur[u]^2) - ur[u+1]sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1]))*(cos(hr[h]) - cos(hr[h+1])))/(4(ur[u] - ur[u+1])*(hr[h] - hr[h+1])))
-            Tab[1,4] += f3D[p,u,h]*(1/4 * (pr[p] + pr[p+1])*(ur[u] + ur[u+1]))
+            Tab[1,2] += f3D[p,u,h] * (pr[p] + pr[p+1])*(ur[u]sqrt(1 - ur[u]^2) - ur[u+1]sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1]))*(sin(hr[h]) - sin(hr[h+1])) / (4(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
+            Tab[1,3] += f3D[p,u,h] * (-pr[p] - pr[p+1])*(ur[u]sqrt(1 - ur[u]^2) - ur[u+1]sqrt(1 - ur[u+1]^2) - 2acot_mod(ur[u]) + 2acot_mod(ur[u+1]))*(cos(hr[h]) - cos(hr[h+1])) / (4(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
+            Tab[1,4] += f3D[p,u,h] * (1/4 * (pr[p] + pr[p+1])*(ur[u] + ur[u+1]))
 
-            Tab[2,2] += f3D[p,u,h]*(-(-((-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m)))*(hr[h] - hr[h+1] + cos(hr[h])sin(hr[h]) - cos(hr[h+1])sin(hr[h+1])))/(12(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))))
+            Tab[2,2] += f3D[p,u,h] * (3 - ur[u]^2 - ur[u]ur[u+1] - ur[u+1]^2) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (hr[h] - hr[h+1] + cos(hr[h])sin(hr[h]) - cos(hr[h+1])sin(hr[h+1])) / (12(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))
 
-            Tab[2,3] += f3D[p,u,h]*((-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m)))*(cos(2hr[h]) - cos(2hr[h+1])))/(24(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))
-            Tab[2,4] += f3D[p,u,h]*((-sqrt(1 - ur[u]^2) + ur[u]^2 * sqrt(1 - ur[u]^2) + sqrt(1 - ur[u+1]^2) - ur[u+1]^2 * sqrt(1 - ur[u+1]^2)) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (sin(hr[h]) - sin(hr[h+1])))/(6(pr[p] - pr[p+1]) * (ur[u] - ur[u+1]) * (hr[h] - hr[h+1]))
+            Tab[2,3] += f3D[p,u,h] * (-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (cos(2hr[h]) - cos(2hr[h+1])) / (24(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))
+            Tab[2,4] += f3D[p,u,h] * (-sqrt(1 - ur[u]^2) + ur[u]^2 * sqrt(1 - ur[u]^2) + sqrt(1 - ur[u+1]^2) - ur[u+1]^2 * sqrt(1 - ur[u+1]^2)) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (sin(hr[h]) - sin(hr[h+1])) / (6(pr[p] - pr[p+1]) * (ur[u] - ur[u+1]) * (hr[h] - hr[h+1]))
 
-            Tab[3,3] += f3D[p,u,h]*(-(((-3 + ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m)))*(hr[h] - hr[h+1] - cos(hr[h])sin(hr[h]) + cos(hr[h+1])sin(hr[h+1])))/(12(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))))
+            Tab[3,3] += f3D[p,u,h] * (3 - ur[u]^2 - ur[u]ur[u+1] - ur[u+1]^2) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (hr[h] - hr[h+1] - cos(hr[h])sin(hr[h]) + cos(hr[h+1])sin(hr[h+1])) / (12(pr[p] - pr[p+1])*(hr[h] - hr[h+1]))
 
-            Tab[3,4] += f3D[p,u,h]*(-(((-sqrt(1 - ur[u]^2) + ur[u]^2 * sqrt(1 - ur[u]^2) + sqrt(1 - ur[u+1]^2) - ur[u+1]^2 * sqrt(1 - ur[u+1]^2))*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m)))*(cos(hr[h]) - cos(hr[h+1])))/(6(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))))
+            Tab[3,4] += f3D[p,u,h] * (sqrt(1 - ur[u]^2) - ur[u]^2 * sqrt(1 - ur[u]^2) - sqrt(1 - ur[u+1]^2) + ur[u+1]^2 * sqrt(1 - ur[u+1]^2)) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) * (cos(hr[h]) - cos(hr[h+1])) / (6(pr[p] - pr[p+1])*(ur[u] - ur[u+1])*(hr[h] - hr[h+1]))
 
-            Tab[4,4] += f3D[p,u,h]*(1/(6(pr[p] - pr[p+1])))*(ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)*(pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m)))
+            Tab[4,4] += f3D[p,u,h] * (ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2) * (pr[p]sqrt(m^2 + pr[p]^2) - pr[p+1]sqrt(m^2 + pr[p+1]^2) + m^2 * (-asinh(pr[p]/m) + asinh(pr[p+1]/m))) / (6(pr[p] - pr[p+1]))
 
         else
             
@@ -138,7 +138,7 @@ function StressEnergyTensor(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T
 
             Tab[3,4] += f3D[p,u,h]*(((pr[p] + pr[p+1]) * ((1 - ur[u]^2)^(3/2) - (1 - ur[u+1]^2)^(3/2)) * (cos(hr[h]) - cos(hr[h+1])))/(6(ur[u] - ur[u+1]) * (hr[h] - hr[h+1])))
 
-            Tab[4,4] += f3D[p,u,h]*(1/6(pr[p] + pr[p+1]) * (ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2))
+            Tab[4,4] += f3D[p,u,h]*(1/6) * (pr[p] + pr[p+1]) * (ur[u]^2 + ur[u]ur[u+1] + ur[u+1]^2)
 
         end
 
