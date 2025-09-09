@@ -42,7 +42,7 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
 
         # removing negative values
         @. tmp = tmp*(tmp>=0f0)
-        # hackey fix for inf values
+        # hacky fix for inf values
         @. tmp = tmp*(tmp!=Inf)
 
         # saving state

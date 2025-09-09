@@ -568,7 +568,8 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                         K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
                         K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pzm+1]-pzr[pzm]))
                     end
-            end # force loop
+                    
+                end # force loop
             end
         end
     end
