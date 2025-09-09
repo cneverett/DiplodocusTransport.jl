@@ -216,7 +216,7 @@
             return flux = 0f0
         else
             flux = (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) 
-            flux *= (1/2 * B0 * (-u0 + u1) * (-asinh(p064/m) + asinh(p164/m)) + 2*E0 * acot_mod(u0) * log(p164/p064) * sinpi(phipi) - 2*E0 * acot_mod(u1) * log(p164/p064) * sinpi(phipi))
+            flux *= (1/2 * B0 * (-u0 + u1) * (-2asinh(p064/m) + 2asinh(p164/m)) + 2*E0 * acot_mod(u0) * log(p164/p064) * sinpi(phipi) - 2*E0 * acot_mod(u1) * log(p164/p064) * sinpi(phipi))
             flux *= fluxScale
         end
 
@@ -253,8 +253,8 @@
         if m == 0 || Z == 0
             flux *= 0e0
         else
-            flux *= -E0 * (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
-            flux *= (-(u0^2/2) + u1^2/2) * (-phi0 + phi1)
+            flux *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)  
+            flux *= -(1/2) * E0* (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(phi0/pi) - cospi(phi1/pi))
         end
 
         return flux
@@ -287,8 +287,8 @@
         if m == 0 || Z == 0
             flux *= 0e0
         else
-            flux *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1) / 2  
-            flux *= -2 * E0 * (-1 + u^2) * (phi0 - phi1) * log(p1/p0) + B0 * sqrt(1 - u^2) * (sinpi(phi0/pi) - sinpi(phi1/pi)) * (-asinh(p064/m) + asinh(p164/m))
+            flux *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
+            flux *= E0 * log(p1/p0) * u*sqrt(1 - u^2) * (cospi(phi0/pi) - cospi(phi1/pi))
         end
 
         return flux
@@ -320,8 +320,8 @@
         if m == 0 || Z == 0
             flux *= 0e0
         else
-            flux *= -(1/2) * B0 * (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1) 
-            flux *= (sqrt(1 - u0^2) - sqrt(1 - u1^2)) * (-asinh(p064/m) + asinh(p164/m)) * sinpi(phi/pi)
+            flux *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) *  (-z0 + z1) 
+            flux *= E0 * (-2acot_mod(u0)+2acot_mod(u1)) * cospi(phi/pi) * log(p1/p0) + B0 * (u0 - u1) * (-asinh(p064/m) + asinh(p164/m))
         end
 
         return flux
