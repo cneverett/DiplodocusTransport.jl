@@ -14,6 +14,7 @@ struct Axi <: ModeType end
 struct Ani <: ModeType end
 
 # CoordinateType Structs: 
+struct Cartesian <: CoordinateType end
 struct Spherical <: CoordinateType end
 struct Cylindrical <: CoordinateType
     α::Float64 # != 0 not implemented
