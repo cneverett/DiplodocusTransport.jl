@@ -334,6 +334,8 @@
 
         # Evaluate the flux through the J surface i.e. surface of constant spherical u
 
+        m = getfield(DC,Symbol("mu"*name))
+
         flux::Float64 = -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/(2pi)) * sinpi((phi0 - phi1)/(2pi)) * sinpi((y0 + y1 + phi0 + phi1)/(2pi))
 
         return flux
@@ -343,6 +345,8 @@
     function KFluxFunction(force::CoordinateForce,space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
 
         # Evaluate the flux through the K surface i.e. surface of constant spherical phi
+
+        m = getfield(DC,Symbol("mu"*name))
 
         flux::Float64 =  (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) / 2
         flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + arcsin(u1) * (cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + 2(cospi(y0/pi) - cospi(y1/pi)) * sinpi(phi/pi)) + arcsin(u0) * (cospi(phi/pi) * (-sinpi(y0/pi) + sinpi(y1/pi)) + 2(-cospi(y0/pi) + cospi(y1/pi))*sinpi(phi/pi))) / 2
