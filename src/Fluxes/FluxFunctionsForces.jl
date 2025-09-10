@@ -22,7 +22,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            flux *= 0e0
+            flux = 0e0
         else
             if typeof(mode) == Ani
                 flux *= 1/(6*m^2)
@@ -68,7 +68,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            flux *= 0e0
+            flux = 0e0
         else
             if typeof(mode) == Ani
                 flux *= 1/4
@@ -110,7 +110,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            flux *= 0e0
+            flux = 0e0
         else
             flux *= 0e0
         end
@@ -145,7 +145,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            return flux = 0f0
+            flux = 0e0
         else
             if typeof(mode) == Ani
                 flux *= -1/(9*m^2)
@@ -191,7 +191,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            flux *= 0e0
+            flux = 0e0
         else
             if typeof(mode) == Ani
                 flux *= -1/6
@@ -233,7 +233,7 @@
         flux::Float64 = fluxScale
 
         if m == 0 || Z == 0
-            flux *= 0e0
+            flux = 0e0
         else
             flux *= 0e0
         end
