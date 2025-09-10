@@ -142,6 +142,8 @@
 
         fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) / (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed 
 
+        flux::Float64 = fluxScale
+
         if m == 0 || Z == 0
             return flux = 0f0
         else
