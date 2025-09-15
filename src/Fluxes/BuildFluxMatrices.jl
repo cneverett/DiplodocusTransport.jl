@@ -234,8 +234,6 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
                 a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 b = a
                 pxp = px+1
                 pxm = px-1
