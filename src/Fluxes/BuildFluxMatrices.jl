@@ -96,22 +96,22 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorT
     F_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
     if debug_mode
         # space fluxes
-        B_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
-        C_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
-        D_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        B_Flux= zeros(eltype(MatrixType),0,0)::MatrixType  # change 0 to n when implemented
+        C_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
+        D_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
         # momentum fluxes
-        I_Flux::MatrixType = zeros(eltype(MatrixType),n,n) 
-        J_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-        K_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
+        I_Flux = zeros(eltype(MatrixType),n,n)::MatrixType 
+        J_Flux = zeros(eltype(MatrixType),n,n)::MatrixType
+        K_Flux = zeros(eltype(MatrixType),n,n)::MatrixType
     else
         # space fluxes
-        B_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
-        C_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
-        D_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        B_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
+        C_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
+        D_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
         # momentum fluxes
-        I_Flux::MatrixType = zeros(eltype(MatrixType),0,0) 
-        J_Flux::MatrixType = zeros(eltype(MatrixType),0,0)
-        K_Flux::MatrixType = zeros(eltype(MatrixType),0,0) 
+        I_Flux = zeros(eltype(MatrixType),0,0)::MatrixType
+        J_Flux = zeros(eltype(MatrixType),0,0)::MatrixType
+        K_Flux = zeros(eltype(MatrixType),0,0)::MatrixType 
     end
 
     return (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
