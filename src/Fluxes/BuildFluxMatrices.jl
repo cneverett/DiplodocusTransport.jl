@@ -25,9 +25,6 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,M
         Fill_Vol!(Vol,PhaseSpace)
         @. F_Flux = I_Flux + J_Flux + K_Flux #+ B_Flux + C_Flux + D_Flux  
 
-
-        
-
     else
 
         (Ap_Flux,Am_Flux,F_Flux,Vol) = Allocate_Flux(PhaseSpace,MatrixType,VectorType,debug_mode)
@@ -41,8 +38,6 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,M
         Fill_J_Flux!(F_Flux,PhaseSpace)
         Fill_K_Flux!(F_Flux,PhaseSpace) 
         Fill_Vol!(Vol,PhaseSpace)
-    
-        return FluxMatricesStruct{MatrixType,VectorType}(Ap_Flux,Am_Flux,F_Flux,Vol)
 
     end
 
