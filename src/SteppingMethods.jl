@@ -44,11 +44,13 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
     #@. Euler.temp -= Euler.FluxM.K_Flux 
     #@. Euler.temp -= Euler.FluxM.J_Flux 
     #@. Euler.temp -= Euler.FluxM.I_Flux
-    @. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
+    #@. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
+    Euler.temp -= Euler.FluxM.F_Flux
     if Euler.Implicit
-        @. Euler.Jac -= Euler.FluxM.K_Flux
-        @. Euler.Jac -= Euler.FluxM.J_Flux
-        @. Euler.Jac -= Euler.FluxM.I_Flux
+        #@. Euler.Jac -= Euler.FluxM.K_Flux
+        #@. Euler.Jac -= Euler.FluxM.J_Flux
+        #@. Euler.Jac -= Euler.FluxM.I_Flux
+        @. Euler.Jac -= Euler.FluxM.F_Flux
     end
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
     if Euler.PhaseSpace.Time.t_grid != "u" 

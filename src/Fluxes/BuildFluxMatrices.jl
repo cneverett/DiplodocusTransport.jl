@@ -3,26 +3,50 @@
 
 Function that builds the flux matrices associated with coordinate forces and regular forces. First space is allocated for the arrays, then the fluxes are filled and finally the flux matrices are returned as an immutable `FluxMatricesStruct`.
 """
-function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;MatrixType::DataType=Matrix{Float32},VectorType::DataType=Vector{Float32})
+function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,MatrixType::DataType=Matrix{Float32},VectorType::DataType=Vector{Float32})
 
     if eltype(MatrixType) != eltype(VectorType)
         error("elements of MatrixType and VectorType must be the same type")
     end
 
-    (Ap_Flux,Am_Flux,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux,Vol) = Allocate_Flux(PhaseSpace,MatrixType,VectorType)
+    (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux) = Allocate_Flux(PhaseSpace,MatrixType,VectorType,debug_mode)
 
-    # Fill flux matrices
-    Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
-    # to be implemented
-    #Fill_B_Flux!(B_Flux,Lists,PhaseSpace)
-    #Fill_C_Flux!(C_Flux,Lists,PhaseSpace)
-    #Fill_D_Flux!(D_Flux,Lists,PhaseSpace)
-    Fill_I_Flux!(I_Flux,PhaseSpace) 
-    Fill_J_Flux!(J_Flux,PhaseSpace)
-    Fill_K_Flux!(K_Flux,PhaseSpace) 
-    Fill_Vol!(Vol,PhaseSpace)
+    if debug_mode
 
-    return FluxMatricesStruct{MatrixType,VectorType}(Ap_Flux,Am_Flux,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux,Vol)
+        # Fill flux matrices
+        Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
+        # to be implemented
+        #Fill_B_Flux!(B_Flux,Lists,PhaseSpace)
+        #Fill_C_Flux!(C_Flux,Lists,PhaseSpace)
+        #Fill_D_Flux!(D_Flux,Lists,PhaseSpace)
+        Fill_I_Flux!(I_Flux,PhaseSpace) 
+        Fill_J_Flux!(J_Flux,PhaseSpace)
+        Fill_K_Flux!(K_Flux,PhaseSpace) 
+        Fill_Vol!(Vol,PhaseSpace)
+        @. F_Flux = I_Flux + J_Flux + K_Flux #+ B_Flux + C_Flux + D_Flux  
+
+
+        
+
+    else
+
+        (Ap_Flux,Am_Flux,F_Flux,Vol) = Allocate_Flux(PhaseSpace,MatrixType,VectorType,debug_mode)
+        # Fill flux matrices
+        Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
+        # to be implemented
+        #Fill_B_Flux!(F_Flux,Lists,PhaseSpace)
+        #Fill_C_Flux!(F_Flux,Lists,PhaseSpace)
+        #Fill_D_Flux!(F_Flux,Lists,PhaseSpace)
+        Fill_I_Flux!(F_Flux,PhaseSpace) 
+        Fill_J_Flux!(F_Flux,PhaseSpace)
+        Fill_K_Flux!(F_Flux,PhaseSpace) 
+        Fill_Vol!(Vol,PhaseSpace)
+    
+        return FluxMatricesStruct{MatrixType,VectorType}(Ap_Flux,Am_Flux,F_Flux,Vol)
+
+    end
+
+    return FluxMatricesStruct{MatrixType,VectorType}(Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 
@@ -31,7 +55,7 @@ end
 
 Allocates arrays for fluxes and volume elements.
 """
-function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorType::DataType)
+function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorType::DataType,debug_mode::Bool)
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -52,13 +76,13 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorT
 
     println("Building flux matrices")
         if size > 1e9
-            println("Flux is approx. $(size/1e9) GB in memory")
+            println("Each flux matrix is approx. $(size/1e9) GB in memory")
         elseif size > 1e6
-            println("Flux is approx. $(size/1e6) MB in memory")
+            println("Each flux matrix is approx. $(size/1e6) MB in memory")
         elseif size > 1e3
-            println("Flux is approx. $(size/1e3) KB in memory")
+            println("Each flux matrix is approx. $(size/1e3) KB in memory")
         else
-            println("Flux is approx. $size bytes in memory")
+            println("Each flux matrix is approx. $size bytes in memory")
         end
 
     # boundary terms included in arrays
@@ -66,18 +90,31 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorT
     # time fluxes
     Ap_Flux::MatrixType = zeros(eltype(MatrixType),n,n) 
     Am_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    # space fluxes
-    B_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    C_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    D_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    # momentum fluxes
-    I_Flux::MatrixType = zeros(eltype(MatrixType),n,n) 
-    J_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    K_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
     # volume element 
     Vol::VectorType = zeros(eltype(VectorType),n_space)
+    # sum of space and momentum fluxes 
+    F_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
+    if debug_mode
+        # space fluxes
+        B_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        C_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        D_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        # momentum fluxes
+        I_Flux::MatrixType = zeros(eltype(MatrixType),n,n) 
+        J_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
+        K_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
+    else
+        # space fluxes
+        B_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        C_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        D_Flux::MatrixType = zeros(eltype(MatrixType),0,0) # change 0 to n when implemented
+        # momentum fluxes
+        I_Flux::MatrixType = zeros(eltype(MatrixType),0,0) 
+        J_Flux::MatrixType = zeros(eltype(MatrixType),0,0)
+        K_Flux::MatrixType = zeros(eltype(MatrixType),0,0) 
+    end
 
-    return (Ap_Flux,Am_Flux,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux,Vol)
+    return (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 
