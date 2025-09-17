@@ -172,9 +172,12 @@ function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::Abstract
                 A_plus = AFluxFunction(space_coords,momentum_coords,tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
                 A_minus = -AFluxFunction(space_coords,momentum_coords,tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
 
-                # fill including normalisation
-                Ap_Flux[a,b] += convert(type,A_plus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                Am_Flux[a,b] += convert(type,A_minus / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                # normalisation
+                norm = (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])
+
+                # fill
+                Ap_Flux[a,b] += convert(type,A_plus / norm)
+                Am_Flux[a,b] += convert(type,A_minus / norm)
 
             end
         end
@@ -286,8 +289,8 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
                 end
 
-                I_plus = 0f0
-                I_minus = 0f0
+                I_plus = zero(type)
+                I_minus = zero(type)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
@@ -329,12 +332,12 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
 
                     # normalised fluxes
                     if b != bp
-                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) 
-                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) 
+                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                     end
                     if b != bm
-                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) 
-                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz])) 
+                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                     end
 
                 end # Forces loop
@@ -419,8 +422,8 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
                 end
 
-                J_plus = 0f0
-                J_minus = 0f0
+                J_plus = zero(type)
+                J_minus = zero(type)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
@@ -461,12 +464,12 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
 
                     # normalised fluxes
                     if b != bp
-                        J_Flux[a,bp] += convert(type,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp]))*(pzr[pz+1]-pzr[pz]))
-                        J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
+                        J_Flux[a,bp] += convert(type,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
+                        J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                     end
                     if b != bm
-                        J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
-                        J_Flux[a,bm] += convert(type,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym]))*(pzr[pz+1]-pzr[pz]))
+                        J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                        J_Flux[a,bm] += convert(type,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
                     end
 
                 end # Force loop
@@ -550,8 +553,8 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
                 end
 
-                K_plus = 0f0
-                K_minus = 0f0
+                K_plus = zero(type)
+                K_minus = zero(type)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
@@ -591,12 +594,12 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     =#
 
                     if b != bp
-                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pzp+1]-pzr[pzp]))
-                        K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
+                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
+                        K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                     end
                     if b != bm
-                        K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pz+1]-pzr[pz]))
-                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py]))*(pzr[pzm+1]-pzr[pzm]))
+                        K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
                     end
                     
                 end # force loop
