@@ -190,18 +190,22 @@ function ScalarNumberDensity(Nᵃ::Vector{Float64},Uₐ::Vector{Float64})
 
 end
 
-function ScalarEnergyDensity(Tᵃᵇ::Matrix{Float64},Uₐ::Vector{Float64},n::Float64)
+function ScalarEnergyDensity(Tᵃᵇ::Matrix{Float64},Uₐ::Vector{Float64},n::Float64;perparticle=false)
 
     e::Float64 = 0.0
     en::Float64 = Uₐ' * Tᵃᵇ * Uₐ
 
-    if n == 0.0
-        e = 0.0
-    else
-        e = en/n
-    end
+    if perparticle
+        if n == 0.0
+            e = 0.0
+        else
+            e = en/n
+        end
 
-    return en # not sure if this is correct 
+        return e
+    else 
+        return en
+    end
 
 end
 
