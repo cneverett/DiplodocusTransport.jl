@@ -340,7 +340,7 @@ function GainMatrix_to_M_Emi_Ani!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
         a = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
         b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
 
-        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1] * 0.6)
+        M_Emi[a,b] += convert(eltype(M_Emi),GainMatrix[px2,py2,pz2,px1,py1,pz1]#=  * 0.6 =#)
 
     end
 
@@ -375,7 +375,7 @@ function GainMatrix_to_M_Emi_Axi!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             w = dpz1[pz1] / sum(dpz1)
             w *= dpz2[pz2] / sum(dpz2)
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w * 0.6)
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w#=  * 0.6 =#)
 
         end
 
@@ -410,7 +410,7 @@ function GainMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},GainMat
             w = dpy1[py1] * dpz1[pz1] / (sum(dpz1) * sum(dpy1))
             w *= dpy2[py2] * dpz2[pz2] / (sum(dpz2) * sum(dpy2))
 
-            M_Emi[a,b] += convert(eltype(M_Emi),val*w * 0.6) 
+            M_Emi[a,b] += convert(eltype(M_Emi),val*w#=  * 0.6 =#) 
 
         end
 
