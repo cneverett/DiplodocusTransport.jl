@@ -17,7 +17,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
         
         flux::Float64 = fluxScale
 
@@ -63,7 +63,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -105,7 +105,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -140,7 +140,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed 
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -186,7 +186,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -228,7 +228,7 @@
         mEle = getfield(DC,Symbol("mEle"))
         c = getfield(DC,Symbol("c"))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) #/ (24) # normalised by σT*c, factor of 24 is to make sure timescale and energy conservation is correct, no idea why this is needed
+        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
