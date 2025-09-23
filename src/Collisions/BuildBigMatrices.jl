@@ -630,7 +630,7 @@ function LossMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Flo
 
     N = size(M_Bin,2)
 
-    for px2 in axes(LossMatrix,4), px1 in axes(GainMatrix,1)
+    for px2 in axes(LossMatrix,4), px1 in axes(LossMatrix,1)
 
         val = 0.0
         for pz2 in axes(LossMatrix,6), py2 in axes(LossMatrix,5), pz1 in axes(LossMatrix,3),py1 in axes(LossMatrix,2)
