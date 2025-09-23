@@ -9,7 +9,7 @@ function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loa
         M_Bin = MatrixType(undef,0,0)
     else
         M_Bin = Allocate_M_Bin(PhaseSpace,loading_check,MatrixType)
-        LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace,Bin_Mode)
+        LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace,mode=Bin_Mode)
     end
     if isempty(PhaseSpace.Emi_list)
         M_Emi = MatrixType(undef,0,0)
