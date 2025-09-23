@@ -633,11 +633,11 @@ function LossMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Flo
     for px2 in axes(LossMatrix,4), px1 in axes(GainMatrix,1)
 
         val = 0.0
-        for pz2 in axes(GainMatrix,6), py2 in axes(LossMatrix,5), pz1 in axes(GainMatrix,3),py1 in axes(LossMatrix,2)
+        for pz2 in axes(LossMatrix,6), py2 in axes(LossMatrix,5), pz1 in axes(LossMatrix,3),py1 in axes(LossMatrix,2)
             val += LossMatrix[px1,py1,pz1,px2,py2,pz2] * dpz1[pz1] * dpz2[pz2] * dpy1[py1] * dpy2[py2]
         end
 
-        for pz2 in axes(GainMatrix,6), py2 in axes(LossMatrix,5), pz1 in axes(GainMatrix,3),py1 in axes(LossMatrix,2)
+        for pz2 in axes(LossMatrix,6), py2 in axes(LossMatrix,5), pz1 in axes(LossMatrix,3),py1 in axes(LossMatrix,2)
 
             a = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
             b = a
