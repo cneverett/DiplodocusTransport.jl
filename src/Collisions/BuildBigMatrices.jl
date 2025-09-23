@@ -501,7 +501,7 @@ function LossMatrix_to_M_Emi_Iso!(M_Emi::AbstractMatrix{<:AbstractFloat},LossMat
 
 end
 
-function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpz1,dpz2,dpz3) where F<:AbstractFloat
+function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64,dpz1,dpz2,dpz3) where F<:AbstractFloat
 
     px3_num = size(GainMatrix,1)
     py3_num = size(GainMatrix,2)
@@ -541,7 +541,7 @@ function GainMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Flo
 
 end
 
-function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,6},offset3::Int64,offset1::Int64,offset2::Int64,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3) where F<:AbstractFloat
+function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3) where F<:AbstractFloat
 
     px3_num = size(GainMatrix,1)
     py3_num = size(GainMatrix,2)
@@ -581,7 +581,7 @@ function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Flo
 
 end
 
-function LossMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpz1,dpz2) where F <:AbstractFloat
+function LossMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64,dpz1,dpz2) where F <:AbstractFloat
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)
@@ -617,7 +617,7 @@ function LossMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Flo
 
 end
 
-function LossMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpy1,dpz1,dpy2,dpz2) where F<:AbstractFloat
+function LossMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64,dpy1,dpz1,dpy2,dpz2) where F<:AbstractFloat
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)
