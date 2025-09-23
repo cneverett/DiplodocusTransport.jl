@@ -144,9 +144,11 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
         dpy1 = Grids.dpy_list[name1_loc]
         dpy2 = Grids.dpy_list[name2_loc]
         dpy3 = Grids.dpy_list[name3_loc]
+        dpy4 = Grids.dpy_list[name4_loc]
         dpz1 = Grids.dpz_list[name1_loc]
         dpz2 = Grids.dpz_list[name2_loc]
         dpz3 = Grids.dpz_list[name3_loc]
+        dpz4 = Grids.dpz_list[name4_loc]
 
         GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],dpy1,dpz1,dpy2,dpz2,dpy3,dpz3)
         GainMatrix_to_M_Bin_Iso!(M_Bin,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],dpy1,dpz1,dpy2,dpz2,dpy4,dpz4)
