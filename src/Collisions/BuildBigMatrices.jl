@@ -581,7 +581,7 @@ function GainMatrix_to_M_Bin_Iso!(M_Bin::AbstractMatrix{F},GainMatrix::Array{Flo
 
 end
 
-function LossMatrix_to_M_Bin_Axi!(M_Bin::AbstracMatrix{F},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpz1,dpz2) where F <:AbstractFloat
+function LossMatrix_to_M_Bin_Axi!(M_Bin::AbstractMatrix{F},LossMatrix::Array{Float64,4},offset1::Int64,offset2::Int64,dpz1,dpz2) where F <:AbstractFloat
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)
