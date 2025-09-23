@@ -3,13 +3,13 @@
 
 Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BigMatricesStruct`.
 """
-function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=false,MatrixType::DataType=Matrix{Float32},Bin_Mode::ModeType=Ani())
+function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=false,MatrixType::DataType=Matrix{Float32},Bin_Mode::ModeType=Ani(),corrected::Bool=true)
 
     if isempty(PhaseSpace.Binary_list) 
         M_Bin = MatrixType(undef,0,0)
     else
         M_Bin = Allocate_M_Bin(PhaseSpace,loading_check,MatrixType)
-        LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace,mode=Bin_Mode)
+        LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace,mode=Bin_Mode,corrected=corrected)
     end
     if isempty(PhaseSpace.Emi_list)
         M_Emi = MatrixType(undef,0,0)
