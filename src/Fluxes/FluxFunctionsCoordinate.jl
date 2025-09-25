@@ -1,3 +1,104 @@
+# =============== ABCD Vol Cartesian ===================== #
+
+    function AFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,t,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the A surface i.e. surface of constant t
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
+        flux *= (-p0 + p1) * (-u0 + u1) * (-phi0 + phi1)
+
+        return flux
+
+    end
+
+    function BFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the B surface i.e. surface of constant x
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 =  (t0 - t1) * (y0 - y1) * (z0 - z1)
+        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(phi0/pi) - sinpi(phi1/pi)) / 2
+
+        return flux
+
+    end
+
+    function CFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x0,x1,y,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the C surface i.e. surface of constant y
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 =  (t0 - t1) * (x0 - x1) * (z0 - z1) 
+        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(phi0/pi) - cospi(phi1/pi)) / 2 
+
+        return flux
+
+    end
+
+    function DFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the D surface i.e. surface of constant z
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = (t0 - t1) * (x0 - x1) * (y0 - y1) 
+        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (phi0 - phi1) / 2
+
+        return flux
+
+    end
+
+    function VolFunction(space_coords::Cartesian,t0,t1,x0,x1,y0,y1,z0,z1)
+
+        # Evaluate the spacetime volume element
+
+        vol::Float64 = (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+
+        return vol
+
+    end
+
+# ======================================================== #
+
+# =============== IJK Cartesian Ricci ==================== #
+
+    function IFluxFunction(force::CoordinateForce,space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the I surface i.e. surface of constant spherical p
+
+        flux::Float64 = 0e0
+
+        return flux
+
+    end
+
+    function JFluxFunction(force::CoordinateForce,space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
+
+        # Evaluate the flux through the J surface i.e. surface of constant spherical u
+
+        flux::Float64 = 0e0
+
+        return flux
+
+    end
+
+    function KFluxFunction(force::CoordinateForce,space_coords::Cartesian,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
+
+        # Evaluate the flux through the K surface i.e. surface of constant spherical phi
+
+        flux::Float64 = 0e0
+
+        return flux
+
+    end
+
+# ======================================================== #
+
+
 # =============== ABCD Vol Cylindrical ===================== #
 
     function AFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
@@ -12,9 +113,6 @@
 
         flux = (-x0^2 + x1^2) / 2 * (-y0 + y1) * (-z0 + z1) 
         flux *= (-p064 + p164) * (-u0 + u1) * (-phi0 + phi1)
-
-        # hacky fix for time being dependent on grid size
-        #flux *= (p164 + p064) / 2 / (p164 - p064) # mp/dp
 
         return flux
 
@@ -31,7 +129,7 @@
         m = getfield(DC,Symbol("mu"*name))
 
         flux = (t0 - t1) * x * (y0 - y1) * (z0 - z1) 
-        flux *= (1/2)*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sin(phi0) - sin(phi1))
+        flux *= (1/2)*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sinpi(phi0/pi) - sinpi(phi1/pi))
 
         return flux
 
@@ -39,7 +137,7 @@
 
     function CFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
 
-        # Evaluate the flux through the I surface i.e. surface of constant cylindrical phi
+        # Evaluate the flux through the C surface i.e. surface of constant y, spherical θ, cylindrical ϕ
 
         # convert p to Float64 to ensure no floating point issues
         p064 = Float64(p0)
@@ -48,7 +146,7 @@
         m = getfield(DC,Symbol("mu"*name))
 
         flux = (t0 - t1) * (x0 - x1) * (z0 - z1) 
-        flux *= (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cos(phi0) - cos(phi1))
+        flux *= (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cospi(phi0/pi) - cospi(phi1/pi))
 
         return flux
 
@@ -56,7 +154,7 @@
 
     function DFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z,p0,p1,u0,u1,phi0,phi1,name::String)
 
-        # Evaluate the flux through the D surface i.e. surface of constant cylindrical z
+        # Evaluate the flux through the D surface i.e. surface of constant z, spherical ϕ, cylindrical z
 
         # convert p to Float64 to ensure no floating point issues
         p064 = Float64(p0)
@@ -155,6 +253,110 @@
 
 # ======================================================== #
 
+# =============== ABCD Vol Spherical ===================== #
+
+    function AFluxFunction(space_coords::Spherical,momentum_coords::Spherical,t,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the A surface i.e. surface of constant t
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = -(1/3) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
+        flux *= (p0 - p1) * (u0 - u1) * (phi0 - phi1)
+
+        return flux
+
+    end
+
+    function BFluxFunction(space_coords::Spherical,momentum_coords::Spherical,t0,t1,x,y0,y1,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the B surface i.e. surface of constant spherical r
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi)) * (sinpi(phi0/pi) - sinpi(phi1/pi)) / 2
+        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(phi0/pi) - sinpi(phi1/pi))
+        return flux
+
+    end
+
+    function CFluxFunction(space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y,z0,z1,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the C surface i.e. surface of constant spherical θ 
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
+        flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(phi0/pi) - cospi(phi1/pi)) / 2
+
+        return flux
+
+    end
+
+    function DFluxFunction(space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z,p0,p1,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the D surface i.e. surface of constant spherical ϕ
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
+        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (phi0 - phi1) / 2
+
+        return flux
+
+    end
+
+    function VolFunction(space_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1)
+
+        # Evaluate the spacetime volume element
+
+        vol::Float64 = -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
+
+        return vol
+
+    end
+
+# ======================================================== #
+
+# =============== IJK Spherical Ricci ==================== #
+
+    function IFluxFunction(force::CoordinateForce,space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p,u0,u1,phi0,phi1,name::String)
+
+        # Evaluate the flux through the I surface i.e. surface of constant spherical p
+
+        flux::Float64 = 0e0
+
+        return flux
+
+    end
+
+    function JFluxFunction(force::CoordinateForce,space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u,phi0,phi1,name::String)
+
+        # Evaluate the flux through the J surface i.e. surface of constant spherical u
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 = -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/(2pi)) * sinpi((phi0 - phi1)/(2pi)) * sinpi((y0 + y1 + phi0 + phi1)/(2pi))
+
+        return flux
+
+    end
+
+    function KFluxFunction(force::CoordinateForce,space_coords::Spherical,momentum_coords::Spherical,t0,t1,x0,x1,y0,y1,z0,z1,p0,p1,u0,u1,phi,name::String)
+
+        # Evaluate the flux through the K surface i.e. surface of constant spherical phi
+
+        m = getfield(DC,Symbol("mu"*name))
+
+        flux::Float64 =  (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) / 2
+        flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + asin(u1) * (cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + 2(cospi(y0/pi) - cospi(y1/pi)) * sinpi(phi/pi)) + asin(u0) * (cospi(phi/pi) * (-sinpi(y0/pi) + sinpi(y1/pi)) + 2(-cospi(y0/pi) + cospi(y1/pi))*sinpi(phi/pi))) / 2
+
+        return flux
+
+    end
+
+# ======================================================== #
+
 # ======= IJK Cylindrical Ricci aligned to B field ======= #
 
     #=
@@ -173,7 +375,7 @@
         if b1 == 0 # no azimuthal field
             flux = 0e0
         elseif b2 == 0 # no axial field
-            flux = (1/(48*sqrt(m^2 + p^2)))*p^2*(t0 - t1)*(x0 - x1)*(y0 - y1)*(z0 - z1)*(sin(phi0) - sin(phi1))*(-2* u0*sqrt(1 - u0^2)*(-11 + x0^2 + x0*x1 + x1^2) + 4*u0^3*sqrt(1 - u0^2)*(-7 + x0^2 + x0*x1 + x1^2) + 2* u1*sqrt(1 - u1^2)*(-11 + x0^2 + x1*(x0 + x1) - 2*u1^2*(-7 + x0^2 + x0*x1 + x1^2)) + (u0*sqrt(1 - u0^2)*(-5 + 2*u0^2) + u1*(5 - 2*u1^2)*sqrt(1 - u1^2))*(cos(2*phi0) + cos(2*phi1) - 2*sin(phi0)*sin(phi1)) - 2*acot_mod(u0)*(-3*cos(2*phi0) - 3*cos(2*phi1) + 2*(-3 + x0^2 + x0*x1 + x1^2 + 3*sin(phi0)*sin(phi1))) + 2*acot_mod(u1)*(-3*cos(2*phi0) - 3*cos(2*phi1) + 2*(-3 + x0^2 + x0*x1 + x1^2 + 3*sin(phi0)*sin(phi1))))
+            flux = (1/(48*sqrt(m^2 + p^2)))*p^2*(t0 - t1)*(x0 - x1)*(y0 - y1)*(z0 - z1)*(sinpi(phi0/pi) - sinpi(phi1/pi))*(-2* u0*sqrt(1 - u0^2)*(-11 + x0^2 + x0*x1 + x1^2) + 4*u0^3*sqrt(1 - u0^2)*(-7 + x0^2 + x0*x1 + x1^2) + 2* u1*sqrt(1 - u1^2)*(-11 + x0^2 + x1*(x0 + x1) - 2*u1^2*(-7 + x0^2 + x0*x1 + x1^2)) + (u0*sqrt(1 - u0^2)*(-5 + 2*u0^2) + u1*(5 - 2*u1^2)*sqrt(1 - u1^2))*(cos(2*phi0) + cos(2*phi1) - 2*sinpi(phi0/pi)*sinpi(phi1/pi)) - 2*acot_mod(u0)*(-3*cos(2*phi0) - 3*cos(2*phi1) + 2*(-3 + x0^2 + x0*x1 + x1^2 + 3*sinpi(phi0/pi)*sinpi(phi1/pi))) + 2*acot_mod(u1)*(-3*cos(2*phi0) - 3*cos(2*phi1) + 2*(-3 + x0^2 + x0*x1 + x1^2 + 3*sinpi(phi0/pi)*sinpi(phi1/pi))))
         else
             #flux = 
         end
@@ -211,6 +413,9 @@
 # ======================================================== #
 
 function acot_mod(x)
+
+    # ArcCot[(1+x)/Sqrt[1-x^2]]
+    # this is actually just acos(x)/2
 
     if x == -1
         return pi/2

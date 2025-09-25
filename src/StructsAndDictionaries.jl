@@ -259,37 +259,6 @@ end
 
 A struct for storing the big matrices associated with interactions in the simulation.
 """
-#=mutable struct BigMatricesStruct <: Function
-    
-    M_Bin::Array{Float32,2}    # big matrix for binary interactions
-
-    M_Emi::Array{Float32,2}  # big matrix for emission interactions
-
-    M_Abs::Array{Float32,2}  # big matrix for emission interactions
-
-    function BigMatricesStruct(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loading_check::Bool=true)
-
-        self = new()
-
-        if isempty(PhaseSpace.Binary_list) == false
-            self.M_Bin = Allocate_M_Bin(PhaseSpace,loading_check)
-            LoadMatrices_Binary(self,DataDirectory,PhaseSpace)
-        end
-        if isempty(PhaseSpace.Emi_list) == false
-            self.M_Emi = Allocate_M_Emi(PhaseSpace,loading_check)
-            LoadMatrices_Emi(self,DataDirectory,PhaseSpace);
-        end
-
-        return self
-    end
-
-end=#
-
-#="""
-    BigMatricesStruct()
-
-A struct for storing the big matrices associated with interactions in the simulation.
-"""=#
 struct BigMatricesStruct{M<:AbstractMatrix{<:AbstractFloat}}
     
     M_Bin::M  # big matrix for binary interactions
@@ -297,35 +266,6 @@ struct BigMatricesStruct{M<:AbstractMatrix{<:AbstractFloat}}
     M_Emi::M  # big matrix for emission interactions
 
 end
-
-#=mutable struct FluxMatricesStruct <: Function
-
-    # time fluxes
-    Ap_Flux::Array{Float32,2}
-    Am_Flux::Array{Float32,2}
-    # space fluxes
-    B_Flux::Array{Float32,2}
-    C_Flux::Array{Float32,2}
-    D_Flux::Array{Float32,2}
-    # momentum fluxes
-    I_Flux::Array{Float32,2}
-    J_Flux::Array{Float32,2}
-    K_Flux::Array{Float32,2}
-    # space time volume element vector
-    Vol::Vector{Float32}
-
-    function FluxMatricesStruct(PhaseSpace::PhaseSpaceStruct)
-        
-        self = new()
-
-        (self.Ap_Flux,self.Am_Flux,self.B_Flux,self.C_Flux,self.D_Flux,self.I_Flux,self.J_Flux,self.K_Flux,self.Vol) = Allocate_Flux(PhaseSpace)
-
-        Build_Flux(self,PhaseSpace)
-
-        return self
-
-    end
-end=#
 
 """
     FluxMatricesStruct()
@@ -337,16 +277,18 @@ struct FluxMatricesStruct{M<:AbstractMatrix{<:AbstractFloat},V<:AbstractVector{<
     # time fluxes
     Ap_Flux::M
     Am_Flux::M
+    # sum of space and momentum fluxes for speed 
+    F_Flux::M
+    # space time volume element vector
+    Vol::V
     # space fluxes
     B_Flux::M
     C_Flux::M
-    D_Flux::M
+    D_Flux::M 
     # momentum fluxes
-    I_Flux::M
+    I_Flux::M 
     J_Flux::M
     K_Flux::M
-    # space time volume element vector
-    Vol::V
 
 end
 

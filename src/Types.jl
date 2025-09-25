@@ -14,6 +14,7 @@ struct Axi <: ModeType end
 struct Ani <: ModeType end
 
 # CoordinateType Structs: 
+struct Cartesian <: CoordinateType end
 struct Spherical <: CoordinateType end
 struct Cylindrical <: CoordinateType
     α::Float64 # != 0 not implemented
@@ -32,6 +33,10 @@ struct CoordinateForce <: ForceType end
 struct SyncRadReact <: ForceType
     mode::ModeType
     B::Float64
+end
+struct ExB <: ForceType
+    E0::Float64
+    B0::Float64
 end
 
 # InteractionType definitions
