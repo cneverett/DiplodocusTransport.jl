@@ -78,6 +78,8 @@ version = "1.11.0"
 [[deps.DiplodocusCollisions]]
 deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter", "Random"]
 git-tree-sha1 = "1f903f9d63566e480a9f433be282acccc5211c15"
+repo-rev = "dev"
+repo-url = "https://github.com/cneverett/DiplodocusCollisions.jl"
 uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
 version = "0.1.1"
 
