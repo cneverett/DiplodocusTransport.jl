@@ -114,13 +114,8 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
         GainSumE3 *= vol
 
-
         if GainSumE3 != 0e0
             Correction = (LossSumE1)/GainSumE3
-            println(Correction)
-            println(LossSumE1)
-            println(GainSumE3)
-            println("")
             @view(GainMatrix3[:,:,:,px,py,pz]) .= Correction * @view(GainMatrix3[:,:,:,px,py,pz])
         end
 
