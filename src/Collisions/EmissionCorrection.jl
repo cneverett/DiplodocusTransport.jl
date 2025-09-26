@@ -25,11 +25,6 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         
         GainSumE3 = zero(Float64)
         LossSumE1 = zero(Float64)
-        
-        # calculate total rate of energy gain from p1 state
-        for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
-            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
-        end
 
         # calculate total rate of energy loss from p1 state via flux matrix elements
         tr = Grids.tr
@@ -97,25 +92,32 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
                 b-1       b        b+1  
         =#
 
-        vol = VolFunction(space_coords,tr[1],tr[2],xr[1],xr[2],yr[1],yr[2],zr[1],zr[2])
-
         # normalised fluxes
         if px != pxp
-            LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp] / vol
-            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))  * dE1[px] / vol
+            LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp]
+            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))  * dE1[px]
         end
         if px != pxm
-            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[px] / vol
-            LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm] / vol
+            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[px]
+            LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
         end
 
         if LossSumE1 >= 0.0
             println(px)
         end
 
+        # calculate total rate of energy gain from p1 state
+        for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
+            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
+        end
+
+        vol = VolFunction(space_coords,tr[1],tr[2],xr[1],xr[2],yr[1],yr[2],zr[1],zr[2])
+
+        GainSumE3 *= vol
+
 
         if GainSumE3 != 0e0
-            Correction = (-LossSumE1)/GainSumE3
+            Correction = GainSumE3/(-LossSumE1)
             println(Correction)
             println(LossSumE1)
             println(GainSumE3)
