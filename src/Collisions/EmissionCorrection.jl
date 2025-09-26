@@ -43,18 +43,19 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         pxp = px+1
         pxm = px-1
 
+        px_num = px1_num
+        py_num = py1_num
+        pz_num = pz1_num
+
+
         #= Boundary Conditions:
             Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
         =#
         if pxp > px_num
             pxp = px_num
-            bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-            # b = bp therefore no I_plus flux only I_minus i.e. particles only leave/enter from left boundary (p<p_max)
         end
         if pxm < 1
             pxm = 1
-            bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
-            # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
         end
 
         I_plus = zero(Float64)
