@@ -31,6 +31,7 @@ module DiplodocusTransport
     # Collisions
     include("Collisions/BuildBigMatrices.jl")
     include("Collisions/LoadMatrices.jl")
+    include("Collisions/EmissionCorrection.jl")
 
     # Fluxes
     include("Fluxes/BuildFluxMatrices.jl")

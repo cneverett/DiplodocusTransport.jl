@@ -209,7 +209,7 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
 
 end
 
-function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct) where F<:AbstractFloat
+function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct;corrected::Bool=true) where F<:AbstractFloat
 
     Emi_list = PhaseSpace.Emi_list
 
@@ -299,21 +299,15 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSp
 
         filename = DC.EmissionFileName(Parameters)
 
-        #filename = "sync"*name2*"#"*px1_low*"-"*px1_up*px1_grid*px1_num*"#"*px3_low*"-"*px3_up*px3_grid*px3_num*"#"*py1_grid*py1_num*"#"*py3_grid*py3_num_st*".jld2";
-
-        #filename = "syncEle#-14.0#4.0#72#-5.0#4.0#72#8#8.jld2";
-        #filename = "syncEle#-14.0-7.0l84#0.0-7.0l56#u8#u8.jld2";
-        #filename = "syncTest3.jld2"
-
         println(filename)
 
         #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
         #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
         matrix = DC.EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
-            
-        # some SMatrix values are greater than float32 precision!
-        #PhaseSpaceFactors_Sync_Undo!(matrix,p2_r,u2_r,p1_r,u1_r)
-        #PhaseSpaceFactors_Emi_Undo!(matrix,pxr3,pyr3,pxr1,pyr1)
+
+        if corrected
+            EmissionCorrection!(Parameters,matrix)
+        end
 
         Fill_M_Emi!(M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
     
