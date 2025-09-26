@@ -34,6 +34,9 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         pxr = Grids.pxr_list[name1_loc]
         pyr = Grids.pyr_list[name1_loc]
         pzr = Grids.pzr_list[name1_loc]
+        pxr3 = Grids.pxr_list[name3_loc]
+        pyr3 = Grids.pyr_list[name3_loc]
+        pzr3 = Grids.pzr_list[name3_loc]
 
         pxp = px+1
         pxm = px-1
@@ -94,12 +97,12 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
         # normalised fluxes
         if px != pxp
-            LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp]
-            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))  * dE1[px]
+            LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp] * ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))
+            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))  * dE1[px] * ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))
         end
         if px != pxm
-            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[px]
-            LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
+            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[px] * ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))
+            LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm] * ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))
         end
 
         if LossSumE1 >= 0.0
@@ -108,7 +111,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
         # calculate total rate of energy gain from p1 state
         for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
-            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
+            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3] * ((pxr3[p3+1]-pxr3[p3])*(pyr3[u3+1]-pyr3[u3])*(pzr3[h3+1]-pzr3[h3]))
         end
 
         vol = VolFunction(space_coords,tr[1],tr[2],xr[1],xr[2],yr[1],yr[2],zr[1],zr[2])
@@ -117,7 +120,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
 
         if GainSumE3 != 0e0
-            Correction = GainSumE3/(-LossSumE1)
+            Correction = (-LossSumE1)/GainSumE3
             println(Correction)
             println(LossSumE1)
             println(GainSumE3)
