@@ -10,6 +10,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         scheme = Momentum.scheme
         space_coords = Space.space_coordinates
         momentum_coords = Momentum.momentum_coordinates
+        name_list = PhaseSpace.name_list
 
         Grids = PhaseSpace.Grids
         dE_list = Grids.dE_list
