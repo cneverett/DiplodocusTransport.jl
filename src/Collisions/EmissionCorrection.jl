@@ -111,7 +111,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
         # calculate total rate of energy gain from p1 state
         for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
-            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3] * ((pxr3[p3+1]-pxr3[p3])*(pyr3[u3+1]-pyr3[u3])*(pzr3[h3+1]-pzr3[h3]))
+            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3] * ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))#* ((pxr3[p3+1]-pxr3[p3])*(pyr3[u3+1]-pyr3[u3])*(pzr3[h3+1]-pzr3[h3]))
         end
 
         vol = VolFunction(space_coords,tr[1],tr[2],xr[1],xr[2],yr[1],yr[2],zr[1],zr[2])
