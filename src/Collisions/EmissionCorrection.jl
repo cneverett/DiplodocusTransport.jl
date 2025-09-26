@@ -28,7 +28,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         
         # calculate total rate of energy gain from p1 state
         for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
-            GainSumN3 += GainMatrix3[p3,u3,h3,p1,u1,h1] * dE3[p3]
+            GainSumE3 += GainMatrix3[p3,u3,h3,p1,u1,h1] * dE3[p3]
         end
 
         # calculate total rate of energy loss from p1 state via flux matrix elements
