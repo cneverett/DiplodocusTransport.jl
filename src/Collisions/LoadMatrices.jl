@@ -306,7 +306,7 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSp
         matrix = DC.EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
 
         if corrected
-            EmissionCorrection!(Parameters,matrix)
+            EmissionCorrection!(PhaseSpace,matrix,Parameters)
         end
 
         Fill_M_Emi!(M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
