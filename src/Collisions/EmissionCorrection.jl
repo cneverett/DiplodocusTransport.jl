@@ -5,9 +5,11 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
     if type == "Sync"
 
         force = SyncRadReact(Ani(),Ext[1])
+        Momentum = PhaseSpace.Momentum
+        Space = PhaseSpace.Space
         scheme = Momentum.scheme
-        space_coords = PhaseSpace.Space.space_coordinates
-        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
 
         Grids = PhaseSpace.Grids
         dE_list = Grids.dE_list
