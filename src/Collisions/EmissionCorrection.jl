@@ -105,10 +105,6 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
             #LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
         end
 
-        if LossSumE1 >= 0.0
-            println(px)
-        end
-
         # calculate total rate of energy gain from p1 state
         for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
             GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
@@ -120,7 +116,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
 
         if GainSumE3 != 0e0
-            Correction = (-LossSumE1)/GainSumE3
+            Correction = (LossSumE1)/GainSumE3
             println(Correction)
             println(LossSumE1)
             println(GainSumE3)
