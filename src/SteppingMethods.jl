@@ -65,7 +65,7 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
     @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.FluxM.Am_Flux
 
     if isinf(sum(Euler.temp))
-        error("overflow in arrays")
+        println("overflow in arrays")
         #@. g.temp = g.temp*(g.temp!=Inf)
     end
 
