@@ -113,7 +113,7 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
         mul!(Euler.df,Euler.temp,f)
 
         @. Euler.df_temp = Euler.df / f 
-        replace!(Euler.df_temp,Inf=>0.0,NaN=>0.0)
+        replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
         Cr = maximum(abs.(Euler.df_temp))
 
         if Cr > 1.0
