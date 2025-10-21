@@ -123,6 +123,7 @@ function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::Abstract
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
+    offset = PhaseSpace.Grids.momentum_species_offset
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -131,15 +132,6 @@ function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::Abstract
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
 
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
     n_space = x_num*y_num*z_num
@@ -224,6 +216,10 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = momentum_coords.xp_BC
+    BCm = momentum_coords.xm_BC 
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -234,15 +230,6 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
 
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
     n_space = x_num*y_num*z_num
@@ -276,17 +263,21 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                 bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
 
                 #= Boundary Conditions:
-                    Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
+                    Flux on I boundaries should be zero i.e. no particles leave/enter from the domain bounds
                 =#
-                if pxp > px_num
-                    pxp = px_num
-                    bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-                    # b = bp therefore no I_plus flux only I_minus i.e. particles only leave/enter from left boundary (p<p_max)
-                end
-                if pxm < 1
-                    pxm = 1
-                    bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
-                    # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
+                if typeof(BCp) == Closed && typeof(BCm) == Closed
+                    if pxp > px_num
+                        pxp = px_num
+                        bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
+                        # b = bp therefore no I_plus flux only I_minus i.e. particles only leave/enter from left boundary (p<p_max)
+                    end
+                    if pxm < 1
+                        pxm = 1
+                        bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
+                        # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
+                    end
+                else
+                    error("I flux boundaries incorrectly defined")
                 end
 
                 I_plus = zero(type)
@@ -357,6 +348,10 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = momentum_coords.yp_BC
+    BCm = momentum_coords.ym_BC 
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -367,15 +362,6 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
 
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
     n_space = x_num*y_num*z_num
@@ -409,17 +395,21 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                 bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
 
                 #= Boundary Conditions:
-                    Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
+                    Flux on J boundaries should be zero i.e. no particles leave/enter from the domain bounds
                 =#
-                if pyp > py_num
-                    pyp = py_num
-                    bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
-                    # b = bp therefore no J_plus flux only J_minus i.e. particles only leave/enter from left boundary (u<1)
-                end
-                if pym < 1
-                    pym = 1
-                    bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
-                    # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
+                if typeof(BCp) == Closed && typeof(BCm) == Closed
+                    if pyp > py_num
+                        pyp = py_num
+                        bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
+                        # b = bp therefore no J_plus flux only J_minus i.e. particles only leave/enter from left boundary (u<1)
+                    end
+                    if pym < 1
+                        pym = 1
+                        bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
+                        # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
+                    end
+                else
+                    error("J flux boundaries incorrectly defined")
                 end
 
                 J_plus = zero(type)
@@ -490,6 +480,10 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = momentum_coords.zp_BC
+    BCm = momentum_coords.zm_BC 
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -500,15 +494,6 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
 
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
     n_space = x_num*y_num*z_num
@@ -542,15 +527,19 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                 bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
 
                 #= Boundary Conditions:
-                    Flux on boundaries are periodic i.e. particles leave/enter from the opposite bound
+                    Flux on K boundaries should always be periodic i.e. particles leave/enter from the opposite bound
                 =#
-                if pzp > pz_num
-                    pzp = 1
-                    bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                end
-                if pzm < 1
-                    pzm = pz_num
-                    bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                if typeof(BCp) == Periodic && typeof(BCm) == Periodic
+                    if pzp > pz_num
+                        pzp = 1
+                        bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                    end
+                    if pzm < 1
+                        pzm = pz_num
+                        bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                    end
+                else
+                    error("K flux boundaries incorrectly defined")
                 end
 
                 K_plus = zero(type)

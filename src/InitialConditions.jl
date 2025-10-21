@@ -37,22 +37,13 @@ function Location_Species_To_StateVector(StateVector::Vector{F},PhaseSpace::Phas
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list
     pz_num_list = PhaseSpace.Momentum.pz_num_list
+    offset = PhaseSpace.Grids.momentum_species_offset
 
     px_num = px_num_list[species_index]
     py_num = py_num_list[species_index]
     pz_num = pz_num_list[species_index]
 
-    name_list = PhaseSpace.name_list
-
-    off_space = off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
+    off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
     off_name = offset[species_index]
 
     start_idx = 1+off_name+off_space

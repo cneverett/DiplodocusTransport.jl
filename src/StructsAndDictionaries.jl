@@ -101,6 +101,8 @@ mutable struct GridsStruct <: Function
 
     dE_list::Vector{Vector{Float64}}
 
+    momentum_species_offset::Vector{Int64}
+
     function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
 
         self = new()
@@ -194,6 +196,12 @@ mutable struct GridsStruct <: Function
                 self.mpz_list[i] = DC.meanVector(self.pzr_list[i]);
 
                 self.dE_list[i] = DC.deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.dpx_list[i];
+
+                if i == 1
+                    self.momentum_species_offset[i] = 0
+                else
+                    self.momentum_species_offset[i] = self.momentum_species_offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
+                end
 
             end
 
