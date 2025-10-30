@@ -40,7 +40,7 @@ end
     zm_BC::BoundaryType = Periodic() 
 end
 #Cylindrical() =  Cylindrical(0.0, 0.0, 0.0)
-@kwdef struct Spherical <: CoordinateType # x=r, y=θ, z=ψ
+@kwdef struct Spherical <: CoordinateType # x=r, y=θ, z=ψ or momentum space x=p, y=u, z=ϕ
     xp_BC::BoundaryType = Closed()
     xm_BC::BoundaryType = Closed()
     yp_BC::BoundaryType = Closed()
