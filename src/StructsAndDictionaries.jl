@@ -178,6 +178,8 @@ mutable struct GridsStruct <: Function
 
             self.dE_list = Vector{Vector{Float64}}(undef,num_species);
 
+            self.momentum_species_offset = Vector{Int64}(undef,num_species);
+
             for i in eachindex(name_list)
 
                 self.mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
