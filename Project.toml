@@ -1,7 +1,7 @@
 name = "DiplodocusTransport"
 uuid = "f63b9913-7a9a-464d-82b9-3e1e536d6db0"
+version = "0.1.3"
 authors = ["Christopher Everett"]
-version = "0.1.2"
 
 [deps]
 Bessels = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
