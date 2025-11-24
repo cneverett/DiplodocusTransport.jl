@@ -27,45 +27,36 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
         fill!(Euler.Jac,zero(eltype(Euler.Jac)))
     end
         
-    # add binary terms to temp (jacobians are added in update_Big_Bin! if implicit)
+    # create df_Bin due to binary interactions (jacobians are added in update_Big_Bin! if implicit)
     if isempty(Euler.PhaseSpace.Binary_list) == false
         update_Big_Bin!(Euler,f)
-        @. Euler.temp += Euler.M_Bin_Mul_Step 
+        @. Euler.df += Euler.df_Bin
     end
-    # add emission terms to temp (jacobians are added in update_Big_Emi! if implicit)
+    # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
     if isempty(Euler.PhaseSpace.Emi_list) == false
         update_Big_Emi!(Euler,f)
-        @. Euler.temp += Euler.M_Emi_Step
+        @. Euler.df += Euler.df_Emi
     end
-    # add flux terms to temp
-    #  @. Euler.temp -= Euler.FluxM.B_Flux
-    #  @. Euler.temp -= Euler.FluxM.C_Flux
-    #  @. Euler.temp -= Euler.FluxM.D_Flux
-    #@. Euler.temp -= Euler.FluxM.K_Flux 
-    #@. Euler.temp -= Euler.FluxM.J_Flux 
-    #@. Euler.temp -= Euler.FluxM.I_Flux
-    #@. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
-    Euler.temp -= Euler.FluxM.F_Flux
+
+    # create df_Flux due to space and momentum flux terms
+    mul!(Euler.df_Flux,Euler.FluxM.F_Flux,f)
+    @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
     if Euler.Implicit
-        #@. Euler.Jac -= Euler.FluxM.K_Flux
-        #@. Euler.Jac -= Euler.FluxM.J_Flux
-        #@. Euler.Jac -= Euler.FluxM.I_Flux
         @. Euler.Jac -= Euler.FluxM.F_Flux
     end
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
     if Euler.PhaseSpace.Time.t_grid != "u" 
-        Euler.temp .*= dt / dt0
+        Euler.df .*= dt / dt0
         if Euler.Implicit
             Euler.Jac .*= dt / dt0
         end
     end
-    # add time fluxes to temp
-    #@. Euler.temp -= Euler.FluxM.Ap_Flux
-    #@. Euler.temp -= Euler.FluxM.Am_Flux
-    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.FluxM.Am_Flux
+    # df_Flux due to time fluxes TODO: can remove this step if calculate new f directly rather than df, saving one matmul
+    mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
+    @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
 
-    if isinf(sum(Euler.temp))
-        println("overflow in arrays")
+    if isinf(sum(Euler.df))
+        println("overflow in df calculation")
         #@. g.temp = g.temp*(g.temp!=Inf)
     end
 
@@ -88,30 +79,10 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
         #end
 
     else
-        #= mul!(Euler.df_temp,Euler.temp,f)
-        if isdiag(Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.df,factorize(Euler.FluxM.Ap_Flux),Euler.df_temp)
-        else
-            lu!(Euler.LU,Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.df,Euler.LU,Euler.df_temp)
-        end =#
+        Euler.df_temp .= diag(Euler.FluxM.Ap_Flux) # TODO: ASSUMING Ap_Flux is DIAGONAL,  TO BE UPDATED LATER !!!!!!!!!!!
+        @. Euler.df /= Euler.df_temp
 
-        
-        #if isdiag(Euler.FluxM.Ap_Flux)
-            Euler.df_temp .= diag(Euler.FluxM.Ap_Flux) # ASSUMING Ap_Flux is DIAGONAL, TO BE UPDATED LATER !!!!!!!!!!!
-            Euler.temp ./= Euler.df_temp
-            #ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
-            #println("$(sum(Euler.temp))")
-            # CFL ish check
-            #println("t = $t")
-            #println("max λ = $(maximum(abs.(eigvals(Euler.temp))))")
-            #println("min λ = $(minimum(abs.(eigvals(Euler.temp))))")
-        #else
-        #    lu!(Euler.LU,Euler.FluxM.Ap_Flux)
-        #    ldiv!(Euler.temp,Euler.LU,Euler.temp)
-        #end
-        mul!(Euler.df,Euler.temp,f)
-
+        # Cr (CFL) condition check
         @. Euler.df_temp = Euler.df / f 
         replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
         Cr = maximum(abs.(Euler.df_temp))
@@ -155,32 +126,28 @@ function update_Big_Bin!(method::SteppingMethodType,f)
     Vol = FluxM.Vol
 
     # Thanks to Emma Godden for fixing a bug here
-    temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
+    #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
 
-        tempView = @view temp[n_momentum^2*off_space+1:n_momentum^2*(off_space+1)]
-        fView = @view f[n_momentum*off_space+1:n_momentum*(off_space+1)]
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
 
-        mul!(tempView,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+        fView = @view f[start_idx:end_idx]
+        df_BinView = @view method.df_Bin[start_idx:end_idx]
+        mul!(method.M_Bin_Mul_Step_reshape,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+        mul!(df_BinView,method.M_Bin_Mul_Step,fView)
 
         # multiply by volume element
-        tempView .*= Vol[off_space+1]
-
-        # assign jacobian elements
-        #=if method.Implicit
-            JacView = @view method.Jac[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
-            @. JacView += 2*method.M_Bin_Mul_Step 
-        end 
-        =#
+        df_BinView .*= Vol[off_space+1]
 
     end
 
     if method.Implicit
         # assign jacobian elements
-        @. method.Jac += 2*method.M_Bin_Mul_Step 
+        @. method.Jac += 2*method.M_Bin_Mul_Step*Vol[off_space+1]
     end
 
     return nothing
@@ -215,18 +182,24 @@ function update_Big_Emi!(method::SteppingMethodType,f)
 
         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
 
-        tempView = @view method.M_Emi_Step[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
 
-        @. tempView = method.BigM.M_Emi * Vol[off_space+1]
+        fView = @view f[start_idx:end_idx]
+        df_EmiView = @view method.df_Emi[start_idx:end_idx]
+
+        M_EmiView = @view method.M_Emi[start_idx:end_idx,start_idx:end_idx] # TODO: make M_Emi block diagonal to save memory 
+
+        mul!(df_EmiView,M_EmiView,fView)
 
         # multiply by volume element
-        #tempView .*= Vol[off_space+1]
+        df_EmiView .*= Vol[off_space+1]
 
     end
 
     # assign jacobian elements
     if method.Implicit
-        @. method.Jac += method.M_Emi_Step 
+        @. method.Jac += method.M_Emi
     end
 
     return nothing
