@@ -44,6 +44,7 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
     if Euler.Implicit
         @. Euler.Jac -= Euler.FluxM.F_Flux
     end
+
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
     if Euler.PhaseSpace.Time.t_grid != "u" 
         Euler.df .*= dt / dt0
@@ -51,9 +52,10 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
             Euler.Jac .*= dt / dt0
         end
     end
-    # df_Flux due to time fluxes TODO: can remove this step if calculate new f directly rather than df, saving one matmul
-    mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
-    @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+
+    # df_Flux due to time fluxes TODO: can remove this step if system is stationary therefore Ap=-Am. This will also allow more timestep control
+    #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
+    #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
 
     if isinf(sum(Euler.df))
         println("overflow in df calculation")

@@ -27,6 +27,7 @@ module DiplodocusTransport
     include("InitialConditions.jl")
     include("ValuesOnTheGrid.jl")
     include("DataReading.jl")
+    include("GlobalToStateIndices.jl")
 
     # Collisions
     include("Collisions/BuildBigMatrices.jl")

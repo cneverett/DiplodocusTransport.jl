@@ -15,6 +15,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     df_Bin::Vector{T}                       # change in distribution function due to binary interactions
     df_Emi::Vector{T}                       # change in distribution function due to emission interactions
     df_Flux::Vector{T}                      # change in distribution function due to fluxes
+    df_Inj::Vector{T}                       # change in distribution function due to injection of particles
     temp::Matrix{T}
     LU::LinearAlgebra.LU{T, Matrix{T}, Vector{Int64}}
 

@@ -221,6 +221,13 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     BCp = momentum_coords.xp_BC
     BCm = momentum_coords.xm_BC 
 
+    #= Boundary Conditions:
+        Flux on I boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    if typeof(BCp) != Closed || typeof(BCm) != Closed
+        error("I flux boundaries incorrectly defined, i.e. not closed")
+    end
+
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
     y_num = Space.y_num
@@ -249,91 +256,91 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
         py_num = py_num_list[name]
         pz_num = pz_num_list[name]
 
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            b = a 
+            pxp = px+1
+            pxm = px-1
+            if pxp > px_num # right boundary
+                if typeof(BCp) == Closed || typeof(BCp) == Open
+                    pxp = px_num
+                elseif typeof(BCp) == Periodic
+                    pxp = 1
+                end
+            end
+            if pxm < 1 # left boundary
+                if typeof(BCm) == Closed || typeof(BCm) == Open
+                    pxm = 1
+                elseif typeof(BCm) == Periodic
+                    pxm = px_num
+                end
+            end
 
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+            bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,species_index,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,species_index,PhaseSpace)
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
-                pxp = px+1
-                pxm = px-1
-                bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-                bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
+            I_plus = zero(type)
+            I_minus = zero(type)
 
-                #= Boundary Conditions:
-                    Flux on I boundaries should be zero i.e. no particles leave/enter from the domain bounds
-                =#
-                if typeof(BCp) == Closed && typeof(BCm) == Closed
-                    if pxp > px_num
-                        pxp = px_num
-                        bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-                        # b = bp therefore no I_plus flux only I_minus i.e. particles only leave/enter from left boundary (p<p_max)
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+        
+                # scheme
+                if scheme == "upwind"
+                    if sign(I_plus) == 1
+                        i_plus_right = 0
+                        i_plus_left = 1
+                    else
+                        i_plus_right = 1
+                        i_plus_left = 0
                     end
-                    if pxm < 1
-                        pxm = 1
-                        bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
-                        # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
+                    if sign(I_minus) == 1
+                        i_minus_right = 1
+                        i_minus_left = 0
+                    else
+                        i_minus_right = 0
+                        i_minus_left = 1
                     end
+                elseif scheme == "central"
+                    i_plus_right = 0.5
+                    i_plus_left = 0.5
+                    i_minus_right = 0.5
+                    i_minus_left = 0.5
                 else
-                    error("I flux boundaries incorrectly defined")
+                    error("Unknown scheme")
                 end
 
-                I_plus = zero(type)
-                I_minus = zero(type)
+                
+                #=
+                ________________________________
+                a |  I_m   | I_m+I_p | I_p    |
+                __|________|_________|________|_
+                      b-1       b        b+1  
+                =#
 
-                for f in 1:length(Forces)
-                    # integration sign introduced here
-                    I_plus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                    I_minus -= IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-            
-                    # scheme
-                    if scheme == "upwind"
-                        if sign(I_plus) == 1
-                            i_plus_right = 0
-                            i_plus_left = 1
-                        else
-                            i_plus_right = 1
-                            i_plus_left = 0
-                        end
-                        if sign(I_minus) == 1
-                            i_minus_right = 1
-                            i_minus_left = 0
-                        else
-                            i_minus_right = 0
-                            i_minus_left = 1
-                        end
-                    elseif scheme == "central"
-                        i_plus_right = 0.5
-                        i_plus_left = 0.5
-                        i_minus_right = 0.5
-                        i_minus_left = 0.5
-                    else
-                        error("Unknown scheme")
-                    end
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-                    
-                    #=
-                    ________________________________
-                    a |  I_m   | I_m+I_p | I_p    |
-                    __|________|_________|________|_
-                         b-1       b        b+1  
-                    =#
+                # normalised fluxes
+                if b != bp
+                    I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                elseif typeof(BCp) == Open # b=bp
+                    I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                end
+                if b != bm
+                    I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                elseif typeof(BCm) == Open # b=bm
+                    I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                end
 
-                    # normalised fluxes
-                    if b != bp
-                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                    end
-                    if b != bm
-                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                    end
-
-                end # Forces loop
-            end
-        end
+            end # Forces loop
+        end # end coordinates loop
     end
 end
 
@@ -352,6 +359,12 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
 
     BCp = momentum_coords.yp_BC
     BCm = momentum_coords.ym_BC 
+    #= Boundary Conditions:
+        Flux on J boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    if typeof(BCp) != Closed || typeof(BCm) != Closed
+        error("J flux boundaries incorrectly defined, i.e. not closed")
+    end
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -372,6 +385,7 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     zr = Grids.zr
     
     for name in 1:length(name_list)
+
         off_name = offset[name]
         pxr = Grids.pxr_list[name]
         pyr = Grids.pyr_list[name]
@@ -381,90 +395,89 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
         py_num = py_num_list[name]
         pz_num = pz_num_list[name]
 
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            b = a 
+            pyp = py+1
+            pym = py-1
+            if pyp > py_num # right boundary
+                if typeof(BCp) == Closed || typeof(BCp) == Open
+                    pyp = py_num
+                elseif typeof(BCp) == Periodic
+                    pyp = 1
+                end
+            end
+            if pym < 1 # left boundary
+                if typeof(BCm) == Closed || typeof(BCm) == Open
+                    pym = 1
+                elseif typeof(BCm) == Periodic
+                    pym = py_num
+                end
+            end
 
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,species_index,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,species_index,PhaseSpace)
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
-                pyp = py+1
-                pym = py-1
-                bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
-                bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
+            J_plus = zero(type)
+            J_minus = zero(type)
 
-                #= Boundary Conditions:
-                    Flux on J boundaries should be zero i.e. no particles leave/enter from the domain bounds
-                =#
-                if typeof(BCp) == Closed && typeof(BCm) == Closed
-                    if pyp > py_num
-                        pyp = py_num
-                        bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
-                        # b = bp therefore no J_plus flux only J_minus i.e. particles only leave/enter from left boundary (u<1)
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
+
+                # scheme
+                if scheme == "upwind"
+                    if sign(J_plus) == 1
+                        j_plus_right = 0
+                        j_plus_left = 1
+                    else
+                        j_plus_right = 1
+                        j_plus_left = 0
                     end
-                    if pym < 1
-                        pym = 1
-                        bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
-                        # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
+                    if sign(J_minus) == 1
+                        j_minus_right = 1
+                        j_minus_left = 0
+                    else
+                        j_minus_right = 0
+                        j_minus_left = 1
                     end
+                elseif scheme == "central"
+                    j_plus_right = 0.5
+                    j_plus_left = 0.5
+                    j_minus_right = 0.5
+                    j_minus_left = 0.5
                 else
-                    error("J flux boundaries incorrectly defined")
+                    error("Unknown scheme")
+                end
+    
+                #=
+                ________________________________
+                a |  J_m   | J_m+J_p | J_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                # normalised fluxes
+                if b != bp
+                    J_Flux[a,bp] += convert(type,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                elseif typeof(BCp) == Open # b=bp
+                    J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                end
+                if b != bm
+                    J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,bm] += convert(type,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
+                elseif typeof(BCm) == Open # b=bm
+                    J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                 end
 
-                J_plus = zero(type)
-                J_minus = zero(type)
-
-                for f in 1:length(Forces)
-                    # integration sign introduced here
-                    J_plus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                    J_minus -= JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
-
-                    # scheme
-                    if scheme == "upwind"
-                        if sign(J_plus) == 1
-                            j_plus_right = 0
-                            j_plus_left = 1
-                        else
-                            j_plus_right = 1
-                            j_plus_left = 0
-                        end
-                        if sign(J_minus) == 1
-                            j_minus_right = 1
-                            j_minus_left = 0
-                        else
-                            j_minus_right = 0
-                            j_minus_left = 1
-                        end
-                    elseif scheme == "central"
-                        j_plus_right = 0.5
-                        j_plus_left = 0.5
-                        j_minus_right = 0.5
-                        j_minus_left = 0.5
-                    else
-                        error("Unknown scheme")
-                    end
-        
-                    #=
-                    ________________________________
-                    a |  J_m   | J_m+J_p | J_p    |
-                    __|________|_________|________|_
-                        b-1        b        b+1  
-                    =#
-
-                    # normalised fluxes
-                    if b != bp
-                        J_Flux[a,bp] += convert(type,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
-                        J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                    end
-                    if b != bm
-                        J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                        J_Flux[a,bm] += convert(type,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
-                    end
-
-                end # Force loop
-
-            end
+            end # Force loop
         end
     end
 end
@@ -484,6 +497,12 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
 
     BCp = momentum_coords.zp_BC
     BCm = momentum_coords.zm_BC 
+    #= Boundary Conditions:
+        Flux on K boundaries should always be periodic
+    =#
+    if typeof(BCp) != Periodic || typeof(BCm) != Periodic
+        error("K flux boundaries incorrectly defined, i.e. not periodic")
+    end
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -504,6 +523,7 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     zr = Grids.zr
     
     for name in 1:length(name_list)
+
         off_name = offset[name]
         pxr = Grids.pxr_list[name]
         pyr = Grids.pyr_list[name]
@@ -513,86 +533,88 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
         py_num = py_num_list[name]
         pz_num = pz_num_list[name]
 
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            b = a 
+            pzp = pz+1
+            pzm = pz-1
+            if pzp > pz_num # right boundary
+                if typeof(BCp) == Closed || typeof(BCp) == Open
+                    pzp = pz_num
+                elseif typeof(BCp) == Periodic
+                    pzp = 1
+                end
+            end
+            if pzm < 1 # left boundary
+                if typeof(BCm) == Closed || typeof(BCm) == Open
+                    pzm = 1
+                elseif typeof(BCm) == Periodic
+                    pzm = pz_num
+                end
+            end
 
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,species_index,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,species_index,PhaseSpace)
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
-                pzp = pz+1
-                pzm = pz-1
-                bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+            K_plus = zero(type)
+            K_minus = zero(type)
 
-                #= Boundary Conditions:
-                    Flux on K boundaries should always be periodic i.e. particles leave/enter from the opposite bound
-                =#
-                if typeof(BCp) == Periodic && typeof(BCm) == Periodic
-                    if pzp > pz_num
-                        pzp = 1
-                        bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
+                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
+
+                # scheme
+                if scheme == "upwind"
+                    if sign(K_plus) == 1
+                        k_plus_right = 0
+                        k_plus_left = 1
+                    else
+                        k_plus_right = 1
+                        k_plus_left = 0
                     end
-                    if pzm < 1
-                        pzm = pz_num
-                        bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                    if sign(K_minus) == 1
+                        k_minus_right = 1
+                        k_minus_left = 0
+                    else
+                        k_minus_right = 0
+                        k_minus_left = 1
                     end
+                elseif scheme == "central"
+                    k_plus_right = 1/2
+                    k_plus_left = 1/2
+                    k_minus_right = 1/2
+                    k_minus_left = 1/2
                 else
-                    error("K flux boundaries incorrectly defined")
+                    error("Unknown scheme")
                 end
 
-                K_plus = zero(type)
-                K_minus = zero(type)
+                #=
+                ________________________________
+                a |  K_m   | K_m+K_p | K_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
 
-                for f in 1:length(Forces)
-                    # integration sign introduced here
-                    K_plus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
-                    K_minus -= KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-                    # scheme
-                    if scheme == "upwind"
-                        if sign(K_plus) == 1
-                            k_plus_right = 0
-                            k_plus_left = 1
-                        else
-                            k_plus_right = 1
-                            k_plus_left = 0
-                        end
-                        if sign(K_minus) == 1
-                            k_minus_right = 1
-                            k_minus_left = 0
-                        else
-                            k_minus_right = 0
-                            k_minus_left = 1
-                        end
-                    elseif scheme == "central"
-                        k_plus_right = 1/2
-                        k_plus_left = 1/2
-                        k_minus_right = 1/2
-                        k_minus_left = 1/2
-                    else
-                        error("Unknown scheme")
-                    end
-
-                    #=
-                    ________________________________
-                    a |  K_m   | K_m+K_p | K_p    |
-                    __|________|_________|________|_
-                        b-1        b        b+1  
-                    =#
-
-                    if b != bp
-                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
-                        K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                    end
-                    if b != bm
-                        K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
-                    end
-                    
-                end # force loop
-            end
+                if b != bp
+                    K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
+                    K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                elseif typeof(BCp) == Open # b=bp
+                    K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                end
+                if b != bm
+                    K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
+                elseif typeof(BCm) == Open # b=bm
+                    K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                end
+                
+            end # force loop
         end
     end
 end
