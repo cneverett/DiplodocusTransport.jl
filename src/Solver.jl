@@ -35,21 +35,23 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
         dt = tr[i+1] - tr[i]
         t = tr[i]
 
-        method(dtmp,tmp,dt0,dt,t)
-        @. tmp += dtmp
+        method(dt0,dt,t)
+        #@. tmp += dtmp # now done in stepping method
 
         #Filter_Distribution!(tmp,PhaseSpace,filter_vector)
 
-        # removing negative values (values less than 1f-28 for better stability)
-        @. tmp = tmp*(tmp>=1f-28)
+        # removing negative values (values less than 1f-28 for better stability) 
+        # now done in stepping method
+        #@. tmp = tmp*(tmp>=1f-28)
         # hacky fix for inf values
-        @. tmp = tmp*(tmp!=Inf)
+        #@. tmp = tmp*(tmp!=Inf)
 
         # saving state
         if (i in save_idx)
             save_count += 1
             t = tr[i+1]
-            output.f[save_count] = copy(tmp)
+            copyto!(tmp,method.f)
+            output.f[save_count] = tmp
             output.t[save_count] = t
         end
         

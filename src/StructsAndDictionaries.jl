@@ -269,11 +269,10 @@ end
 
 A struct for storing the big matrices associated with interactions in the simulation.
 """
-struct BigMatricesStruct{M<:AbstractMatrix{<:AbstractFloat}}
+struct BigMatricesStruct{T<:Union{Float32,Float64}}
     
-    M_Bin::M  # big matrix for binary interactions
-
-    M_Emi::M  # big matrix for emission interactions
+    M_Bin::Matrix{T}  # big matrix for binary interactions
+    M_Emi::Matrix{T}  # big matrix for emission interactions
 
 end
 
@@ -282,23 +281,23 @@ end
 
 A struct for storing the flux matrices associated with the simulation.
 """
-struct FluxMatricesStruct{M<:AbstractMatrix{<:AbstractFloat},V<:AbstractVector{<:AbstractFloat}}
+struct FluxMatricesStruct{T<:Union{Float32,Float64}}
 
     # time fluxes
-    Ap_Flux::M
-    Am_Flux::M
+    Ap_Flux::Vector{T}
+    Am_Flux::Vector{T}
     # sum of space and momentum fluxes for speed 
-    F_Flux::M
+    F_Flux::SparseMatrixCSC{T,Int64}
     # space time volume element vector
-    Vol::V
+    Vol::Vector{T}
     # space fluxes
-    B_Flux::M
-    C_Flux::M
-    D_Flux::M 
+    B_Flux::SparseMatrixCSC{T,Int64}
+    C_Flux::SparseMatrixCSC{T,Int64}
+    D_Flux::SparseMatrixCSC{T,Int64} 
     # momentum fluxes
-    I_Flux::M 
-    J_Flux::M
-    K_Flux::M
+    I_Flux::SparseMatrixCSC{T,Int64}
+    J_Flux::SparseMatrixCSC{T,Int64}
+    K_Flux::SparseMatrixCSC{T,Int64}
 
 end
 
@@ -321,23 +320,3 @@ mutable struct OutputStruct
     end
 
 end
-
-
-# to be removed
-
-    struct ListStruct
-
-        name_list::Vector{String}   # list of particle names
-
-        p_up_list::Vector{Float32}    # list of upper momentum limits for each particle
-        p_low_list::Vector{Float32}    # list of lower momentum limits for each particle
-        p_grid_list::Vector{String}    # list of momentum grid types for each particle
-        p_num_list::Vector{Int64}    # list of momentum bins for each particle
-
-        u_grid_list::Vector{String}    # list of angular grid types for each particle
-        u_num_list::Vector{Int64}    # list of angular bins for each particle
-
-        interaction_list_Binary::Vector{Vector{String}} # list of Binary interactions
-        interaction_list_Emi::Vector{Vector{String}} # list of Emission interactions
-
-    end

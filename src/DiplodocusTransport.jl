@@ -17,8 +17,10 @@ module DiplodocusTransport
     using ProgressMeter
     using Bessels
     using Statistics
+    using SparseArrays
 
     include("Types.jl")
+    include("Backends.jl")
     include("StructsAndDictionaries.jl")
     include("PhaseSpaceFactors.jl")
     include("MatrixResizing.jl")

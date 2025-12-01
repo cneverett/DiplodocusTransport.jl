@@ -14,13 +14,12 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:AbstractFloat
+function (Euler::EulerStruct)(dt0,dt,t) where F<:AbstractFloat
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
     # reset arrays
-    fill!(df,zero(eltype(df)))
     fill!(Euler.df,zero(eltype(Euler.df)))
     fill!(Euler.temp,zero(eltype(Euler.temp)))
     if Euler.Implicit
@@ -39,10 +38,10 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
     end
 
     # create df_Flux due to space and momentum flux terms
-    mul!(Euler.df_Flux,Euler.FluxM.F_Flux,f)
+    mul!(Euler.df_Flux,Euler.F_Flux,f)
     @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
     if Euler.Implicit
-        @. Euler.Jac -= Euler.FluxM.F_Flux
+        @. Euler.Jac -= Euler.F_Flux
     end
 
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
@@ -81,11 +80,11 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
         #end
 
     else
-        Euler.df_temp .= diag(Euler.FluxM.Ap_Flux) # TODO: ASSUMING Ap_Flux is DIAGONAL,  TO BE UPDATED LATER !!!!!!!!!!!
-        @. Euler.df /= Euler.df_temp
+
+        @. Euler.df /= Euler.Ap_Flux # Assumes Ap_flux is diagonal
 
         # Cr (CFL) condition check
-        @. Euler.df_temp = Euler.df / f 
+        @. Euler.df_temp = Euler.df / Euler.f 
         replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
         Cr = maximum(abs.(Euler.df_temp))
 
@@ -96,7 +95,12 @@ function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:Abst
 
     end
     
-    @. df = Euler.df
+    @. Euler.f += Euler.df
+
+    # removing negative values (values less than 1f-28 for better stability)
+    @. Euler.f = Euler.f*(Euler.f>=1f-28)
+    # hacky fix for inf values
+    @. Euler.f = Euler.f*(Euler.f!=Inf)
 
     #println("$df")
     #error("")
@@ -105,15 +109,12 @@ end
 
 function update_Big_Bin!(method::SteppingMethodType,f)
 
-    if size(method.BigM.M_Bin) != (length(f)^2,length(f))
-        error("M_Bin is not the correct size")
-    end
+    @assert size(method.M_Bin) == (length(f)^2,length(f)) "M_Bin is not the correct size"
 
     PhaseSpace = method.PhaseSpace
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
     Momentum = PhaseSpace.Momentum
-    FluxM = method.FluxM 
 
     x_num = Space.x_num
     y_num = Space.y_num
@@ -125,7 +126,7 @@ function update_Big_Bin!(method::SteppingMethodType,f)
     n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
-    Vol = FluxM.Vol
+    Vol = method.Vol
 
     # Thanks to Emma Godden for fixing a bug here
     #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
@@ -139,7 +140,7 @@ function update_Big_Bin!(method::SteppingMethodType,f)
 
         fView = @view f[start_idx:end_idx]
         df_BinView = @view method.df_Bin[start_idx:end_idx]
-        mul!(method.M_Bin_Mul_Step_reshape,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+        mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
         mul!(df_BinView,method.M_Bin_Mul_Step,fView)
 
         # multiply by volume element
@@ -158,15 +159,12 @@ end
 
 function update_Big_Emi!(method::SteppingMethodType,f)
 
-    if size(method.BigM.M_Emi) != (length(f),length(f))
-        error("M_Bin is not the correct size")
-    end
+    @assert size(method.M_Emi) == (length(f),length(f)) "M_Emi is not the correct size"
 
     PhaseSpace = method.PhaseSpace
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
     Momentum = PhaseSpace.Momentum
-    FluxM = method.FluxM 
 
     x_num = Space.x_num
     y_num = Space.y_num
@@ -178,7 +176,7 @@ function update_Big_Emi!(method::SteppingMethodType,f)
     n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
-    Vol = FluxM.Vol
+    Vol = method.Vol
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
