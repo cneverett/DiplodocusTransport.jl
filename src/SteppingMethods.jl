@@ -62,22 +62,15 @@ function (Euler::EulerStruct)(dt0,dt,t)
     end
 
     if Euler.Implicit
-        # TOFIX add fluxes inside mul!
-        mul!(Euler.df_temp,Euler.temp,f)
-        println("t = $t")
-        println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
-        lu!(Euler.LU,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
-        @. Euler.LU.ipiv = Euler.LU.ipiv
-        ldiv!(Euler.df,Euler.LU,Euler.df_temp)
-        #@. g.Jac = 2*g.M_Bin_Mul_Step
-        #g.df .= (I-dt*g.Jac)\g.df
-        #@. df = dt*g.df
 
-        #if t > 1e-16
-            #println("$(Euler.LU)")
-        #    println("$(Euler.df)")
-        #    error("here")
-        #end
+        # TODO: Update Implicit
+        #mul!(Euler.df_temp,Euler.temp,f)
+        #println("t = $t")
+        #println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
+        #lu!(Euler.LU,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
+        #@. Euler.LU.ipiv = Euler.LU.ipiv
+        #ldiv!(Euler.df,Euler.LU,Euler.df_temp)
+
 
     else
 
@@ -88,10 +81,11 @@ function (Euler::EulerStruct)(dt0,dt,t)
         replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
         Cr = maximum(abs.(Euler.df_temp))
 
-        if Cr > 1.0
+        if Euler.Verbose
+            println("Cr = $Cr")
+        elseif Cr > 1.0
             println("Cr = $Cr, system may be unstable")
         end
-
 
     end
     

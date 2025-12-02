@@ -17,8 +17,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
-    M_Emi_Step::AbstractMatrix{T}                   # temporary array for spatial evaluated emission terms
-    Jac::AbstractMatrix{T}                          # jacobian for if Implicit==True
     f::AbstractVector{T}                            # current distribution function
     df::AbstractVector{T}                           # change in distribution function
     df_Bin::AbstractVector{T}                       # change in distribution function due to binary interactions
@@ -26,9 +24,13 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     df_Flux::AbstractVector{T}                      # change in distribution function due to fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
     temp::AbstractMatrix{T}
-    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}}
+    # if Implicit is true
+    Jac::AbstractMatrix{T}                          # Jacobian matrix
+    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}} # LU factorization of the matrix for implicit solving
 
-    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
+    Verbose::Bool                                   # if true, print verbose output during stepping, always including Cr value      
+
+    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend(),Verbose::Bool=false) where T<:Union{Float32,Float64}
 
         self = new{T}()
 
@@ -55,6 +57,8 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         end
         self.Implicit = Implicit  
 
+        Momentum = PhaseSpace.Momentum
+        Space = PhaseSpace.Space
         x_num = Space.x_num
         y_num = Space.y_num
         z_num = Space.z_num
@@ -69,9 +73,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.M_Bin_Mul_Step = zeros(Backend,T,n_momentum,n_momentum)
             self.M_Bin_Mul_Step_reshape = zeros(Backend,T,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
         end
-        if isempty(PhaseSpace.Emi_list) == false
-            self.M_Emi_Step = zeros(Backend,T,length(f0),length(f0))
-        end
         self.df = zeros(Backend,T,length(f0))
         self.df_Bin = zeros(Backend,T,length(f0))
         self.df_Emi = zeros(Backend,T,length(f0))
@@ -81,6 +82,8 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.Jac = zeros(Backend,T,length(f0),length(f0))
             self.LU = lu(zeros(Backend,T,length(f0),length(f0))+I)
         end
+
+        self.Verbose = Verbose
 
 
         return self
