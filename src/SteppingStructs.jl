@@ -17,6 +17,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
+    f_init::AbstractVector{T}                       # initial distribution function (used by solver to define output struct)
     f::AbstractVector{T}                            # current distribution function
     df::AbstractVector{T}                           # change in distribution function
     df_Bin::AbstractVector{T}                       # change in distribution function due to binary interactions
@@ -36,6 +37,8 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self.PhaseSpace = PhaseSpace
         #self.BigM = Big_Matrices
         #self.FluxM = Flux_Matrices
+
+        self.f_init = copy(f0)
 
         if Backend isa CPUBackend
             self.M_Bin = Big_Matrices.M_Bin

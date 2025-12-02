@@ -1,4 +1,4 @@
-function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Bool=false) where F<:AbstractFloat
+function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Bool=false)
 
     if isdir(fileLocation) == false
         mkpath(fileLocation)
@@ -8,7 +8,7 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
     Time = PhaseSpace.Time
     Grids = PhaseSpace.Grids
 
-    f0 = copy(f1D0)
+    f = copy(method.f_init)
     tr = Grids.tr
     dt0 = tr[2] - tr[1]
     t_num = length(tr)-1
@@ -17,13 +17,10 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
 
     n_save = length(save_idx)+1 # +1 for the initial state
 
-    tmp = copy(f0)
-    dtmp = similar(f0)
-
-    output = OutputStruct(f0,n_save)
+    output = OutputStruct(f,n_save)
 
     # save initial state (step 1)
-    output.f[1] = copy(tmp)
+    output.f[1] = copy(f)
     output.t[1] = tr[1]
     save_count = 1
 
@@ -54,8 +51,9 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
         if (i in save_idx)
             save_count += 1
             t = tr[i+1]
-            copyto!(tmp,method.f)
-            output.f[save_count] = tmp
+            copyto!(f,method.f)
+            println("$(method.f)")
+            output.f[save_count] = copy(f)
             output.t[save_count] = t
         end
         
