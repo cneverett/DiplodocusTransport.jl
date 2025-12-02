@@ -74,12 +74,12 @@ function (Euler::EulerStruct)(dt0,dt,t)
 
     else
 
-        @. Euler.df /= Euler.Ap_Flux # Assumes Ap_flux is diagonal
+        @. Euler.df /= Euler.Ap_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
         # Cr (CFL) condition check
-        @. Euler.df_temp = Euler.df / Euler.f 
-        replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-        Cr = maximum(abs.(Euler.df_temp))
+        @. Euler.df_tmp = Euler.df / Euler.f 
+        replace!(Euler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
+        Cr = maximum(abs.(Euler.df_tmp))
 
         if Euler.Verbose
             println("Cr = $Cr")

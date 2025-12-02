@@ -23,6 +23,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     df_Emi::AbstractVector{T}                       # change in distribution function due to emission interactions
     df_Flux::AbstractVector{T}                      # change in distribution function due to fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
+    df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations
     temp::AbstractMatrix{T}
     # if Implicit is true
     Jac::AbstractMatrix{T}                          # Jacobian matrix
@@ -77,6 +78,8 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self.df_Bin = zeros(Backend,T,length(f0))
         self.df_Emi = zeros(Backend,T,length(f0))
         self.df_Flux = zeros(Backend,T,length(f0))
+        self.df_Inj = zeros(Backend,T,length(f0))
+        self.df_tmp = zeros(Backend,T,length(f0))
         self.temp = zeros(Backend,T,length(f0),length(f0))
         if Implicit
             self.Jac = zeros(Backend,T,length(f0),length(f0))
