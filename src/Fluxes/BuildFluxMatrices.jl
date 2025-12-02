@@ -9,9 +9,7 @@ Function that builds the flux matrices associated with coordinate forces and reg
 """
 function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,Precision::DataType=Float32)
 
-    if Precision != Float32 && Precision != Float64
-        error("Precision must be either Float32 or Float64")
-    end
+    @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
     (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux) = Allocate_Flux(PhaseSpace,Precision,debug_mode)
 
@@ -61,7 +59,7 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,P
 end
 
 """
-    Allocate_Flux(PhaseSpace,MatrixType,VectorType)
+    Allocate_Flux(PhaseSpace,Precision,debug_mode)
 
 Allocates arrays for fluxes and volume elements.
 """
@@ -220,9 +218,7 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     #= Boundary Conditions:
         Flux on I boundaries should always be closed i.e. no particles leave/enter from the domain bound
     =#
-    if typeof(BCp) != Closed || typeof(BCm) != Closed
-        error("I flux boundaries incorrectly defined, i.e. not closed")
-    end
+    @assert BCp isa Closed || BCm isa Closed "I flux boundaries incorrectly defined, i.e. not closed"
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -259,16 +255,16 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             pxp = px+1
             pxm = px-1
             if pxp > px_num # right boundary
-                if typeof(BCp) == Closed || typeof(BCp) == Open
+                if BCp isa Closed || BCp isa Open
                     pxp = px_num
-                elseif typeof(BCp) == Periodic
+                elseif BCp isa Periodic
                     pxp = 1
                 end
             end
             if pxm < 1 # left boundary
-                if typeof(BCm) == Closed || typeof(BCm) == Open
+                if BCm isa Closed || BCm isa Open
                     pxm = 1
-                elseif typeof(BCm) == Periodic
+                elseif BCm isa Periodic
                     pxm = px_num
                 end
             end
@@ -276,8 +272,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
 
-            I_plus = zero(type)
-            I_minus = zero(type)
+            I_plus = zero(T)
+            I_minus = zero(T)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -325,13 +321,13 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 if b != bp
                     I_Flux[a,bp] += convert(T,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                     I_Flux[a,b] += convert(T,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                elseif typeof(BCp) == Open # b=bp
+                elseif BCp isa Open # b=bp
                     I_Flux[a,b] += convert(T,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                 end
                 if b != bm
                     I_Flux[a,b] += convert(T,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                     I_Flux[a,bm] += convert(T,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                elseif typeof(BCm) == Open # b=bm
+                elseif BCm isa Open # b=bm
                     I_Flux[a,b] += convert(T,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
                 end
 
@@ -356,9 +352,7 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     #= Boundary Conditions:
         Flux on J boundaries should always be closed i.e. no particles leave/enter from the domain bound
     =#
-    if typeof(BCp) != Closed || typeof(BCm) != Closed
-        error("J flux boundaries incorrectly defined, i.e. not closed")
-    end
+    @assert (BCp isa Closed) && (BCm isa Closed) "J flux boundaries incorrectly defined, i.e. not closed"
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -396,16 +390,16 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             pyp = py+1
             pym = py-1
             if pyp > py_num # right boundary
-                if typeof(BCp) == Closed || typeof(BCp) == Open
+                if BCp isa Closed || BCp isa Open
                     pyp = py_num
-                elseif typeof(BCp) == Periodic
+                elseif BCp isa Periodic
                     pyp = 1
                 end
             end
             if pym < 1 # left boundary
-                if typeof(BCm) == Closed || typeof(BCm) == Open
+                if BCm isa Closed || BCm isa Open
                     pym = 1
-                elseif typeof(BCm) == Periodic
+                elseif BCm isa Periodic
                     pym = py_num
                 end
             end
@@ -413,8 +407,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
 
-            J_plus = zero(type)
-            J_minus = zero(type)
+            J_plus = zero(T)
+            J_minus = zero(T)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -461,13 +455,13 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 if b != bp
                     J_Flux[a,bp] += convert(T,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
                     J_Flux[a,b] += convert(T,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                elseif typeof(BCp) == Open # b=bp
+                elseif BCp isa Open # b=bp
                     J_Flux[a,b] += convert(T,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                 end
                 if b != bm
                     J_Flux[a,b] += convert(T,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                     J_Flux[a,bm] += convert(T,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
-                elseif typeof(BCm) == Open # b=bm
+                elseif BCm isa Open # b=bm
                     J_Flux[a,b] += convert(T,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                 end
 
@@ -492,9 +486,7 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     #= Boundary Conditions:
         Flux on K boundaries should always be periodic
     =#
-    if typeof(BCp) != Periodic || typeof(BCm) != Periodic
-        error("K flux boundaries incorrectly defined, i.e. not periodic")
-    end
+    @assert (BCp isa Periodic) && (BCm isa Periodic) "K flux boundaries incorrectly defined, i.e. not periodic"
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -532,16 +524,16 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             pzp = pz+1
             pzm = pz-1
             if pzp > pz_num # right boundary
-                if typeof(BCp) == Closed || typeof(BCp) == Open
+                if BCp isa Closed || BCp isa Open
                     pzp = pz_num
-                elseif typeof(BCp) == Periodic
+                elseif BCp isa Periodic
                     pzp = 1
                 end
             end
             if pzm < 1 # left boundary
-                if typeof(BCm) == Closed || typeof(BCm) == Open
+                if BCm isa Closed || BCm isa Open
                     pzm = 1
-                elseif typeof(BCm) == Periodic
+                elseif BCm isa Periodic
                     pzm = pz_num
                 end
             end
@@ -549,8 +541,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
 
-            K_plus = zero(type)
-            K_minus = zero(type)
+            K_plus = zero(T)
+            K_minus = zero(T)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -596,13 +588,13 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 if b != bp
                     K_Flux[a,bp] += convert(T,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
                     K_Flux[a,b] += convert(T,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                elseif typeof(BCp) == Open # b=bp
+                elseif BCp isa Open # b=bp
                     K_Flux[a,b] += convert(T,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                 end
                 if b != bm
                     K_Flux[a,b] += convert(T,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                     K_Flux[a,bm] += convert(T,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
-                elseif typeof(BCm) == Open # b=bm
+                elseif BCm isa Open # b=bm
                     K_Flux[a,b] += convert(T,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
                 end
                 
