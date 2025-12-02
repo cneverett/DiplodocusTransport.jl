@@ -1,10 +1,9 @@
 """
-    Initialise_Initial_Condition(PhaseSpace)
+    Initialise_Initial_Condition(PhaseSpace;Precision=Float32)
 
 Returns a zero vector with elements for the initial conditions of all particles at all positions in phase space. 
 """
-function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct;Type::DataType=Float32)
-
+function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct;Precision::DataType=Float32)
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list
     pz_num_list = PhaseSpace.Momentum.pz_num_list
@@ -15,7 +14,7 @@ function Initialise_Initial_Condition(PhaseSpace::PhaseSpaceStruct;Type::DataTyp
     n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*x_num*y_num*z_num
 
-    return zeros(Type,m)
+    return zeros(Precision,m)
 
 end
 
