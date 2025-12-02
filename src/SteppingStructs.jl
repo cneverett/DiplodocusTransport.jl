@@ -1,5 +1,5 @@
 # Struct for storing the Boltzmann equation and its solution
-mutable struct EulerStruct{Backend<:BackendType,T<:AbstractFloat} <: SteppingMethodType
+mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
     PhaseSpace::PhaseSpaceStruct
 
@@ -30,7 +30,7 @@ mutable struct EulerStruct{Backend<:BackendType,T<:AbstractFloat} <: SteppingMet
 
     function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
 
-        self = new{Backend,T}()
+        self = new{T}()
 
         self.PhaseSpace = PhaseSpace
         #self.BigM = Big_Matrices
