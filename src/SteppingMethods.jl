@@ -14,7 +14,7 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(dt0,dt,t)
+function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
@@ -81,7 +81,7 @@ function (Euler::EulerStruct)(dt0,dt,t)
         replace!(Euler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
         Cr = maximum(abs.(Euler.df_tmp))
 
-        if Euler.Verbose
+        if Verbose
             println("Cr = $Cr")
         elseif Cr > 1.0
             println("Cr = $Cr, system may be unstable")

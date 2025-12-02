@@ -1,4 +1,8 @@
-function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=cwd()) where F<:AbstractFloat
+function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Bool=false) where F<:AbstractFloat
+
+    if isdir(fileLocation) == false
+        mkpath(fileLocation)
+    end
 
     PhaseSpace = method.PhaseSpace
     Time = PhaseSpace.Time
@@ -35,7 +39,7 @@ function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,prog
         dt = tr[i+1] - tr[i]
         t = tr[i]
 
-        method(dt0,dt,t)
+        method(dt0,dt,t,Verbose=Verbose)
         #@. tmp += dtmp # now done in stepping method
 
         #Filter_Distribution!(tmp,PhaseSpace,filter_vector)

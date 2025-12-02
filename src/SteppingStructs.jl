@@ -27,9 +27,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     temp::AbstractMatrix{T}
     # if Implicit is true
     Jac::AbstractMatrix{T}                          # Jacobian matrix
-    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}} # LU factorization of the matrix for implicit solving
-
-    Verbose::Bool                                   # if true, print verbose output during stepping, always including Cr value      
+    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}} # LU factorization of the matrix for implicit solvingue      
 
     function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend(),Verbose::Bool=false) where T<:Union{Float32,Float64}
 
@@ -85,9 +83,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.Jac = zeros(Backend,T,length(f0),length(f0))
             self.LU = lu(zeros(Backend,T,length(f0),length(f0))+I)
         end
-
-        self.Verbose = Verbose
-
 
         return self
     end
