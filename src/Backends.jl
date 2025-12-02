@@ -1,9 +1,7 @@
 abstract type BackendType end
 
-struct CPUBackend <: BackendType
-end
-struct CUDABackend <: BackendType 
-end
+struct CPUBackend <: BackendType end
+struct CUDABackend <: BackendType end
 
 
 # zeros functions

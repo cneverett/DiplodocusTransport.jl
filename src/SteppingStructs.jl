@@ -28,7 +28,7 @@ mutable struct EulerStruct{Backend<:BackendType,T<:AbstractFloat} <: SteppingMet
     temp::AbstractMatrix{T}
     LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}}
 
-    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct,Implicit::Bool;Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
+    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
 
         self = new{Backend,T}()
 
