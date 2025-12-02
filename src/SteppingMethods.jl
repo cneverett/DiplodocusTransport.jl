@@ -28,17 +28,17 @@ function (Euler::EulerStruct)(dt0,dt,t)
         
     # create df_Bin due to binary interactions (jacobians are added in update_Big_Bin! if implicit)
     if isempty(Euler.PhaseSpace.Binary_list) == false
-        update_Big_Bin!(Euler,f)
+        update_Big_Bin!(Euler)
         @. Euler.df += Euler.df_Bin
     end
     # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
     if isempty(Euler.PhaseSpace.Emi_list) == false
-        update_Big_Emi!(Euler,f)
+        update_Big_Emi!(Euler)
         @. Euler.df += Euler.df_Emi
     end
 
     # create df_Flux due to space and momentum flux terms
-    mul!(Euler.df_Flux,Euler.F_Flux,f)
+    mul!(Euler.df_Flux,Euler.F_Flux,Euler.f)
     @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
     if Euler.Implicit
         @. Euler.Jac -= Euler.F_Flux
@@ -89,6 +89,7 @@ function (Euler::EulerStruct)(dt0,dt,t)
 
     end
     
+    # update state vector f
     @. Euler.f += Euler.df
 
     # removing negative values (values less than 1f-28 for better stability)
@@ -101,8 +102,9 @@ function (Euler::EulerStruct)(dt0,dt,t)
 
 end
 
-function update_Big_Bin!(method::SteppingMethodType,f)
+function update_Big_Bin!(method::SteppingMethodType)
 
+    f = method.f
     @assert size(method.M_Bin) == (length(f)^2,length(f)) "M_Bin is not the correct size"
 
     PhaseSpace = method.PhaseSpace
@@ -151,7 +153,9 @@ function update_Big_Bin!(method::SteppingMethodType,f)
 
 end
 
-function update_Big_Emi!(method::SteppingMethodType,f)
+function update_Big_Emi!(method::SteppingMethodType)
+
+    f = method.f
 
     @assert size(method.M_Emi) == (length(f),length(f)) "M_Emi is not the correct size"
 

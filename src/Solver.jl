@@ -1,4 +1,4 @@
-function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,progress=false,fileName::String=nothing,fileLocation::String=cwd()) where F<:AbstractFloat
+function Solve(f1D0::Vector{F},method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=cwd()) where F<:AbstractFloat
 
     PhaseSpace = method.PhaseSpace
     Time = PhaseSpace.Time
