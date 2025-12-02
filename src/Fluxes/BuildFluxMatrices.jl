@@ -93,22 +93,22 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,Precision::DataType,debug_mo
     F_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
     if debug_mode
         # space fluxes
-        B_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0) # change 0 to n when implemented
-        C_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0) # change 0 to n when implemented
-        D_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0) # change 0 to n when implemented
+        B_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} # TODO: change 0 to n when implemented
+        C_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} # TODO: change 0 to n when implemented
+        D_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} # TODO: change 0 to n when implemented
         # momentum fluxes
-        I_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
-        J_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
-        K_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+        I_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+        J_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+        K_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
     else
         # space fluxes
-        B_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0) 
-        C_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0)
-        D_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0)
+        B_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        C_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        D_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
         # momentum fluxes
-        I_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0)
-        J_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0)
-        K_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,0,0) 
+        I_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        J_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        K_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} 
     end
 
     return (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)

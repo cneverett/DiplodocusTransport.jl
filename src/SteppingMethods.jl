@@ -14,7 +14,7 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(dt0,dt,t) where F<:AbstractFloat
+function (Euler::EulerStruct)(dt0,dt,t)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
