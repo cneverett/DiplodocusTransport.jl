@@ -42,12 +42,12 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,P
         Fill_Vol!(Vol,PhaseSpace)
 
         if isdiag(Ap_Flux)
-            Ap_Flux = diag(Ap_Flux)::Vector{Precision}
+            Ap_Flux = convert(Vector{Precision},diag(Ap_Flux))::Vector{Precision}
         else
             error("Aplus flux is not diagonal, which should be the case for stationary spacetimes")
         end
         if isdiag(Am_Flux)
-            Am_Flux = diag(Am_Flux)::Vector{Precision}
+            Am_Flux = convert(Vector{Precision},diag(Am_Flux))::Vector{Precision}
         else
             error("Aminus flux is not diagonal, which should be the case for stationary spacetimes")
         end
