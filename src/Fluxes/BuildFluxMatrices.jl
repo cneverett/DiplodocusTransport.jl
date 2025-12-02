@@ -254,7 +254,7 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
             b = a 
             pxp = px+1
             pxm = px-1
@@ -273,8 +273,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,species_index,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,species_index,PhaseSpace)
+            bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
 
             I_plus = zero(type)
             I_minus = zero(type)
@@ -391,7 +391,7 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
             b = a 
             pyp = py+1
             pym = py-1
@@ -410,8 +410,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,species_index,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,species_index,PhaseSpace)
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
 
             J_plus = zero(type)
             J_minus = zero(type)
@@ -527,7 +527,7 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,species_index,PhaseSpace)
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
             b = a 
             pzp = pz+1
             pzm = pz-1
@@ -546,8 +546,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,species_index,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,species_index,PhaseSpace)
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
 
             K_plus = zero(type)
             K_minus = zero(type)
