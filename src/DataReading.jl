@@ -30,7 +30,7 @@ Saves the solution `sol` and the `PhaseSpace` struct to a file at the specified 
 """
 function SolutionFileSave(sol::OutputStruct,PhaseSpace::PhaseSpaceStruct,fileLocation::String,fileName::String)
         
-    filePath = fileLocation*"\\"*fileName
+    filePath = joinpath(fileLocation,fileName)
 
     f = jldopen(filePath,"w") # creates file and overwrites previous file if one existed
     

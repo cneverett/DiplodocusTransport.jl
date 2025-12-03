@@ -82,9 +82,9 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
         Cr = maximum(abs.(Euler.df_tmp))
 
         if Verbose
-            print("\rCr = $Cr")
+            print("\rCr = $Cr, t=$t, dt=$dt")
         elseif Cr > 1.0
-            print("\rCr = $Cr, system may be unstable")
+            println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
         end
 
     end
