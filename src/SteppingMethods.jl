@@ -144,13 +144,13 @@ function update_Big_Bin!(method::SteppingMethodType)
         #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
 
         # multiply by volume element
-        df_BinView .*= Vol[off_space+1]
+        df_BinView .*= view(Vol,off_space+1)
 
     end
 
     if method.Implicit
         # assign jacobian elements
-        @. method.Jac += 2*method.M_Bin_Mul_Step*Vol[off_space+1]
+        @. method.Jac += 2*method.M_Bin_Mul_Step*view(Vol,off_space+1)
     end
 
     return nothing
