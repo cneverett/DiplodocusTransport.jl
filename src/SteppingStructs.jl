@@ -6,7 +6,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     M_Bin::AbstractMatrix{T}
     M_Emi::AbstractMatrix{T}
 
-    F_Flux::AbstractSparseArray{T,Int64,2}
+    F_Flux::AbstractSparseArray{T,<:Integer,2}
     Ap_Flux::AbstractVector{T}
     Vol::AbstractVector{T}
 
@@ -28,9 +28,9 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     temp::AbstractMatrix{T}
     # if Implicit is true
     Jac::AbstractMatrix{T}                          # Jacobian matrix
-    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{Int64}} # LU factorization of the matrix for implicit solvingue      
+    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solvingue      
 
-    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend(),Verbose::Bool=false) where T<:Union{Float32,Float64}
+    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
 
         self = new{T}()
 
