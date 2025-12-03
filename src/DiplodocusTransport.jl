@@ -19,6 +19,7 @@ module DiplodocusTransport
     using Statistics
     using SparseArrays
     using CUDA
+    using CUDA.CUSPARSE
 
     include("Types.jl")
     include("Backends.jl")

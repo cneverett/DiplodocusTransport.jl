@@ -48,12 +48,12 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.Vol = Flux_Matrices.Vol
             self.f = copy(f0)
         elseif Backend isa CUDABackend
-            self.M_Bin = CUDA.CuArray(Big_Matrices.M_Bin)
-            self.M_Emi = CUDA.CuArray(Big_Matrices.M_Emi)
-            self.F_Flux = CUDA.CuSparseMatrixCSC(Flux_Matrices.F_Flux)
-            self.Ap_Flux = CUDA.CuArray(Flux_Matrices.Ap_Flux)
-            self.Vol = CUDA.CuArray(Flux_Matrices.Vol)
-            self.f = CUDA.CuArray(f0)
+            self.M_Bin = CuArray(Big_Matrices.M_Bin)
+            self.M_Emi = CuArray(Big_Matrices.M_Emi)
+            self.F_Flux = CuSparseMatrixCSC(Flux_Matrices.F_Flux)
+            self.Ap_Flux = CuArray(Flux_Matrices.Ap_Flux)
+            self.Vol = CuArray(Flux_Matrices.Vol)
+            self.f = CuArray(f0)
         else
             error("Backend type not recognized.")
         end
