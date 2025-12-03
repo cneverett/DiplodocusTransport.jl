@@ -78,8 +78,8 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
         # Cr (CFL) condition check
         @. Euler.df_tmp = Euler.df / Euler.f 
-        replace!(Euler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-        Cr = maximum(abs.(Euler.df_tmp))
+        #replace!(Euler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
+        Cr = maximum(abs.(filter(isfinite,Euler.df_tmp)))
 
         if Verbose
             print("\rCr = $Cr, t=$t, dt=$dt")
