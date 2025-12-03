@@ -73,7 +73,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
         if isempty(PhaseSpace.Binary_list) == false
             self.M_Bin_Mul_Step = zeros(Backend,T,n_momentum,n_momentum)
-            self.M_Bin_Mul_Step_reshape = zeros(Backend,T,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
+            self.M_Bin_Mul_Step_reshape = reshape(self.M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
         end
         self.df = zeros(Backend,T,length(f0))
         self.df_Bin = zeros(Backend,T,length(f0))

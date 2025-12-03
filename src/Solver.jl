@@ -52,7 +52,7 @@ function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false
             save_count += 1
             t = tr[i+1]
             copyto!(f,method.f)
-            println("$(method.f)")
+            #println("$(method.f)")
             output.f[save_count] = copy(f)
             output.t[save_count] = t
         end

@@ -82,9 +82,9 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
         Cr = maximum(abs.(Euler.df_tmp))
 
         if Verbose
-            println("Cr = $Cr")
+            print("\rCr = $Cr")
         elseif Cr > 1.0
-            println("Cr = $Cr, system may be unstable")
+            print("\rCr = $Cr, system may be unstable")
         end
 
     end
@@ -138,6 +138,10 @@ function update_Big_Bin!(method::SteppingMethodType)
         df_BinView = @view method.df_Bin[start_idx:end_idx]
         mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
         mul!(df_BinView,method.M_Bin_Mul_Step,fView)
+
+        #println("M_Bin = $(sum(method.M_Bin))")
+        #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
+        #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
 
         # multiply by volume element
         df_BinView .*= Vol[off_space+1]
