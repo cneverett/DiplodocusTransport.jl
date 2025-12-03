@@ -18,6 +18,7 @@ module DiplodocusTransport
     using Bessels
     using Statistics
     using SparseArrays
+    using CUDA
 
     include("Types.jl")
     include("Backends.jl")
