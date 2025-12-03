@@ -2,7 +2,7 @@
 
 julia_version = "1.12.0"
 manifest_format = "2.0"
-project_hash = "6e1b030d483bc931120dfe4f465af2cb9207e450"
+project_hash = "630fb0ee6541ba7c21faacc7fb9cb8fd965f6a39"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -216,11 +216,11 @@ version = "1.11.0"
 
 [[deps.DiplodocusCollisions]]
 deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter", "Random"]
-git-tree-sha1 = "8d7e437b94a0a723bbc4b4e7ec5c3385df02c72c"
+git-tree-sha1 = "5b123992a020e12c8fec87d44ded7be310b34654"
 repo-rev = "dev"
 repo-url = "https://github.com/cneverett/DiplodocusCollisions.jl"
 uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
-version = "0.1.1"
+version = "0.1.2"
 
 [[deps.DiplodocusTransport]]
 deps = ["Bessels", "CUDA", "DiplodocusCollisions", "JLD2", "KernelAbstractions", "LinearAlgebra", "ProgressMeter", "Revise", "SparseArrays", "Statistics"]

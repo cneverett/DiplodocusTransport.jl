@@ -5,9 +5,11 @@ Setup_test.jl
 *.pdf
 *.png
 *.mp4
+*.json
 
 # mathematica files
 *.nb
 
 /Amsterdam/
 /TestingGround/
+/figures/
