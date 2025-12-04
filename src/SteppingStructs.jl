@@ -30,7 +30,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     Jac::AbstractMatrix{T}                          # Jacobian matrix
     LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solvingue      
 
-    function EulerStruct(f0::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
+    function EulerStruct(Initial::Vector{T},Injection::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
 
         self = new{T}()
 
@@ -38,7 +38,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         #self.BigM = Big_Matrices
         #self.FluxM = Flux_Matrices
 
-        self.f_init = copy(f0)
+        self.f_init = copy(Initial)
 
         if Backend isa CPUBackend
             self.M_Bin = Big_Matrices.M_Bin
@@ -46,14 +46,16 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.F_Flux = Flux_Matrices.F_Flux
             self.Ap_Flux = Flux_Matrices.Ap_Flux
             self.Vol = Flux_Matrices.Vol
-            self.f = copy(f0)
+            self.f = copy(Initial)
+            self.df_Inj = copy(Injection)
         elseif Backend isa CUDABackend
             self.M_Bin = CuArray(Big_Matrices.M_Bin)
             self.M_Emi = CuArray(Big_Matrices.M_Emi)
             self.F_Flux = CuSparseMatrixCSC(Flux_Matrices.F_Flux)
             self.Ap_Flux = CuArray(Flux_Matrices.Ap_Flux)
             self.Vol = CuArray(Flux_Matrices.Vol)
-            self.f = CuArray(f0)
+            self.f = CuArray(Initial)
+            self.df_Inj = CuArray(Injection)
         else
             error("Backend type not recognized.")
         end
@@ -79,7 +81,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self.df_Bin = zeros(Backend,T,length(f0))
         self.df_Emi = zeros(Backend,T,length(f0))
         self.df_Flux = zeros(Backend,T,length(f0))
-        self.df_Inj = zeros(Backend,T,length(f0))
         self.df_tmp = zeros(Backend,T,length(f0))
         self.temp = zeros(Backend,T,length(f0),length(f0))
         if Implicit

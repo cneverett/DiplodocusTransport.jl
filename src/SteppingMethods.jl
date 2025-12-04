@@ -44,6 +44,9 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
         @. Euler.Jac -= Euler.F_Flux
     end
 
+    # Add injection term 
+    @. Euler.df += Euler.df_Inj
+
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
     if Euler.PhaseSpace.Time.t_grid != "u" 
         Euler.df .*= dt / dt0
