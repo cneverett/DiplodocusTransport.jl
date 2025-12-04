@@ -10,6 +10,7 @@ module DiplodocusTransport
     export Solve, EulerStruct
     export SolutionFileLoad
     export MaxwellJuttner_Distribution
+    export CUDABackend, CPUBackend
 
     using JLD2
     import DiplodocusCollisions as DC
