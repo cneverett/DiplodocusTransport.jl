@@ -91,6 +91,13 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
         end
 
     end
+
+    # Add injection term 
+    if Euler.PhaseSpace.Time.t_grid != "u" 
+        @. Euler.df += Euler.df_Inj * dt / dt0
+    else
+        @. Euler.df += Euler.df_Inj
+    end
     
     # update state vector f
     @. Euler.f += Euler.df
