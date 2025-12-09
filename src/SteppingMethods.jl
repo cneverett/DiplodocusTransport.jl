@@ -113,10 +113,7 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
 end
 
 function update_Big_Bin!(method::SteppingMethodType)
-
-    f = method.f
-    @assert size(method.M_Bin) == (length(f)^2,length(f)) "M_Bin is not the correct size"
-
+    
     PhaseSpace = method.PhaseSpace
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
@@ -131,6 +128,10 @@ function update_Big_Bin!(method::SteppingMethodType)
 
     n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
+
+    @assert size(method.M_Bin) == (n_momentum^2,n_momentum) "M_Bin is not the correct size"
+
+    f = method.f
 
     Vol = method.Vol
 

@@ -48,8 +48,14 @@ function Location_Species_To_StateVector(StateVector::Vector{F},PhaseSpace::Phas
     off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
     off_name = offset[species_index]
 
-    start_idx = 1+off_name+off_space
-    end_idx = pz_num*px_num*py_num+off_name+off_space
+    n_space = x_num+y_num+z_num
+    n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
+
+    start_idx = n_momentum*off_space+1+off_name
+    end_idx   = n_momentum*off_space+1+off_name+px_num*py_num*pz_num
+
+    start_idx = 1+off_name+off_space*n_momentum
+    end_idx = off_name+(off_space+1)*n_momentum
 
     return @view(StateVector[start_idx:end_idx])
 

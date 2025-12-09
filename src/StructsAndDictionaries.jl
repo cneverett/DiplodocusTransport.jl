@@ -87,6 +87,10 @@ mutable struct GridsStruct <: Function
     dy::Vector{Float64}
     dz::Vector{Float64}
 
+    mx::Vector{Float64}
+    my::Vector{Float64}
+    mz::Vector{Float64}
+
     pxr_list::Vector{Vector{Float64}}
     pyr_list::Vector{Vector{Float64}}
     pzr_list::Vector{Vector{Float64}}
@@ -141,6 +145,10 @@ mutable struct GridsStruct <: Function
             self.dx = DC.deltaVector(self.xr)
             self.dy = DC.deltaVector(self.yr)
             self.dz = DC.deltaVector(self.zr)
+
+            self.mx = DC.meanVector(self.xr)
+            self.my = DC.meanVector(self.yr)
+            self.mz = DC.meanVector(self.zr)
 
         # momentum domain grids
 

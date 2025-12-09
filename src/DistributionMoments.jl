@@ -3,7 +3,7 @@
 
 Returns the four-flow vector Ua 'vector{Float64}' from the flattened axisymmetric distribution function f1D.
 """
-function FourFlow(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T<:AbstractFloat
+function FourFlow(f1D::AbstractVector{T},p_num,u_num,h_num,pr,ur,hr,m) where T<:AbstractFloat
 
     f3D = zeros(Float64,p_num,u_num,h_num)
     f3D = Float64.(reshape(f1D,(p_num,u_num,h_num)))
@@ -58,7 +58,7 @@ function ProjectionTensor(Uₐ::Vector{Float64})
 
 end
 
-function StressEnergyTensor(f1D::Vector{T},p_num,u_num,h_num,pr,ur,hr,m) where T<:AbstractFloat
+function StressEnergyTensor(f1D::AbstractVector{T},p_num,u_num,h_num,pr,ur,hr,m) where T<:AbstractFloat
 
     f3D = zeros(Float64,p_num,u_num,h_num)
     f3D = Float64.(reshape(f1D,(p_num,u_num,h_num)))

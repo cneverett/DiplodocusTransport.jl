@@ -77,15 +77,15 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.M_Bin_Mul_Step = zeros(Backend,T,n_momentum,n_momentum)
             self.M_Bin_Mul_Step_reshape = reshape(self.M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
         end
-        self.df = zeros(Backend,T,length(f0))
-        self.df_Bin = zeros(Backend,T,length(f0))
-        self.df_Emi = zeros(Backend,T,length(f0))
-        self.df_Flux = zeros(Backend,T,length(f0))
-        self.df_tmp = zeros(Backend,T,length(f0))
-        self.temp = zeros(Backend,T,length(f0),length(f0))
+        self.df = zeros(Backend,T,length(Initial))
+        self.df_Bin = zeros(Backend,T,length(Initial))
+        self.df_Emi = zeros(Backend,T,length(Initial))
+        self.df_Flux = zeros(Backend,T,length(Initial))
+        self.df_tmp = zeros(Backend,T,length(Initial))
+        self.temp = zeros(Backend,T,length(Initial),length(Initial))
         if Implicit
-            self.Jac = zeros(Backend,T,length(f0),length(f0))
-            self.LU = lu(zeros(Backend,T,length(f0),length(f0))+I)
+            self.Jac = zeros(Backend,T,length(Initial),length(Initial))
+            self.LU = lu(zeros(Backend,T,length(Initial),length(Initial))+I)
         end
 
         return self
