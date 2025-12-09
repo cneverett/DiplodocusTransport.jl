@@ -32,7 +32,7 @@ module DiplodocusTransport
     include("DistributionMoments.jl")
     include("InitialConditions.jl")
     include("InjectionConditions.jl")
-    include("ValuesOnTheGrid.jl")
+    #include("ValuesOnTheGrid.jl")
     include("DataReading.jl")
     include("GlobalToStateIndices.jl")
 
