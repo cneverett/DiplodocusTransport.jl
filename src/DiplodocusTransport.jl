@@ -53,7 +53,4 @@ module DiplodocusTransport
     # Solver
     include("Solver.jl")
 
-    # post-processing
-    #include("Plotting.jl")
-
 end

@@ -28,7 +28,7 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     temp::AbstractMatrix{T}
     # if Implicit is true
     Jac::AbstractMatrix{T}                          # Jacobian matrix
-    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solvingue      
+    LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solving     
 
     function EulerStruct(Initial::Vector{T},Injection::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
 
