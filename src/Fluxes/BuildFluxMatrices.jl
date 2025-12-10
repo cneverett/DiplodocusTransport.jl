@@ -946,7 +946,7 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 end
             end
 
-            if BCp isa Reflective
+            if BCp isa Reflective && (z+1 > z_num)
                 @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
                 # mirror u momentum at boundary
                 py_ref = py_num - py + 1
@@ -955,7 +955,7 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
             end
             
-            if BCm isa Reflective
+            if BCm isa Reflective && (z-1 < 1)
                 @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
                 # mirror u momentum at boundary
                 py_ref = py_num - py + 1
