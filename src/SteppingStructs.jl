@@ -25,7 +25,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     df_Flux::AbstractVector{T}                      # change in distribution function due to fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
     df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations
-    temp::AbstractMatrix{T}
     # if Implicit is true
     Jac::AbstractMatrix{T}                          # Jacobian matrix
     LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solving     
@@ -82,7 +81,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self.df_Emi = zeros(Backend,T,length(Initial))
         self.df_Flux = zeros(Backend,T,length(Initial))
         self.df_tmp = zeros(Backend,T,length(Initial))
-        self.temp = zeros(Backend,T,length(Initial),length(Initial))
         if Implicit
             self.Jac = zeros(Backend,T,length(Initial),length(Initial))
             self.LU = lu(zeros(Backend,T,length(Initial),length(Initial))+I)

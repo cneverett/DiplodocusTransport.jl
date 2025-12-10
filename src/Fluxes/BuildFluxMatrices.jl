@@ -158,7 +158,7 @@ function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
                 b = a
 
                 # integration sign introduced here
@@ -284,9 +284,6 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
-
-            I_plus = zero(T)
-            I_minus = zero(T)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -425,9 +422,6 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
 
-            J_plus = zero(T)
-            J_minus = zero(T)
-
             for f in 1:length(Forces)
                 # integration sign introduced here
                 J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
@@ -564,9 +558,6 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
 
-            K_plus = zero(T)
-            K_minus = zero(T)
-
             for f in 1:length(Forces)
                 # integration sign introduced here
                 K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
@@ -698,9 +689,6 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(xp,y,z,px,py,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
 
-            B_plus = zero(T)
-            B_minus = zero(T)
-
             # integration sign introduced here
             B_plus = BFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
             B_minus = -BFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
@@ -831,9 +819,6 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bp = GlobalIndices_To_StateIndex(x,yp,z,px,py,pz,name,PhaseSpace)
             bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
 
-            C_plus = zero(T)
-            C_minus = zero(T)
-
             # integration sign introduced here
             C_plus = CFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
             C_minus = -CFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
@@ -947,25 +932,37 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             zp = z+1
             zm = z-1
             if zp > z_num # right boundary
-                if BCp isa Closed || BCp isa Open
+                if BCp isa Closed || BCp isa Open || BCp isa Reflective
                     zp = z_num
                 elseif BCp isa Periodic
                     zp = 1
                 end
             end
             if zm < 1 # left boundary
-                if BCm isa Closed || BCm isa Open
+                if BCm isa Closed || BCm isa Open || BCm isa Reflective
                     zm = 1
                 elseif BCm isa Periodic
                     zm = z_num
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
-
-            D_plus = zero(T)
-            D_minus = zero(T)
+            if BCp isa Reflective
+                @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                # mirror u momentum at boundary
+                py_ref = py_num - py + 1
+                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py_ref,pz,name,PhaseSpace)
+            else
+                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
+            end
+            
+            if BCm isa Reflective
+                @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                # mirror u momentum at boundary
+                py_ref = py_num - py + 1
+                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py_ref,pz,name,PhaseSpace)
+            else
+                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
+            end
 
             # integration sign introduced here
             D_plus = DFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])

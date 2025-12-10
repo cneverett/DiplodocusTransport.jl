@@ -16,8 +16,9 @@ struct Ani <: ModeType end
 
 # BoundaryType definitions
 struct Periodic <: BoundaryType end # particles leaving at one coordinate boundary re-appear on the opposite coordinate boundary
-struct Open <: BoundaryType end # particles may leave or enter at this flux boundary. Entering may be specified (to be implemented), could be constrained to only photons with other particles closed (to be implemented)
-struct Closed <: BoundaryType end # no particle may leave or enter this boundary
+struct Open <: BoundaryType end # particles may leave or enter at this flux boundary. Entering may be specified, could be constrained to only photons with other particles closed 
+struct Closed <: BoundaryType end # no particles may leave or enter this boundary (no particle reflection when they hit this boundary)
+struct Reflective <: BoundaryType end # particles reflect off this boundary (momentum component normal to boundary reverses sign) TODO: this reversal of sign may not be well defined for specific coordinate systems and momentum grids
 
 # CoordinateType Structs: 
 @kwdef struct Cartesian <: CoordinateType # x=x, y=y, z=z

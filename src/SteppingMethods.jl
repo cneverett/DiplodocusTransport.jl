@@ -21,7 +21,7 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     # reset arrays
     fill!(Euler.df,zero(eltype(Euler.df)))
-    fill!(Euler.temp,zero(eltype(Euler.temp)))
+    #fill!(Euler.temp,zero(eltype(Euler.temp)))
     if Euler.Implicit
         fill!(Euler.Jac,zero(eltype(Euler.Jac)))
     end
@@ -59,7 +59,7 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
     #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
     #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
 
-    if isinf(sum(Euler.df))
+    if !isfinite(sum(Euler.df))
         println("overflow in df calculation")
         #@. g.temp = g.temp*(g.temp!=Inf)
     end
