@@ -10,14 +10,10 @@
         # convert p to Float64 to ensure no floating point issues
         p64 = Float64(p)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
         
         flux::Float64 = fluxScale
 
@@ -56,14 +52,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -98,14 +90,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -133,14 +121,10 @@
         # convert p to Float64 to ensure no floating point issues
         p64 = Float64(p)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -179,14 +163,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -221,14 +201,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z^4*B^2)/(μ0*m^2*mEle*c^2) # normalised by σT*c
+        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
 
         flux::Float64 = fluxScale
 
@@ -256,15 +232,10 @@
         # convert p to Float64 to ensure no floating point issues
         p64 = Float64(p)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         if m == 0 || Z == 0
             return flux = 0f0
@@ -292,15 +263,10 @@
         phi0pi::Float64 = Float64(phi0/pi) # using sinpi rather than sin to avoid float issues 
         phi1pi::Float64 = Float64(phi1/pi) # using sinpi rather than sin to avoid float issues
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         if m == 0 || Z == 0
             return flux = 0f0
@@ -326,14 +292,10 @@
         p164 = Float64(p1)
         phipi::Float64 = Float64(phi/pi) # using sinpi rather than sin to avoid float issues 
 
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         if m == 0 || Z == 0
             return flux = 0f0
@@ -361,15 +323,10 @@
         # convert p to Float64 to ensure no floating point issues
         p64 = Float64(p)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         flux::Float64 = fluxScale
 
@@ -395,15 +352,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        μ0 = getfield(DC,Symbol("μ0"))
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         flux::Float64 = fluxScale
 
@@ -429,14 +381,10 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(DC,Symbol("mu"*name))
-        q = getfield(DC,Symbol("q"))
-        Z = getfield(DC,Symbol("z"*name))
-        mEle = getfield(DC,Symbol("mEle"))
-        c = getfield(DC,Symbol("c"))
-        σT = getfield(DC,Symbol("σT"))
+        m = eval(Symbol("CONST_mu"*name))
+        Z = eval(Symbol("CONST_z"*name))
 
-        fluxScale = (Z*q) / (m*mEle) / (σT*c) 
+        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
 
         flux::Float64 = fluxScale
 

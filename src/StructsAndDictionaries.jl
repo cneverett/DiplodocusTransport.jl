@@ -1,4 +1,30 @@
 """
+    CharacteristicStruct()
+
+A struct for storing the characteristic scales (in SI units) for the simulation, from which all other values are normalised to.
+"""
+@kwdef struct CharacteristicStruct
+
+    # fundamental scales (SI units)
+    CHAR_mass::Float64 = CONST_mEle
+    CHAR_charge::Float64 = CONST_q
+    CHAR_speed::Float64 = CONST_c
+    CHAR_length::Float64 = CONST_pcs
+    CHAR_number_density::Float64 = 1.0e6 # 1 particle per cm^3
+    CHAR_magnetic_field::Float64 = 1.0 # 1 Tesla
+
+    # derived scales (SI units)
+    CHAR_time::Float64 = CHAR_length/CHAR_speed
+    CHAR_momentum::Float64 = CHAR_mass*CHAR_speed
+    CHAR_energy::Float64 = CHAR_mass*CHAR_speed^2
+    CHAR_mass_density::Float64 = CHAR_mass*CHAR_number_density
+    CHAR_energy_density::Float64 = CHAR_mass_density*CHAR_speed^2
+    CHAR_pressure::Float64 = CHAR_energy_density
+    
+end
+
+
+"""
     TimeStruct()
 
 A struct for storing the time domain of the simulation.
@@ -118,8 +144,8 @@ mutable struct GridsStruct <: Function
             t_num = time.t_num
             t_grid = time.t_grid
 
-            self.tr = DC.bounds(t_low,t_up,t_num,t_grid)
-            self.dt = DC.deltaVector(self.tr)
+            self.tr = bounds(t_low,t_up,t_num,t_grid)
+            self.dt = deltaVector(self.tr)
 
         # space domain grids
 
@@ -138,17 +164,17 @@ mutable struct GridsStruct <: Function
             z_grid = space.z_grid
             z_num = space.z_num
 
-            self.xr = DC.bounds(x_low,x_up,x_num,x_grid)
-            self.yr = DC.bounds(y_low,y_up,y_num,y_grid)
-            self.zr = DC.bounds(z_low,z_up,z_num,z_grid)
+            self.xr = bounds(x_low,x_up,x_num,x_grid)
+            self.yr = bounds(y_low,y_up,y_num,y_grid)
+            self.zr = bounds(z_low,z_up,z_num,z_grid)
 
-            self.dx = DC.deltaVector(self.xr)
-            self.dy = DC.deltaVector(self.yr)
-            self.dz = DC.deltaVector(self.zr)
+            self.dx = deltaVector(self.xr)
+            self.dy = deltaVector(self.yr)
+            self.dz = deltaVector(self.zr)
 
-            self.mx = DC.meanVector(self.xr)
-            self.my = DC.meanVector(self.yr)
-            self.mz = DC.meanVector(self.zr)
+            self.mx = meanVector(self.xr)
+            self.my = meanVector(self.yr)
+            self.mz = meanVector(self.zr)
 
         # momentum domain grids
 
@@ -190,22 +216,21 @@ mutable struct GridsStruct <: Function
 
             for i in eachindex(name_list)
 
-                self.mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
-                self.charge_list[i] = getfield(DC,Symbol("z"*name_list[i]));
+                self.mass_list[i] = eval(Symbol("CONST_mu"*name_list[i]));
+                self.charge_list[i] = eval(Symbol("CONST_z"*name_list[i]));
 
-                self.pxr_list[i] = DC.bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
-                self.pyr_list[i] = DC.bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
-                self.pzr_list[i] = DC.bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
+                self.pxr_list[i] = bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
+                self.pyr_list[i] = bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
+                self.pzr_list[i] = bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
 
-                self.dpx_list[i] = DC.deltaVector(self.pxr_list[i]);
-                self.dpy_list[i] = DC.deltaVector(self.pyr_list[i]);
-                self.dpz_list[i] = DC.deltaVector(self.pzr_list[i]);
+                self.dpx_list[i] = deltaVector(self.pxr_list[i]);
+                self.dpy_list[i] = deltaVector(self.pyr_list[i]);
+                self.dpz_list[i] = deltaVector(self.pzr_list[i]);
+                self.mpx_list[i] = meanVector(self.pxr_list[i]);
+                self.mpy_list[i] = meanVector(self.pyr_list[i]);
+                self.mpz_list[i] = meanVector(self.pzr_list[i]);
 
-                self.mpx_list[i] = DC.meanVector(self.pxr_list[i]);
-                self.mpy_list[i] = DC.meanVector(self.pyr_list[i]);
-                self.mpz_list[i] = DC.meanVector(self.pzr_list[i]);
-
-                self.dE_list[i] = DC.deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.dpx_list[i];
+                self.dE_list[i] = deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.dpx_list[i];
 
                 if i == 1
                     self.momentum_species_offset[i] = 0
@@ -230,6 +255,8 @@ mutable struct PhaseSpaceStruct <: Function
 
     # particles
     name_list::Vector{String}   # list of particle names
+
+    Characteristic::CharacteristicStruct
     
     # time
     Time::TimeStruct
@@ -255,6 +282,7 @@ mutable struct PhaseSpaceStruct <: Function
         self = new()
 
         self.name_list = name_list
+        self.Characteristic = CharacteristicStruct()
         self.Time = time
         self.Space = space
         self.Momentum = momentum

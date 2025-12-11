@@ -4,7 +4,7 @@
 
         # Evaluate the flux through the A surface i.e. surface of constant t
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
         flux *= (-p0 + p1) * (-u0 + u1) * (-phi0 + phi1)
@@ -17,7 +17,7 @@
 
         # Evaluate the flux through the B surface i.e. surface of constant x
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 =  (t0 - t1) * (y0 - y1) * (z0 - z1)
         flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(phi0/pi) - sinpi(phi1/pi)) / 2
@@ -30,7 +30,7 @@
 
         # Evaluate the flux through the C surface i.e. surface of constant y
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 =  (t0 - t1) * (x0 - x1) * (z0 - z1) 
         flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(phi0/pi) - cospi(phi1/pi)) / 2 
@@ -43,7 +43,7 @@
 
         # Evaluate the flux through the D surface i.e. surface of constant z
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = (t0 - t1) * (x0 - x1) * (y0 - y1) 
         flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (phi0 - phi1) / 2
@@ -109,7 +109,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux = (-x0^2 + x1^2) / 2 * (-y0 + y1) * (-z0 + z1) 
         flux *= (-p064 + p164) * (-u0 + u1) * (-phi0 + phi1)
@@ -126,7 +126,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux = (t0 - t1) * x * (y0 - y1) * (z0 - z1) 
         flux *= (1/2)*(sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sinpi(phi0/pi) - sinpi(phi1/pi))
@@ -143,7 +143,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux = (t0 - t1) * (x0 - x1) * (z0 - z1) 
         flux *= (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cospi(phi0/pi) - cospi(phi1/pi))
@@ -160,7 +160,7 @@
         p064 = Float64(p0)
         p164 = Float64(p1)
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux = (t0 - t1) * (x0^2 - x1^2) / 2 * (y0 - y1) 
         flux *= (1/2) * (sqrt(m^2 + p064^2) - sqrt(m^2 + p164^2)) * (u0^2 - u1^2) * (phi0 - phi1)
@@ -213,7 +213,7 @@
         phi0pi::Float64 = Float64(phi0/pi) # using sinpi rather than sin to avoid float issues 
         phi1pi::Float64 = Float64(phi1/pi) # using sinpi rather than sin to avoid float issues
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = -(1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2))*(-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1)
         flux *=  sinpi(β)*(sinpi(phi0pi) - sinpi(phi1pi))*(-2u*sqrt(1 - u^2)*sinpi(β) + (-1 + u^2)*cospi(β)*(sinpi(phi0pi) + sinpi(phi1pi)))
@@ -239,7 +239,7 @@
         p164 = Float64(p1)
         phipi::Float64 = Float64(phi/pi) # using sinpi rather than sin to avoid float issues 
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         #flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
         #flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)
@@ -259,7 +259,7 @@
 
         # Evaluate the flux through the A surface i.e. surface of constant t
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = -(1/3) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
         flux *= (p0 - p1) * (u0 - u1) * (phi0 - phi1)
@@ -272,7 +272,7 @@
 
         # Evaluate the flux through the B surface i.e. surface of constant spherical r
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi)) * (sinpi(phi0/pi) - sinpi(phi1/pi)) / 2
         flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(phi0/pi) - sinpi(phi1/pi))
@@ -284,7 +284,7 @@
 
         # Evaluate the flux through the C surface i.e. surface of constant spherical θ 
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
         flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(phi0/pi) - cospi(phi1/pi)) / 2
@@ -297,7 +297,7 @@
 
         # Evaluate the flux through the D surface i.e. surface of constant spherical ϕ
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
         flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (phi0 - phi1) / 2
@@ -334,7 +334,7 @@
 
         # Evaluate the flux through the J surface i.e. surface of constant spherical u
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 = -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/(2pi)) * sinpi((phi0 - phi1)/(2pi)) * sinpi((y0 + y1 + phi0 + phi1)/(2pi))
 
@@ -346,7 +346,7 @@
 
         # Evaluate the flux through the K surface i.e. surface of constant spherical phi
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux::Float64 =  (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) / 2
         flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + asin(u1) * (cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + 2(cospi(y0/pi) - cospi(y1/pi)) * sinpi(phi/pi)) + asin(u0) * (cospi(phi/pi) * (-sinpi(y0/pi) + sinpi(y1/pi)) + 2(-cospi(y0/pi) + cospi(y1/pi))*sinpi(phi/pi))) / 2
@@ -401,7 +401,7 @@
         p164 = Float64(p1)
         phipi = Float64(phi/pi) # using sinpi rather than sin to avoid float issues 
 
-        m = getfield(DC,Symbol("mu"*name))
+        m = eval(Symbol("CONST_mu"*name))
 
         flux = (1/2)*(-sqrt(m^2 + p064^2) + sqrt(m^2 + p164^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*sinpi(phipi)
         flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)

@@ -30,6 +30,9 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
     if isempty(Euler.PhaseSpace.Binary_list) == false
         update_Big_Bin!(Euler)
         @. Euler.df += Euler.df_Bin
+        if !isfinite(sum(Euler.df_Bin))
+            println("overflow in df_Bin calculation, $(sum(Euler.df_Bin))")
+        end
     end
     # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
     if isempty(Euler.PhaseSpace.Emi_list) == false
@@ -40,6 +43,9 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
     # create df_Flux due to space and momentum flux terms
     mul!(Euler.df_Flux,Euler.F_Flux,Euler.f)
     @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+    if !isfinite(sum(Euler.df_Flux))
+        println("overflow in df_Flux calculation, $(sum(Euler.df_Flux))")
+    end
     if Euler.Implicit
         @. Euler.Jac -= Euler.F_Flux
     end
@@ -61,7 +67,6 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     if !isfinite(sum(Euler.df))
         println("overflow in df calculation")
-        #@. g.temp = g.temp*(g.temp!=Inf)
     end
 
     if Euler.Implicit

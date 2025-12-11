@@ -1,7 +1,7 @@
 module DiplodocusTransport
 
     export LoadMatrices, BigMatrices, FluxMatrices
-    export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
+    export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct, CharacteristicStruct, GridsStruct
     export BinaryStruct, EmiStruct, ForceType
     export Cylindrical, Spherical, Cartesian, Ani, Axi, Iso
     export Periodic, Open, Closed, Reflective
@@ -15,7 +15,7 @@ module DiplodocusTransport
     export CUDABackend, CPUBackend
 
     using JLD2
-    import DiplodocusCollisions as DC
+    using DiplodocusCollisions: bounds, location, deltaVector, meanVector, deltaEVector, EmissionFileName, BinaryFileName, EmissionFileLoad_Matrix, BinaryFileLoad_Matrix, DoesConserve
     using LinearAlgebra
     using ProgressMeter
     using Bessels
@@ -24,6 +24,7 @@ module DiplodocusTransport
     using CUDA
     using CUDA.CUSPARSE
 
+    include("Constants.jl")
     include("Types.jl")
     include("Backends.jl")
     include("StructsAndDictionaries.jl")
