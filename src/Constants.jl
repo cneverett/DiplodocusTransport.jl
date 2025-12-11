@@ -34,11 +34,10 @@ const CONST_zPro::Float64 = 1.0;                 # Charge of Proton
 const CONST_zSph::Float64 = 0.0;                 # Charge of hard sphere
 
 # Common Length scales
-const Const_pcs::Float64 = 3.0857e16;        # Parsec in meters [m]
-
+const CONST_pcs::Float64 = 3.0857e16;           # Parsec in meters [m]
 
 # Domain bounds
-const CONST_u0::Float64 = -1.0;         # Lower bound for cos(theta)
-const CONST_u1::Float64 = 1.0;           # Upper bound for cos(theta) 
-const CONST_h0::Float64 = 0.0;          # Lower bound for phi normalised by pi
-const CONST_h1::Float64 = 2.0;           # Upper bound for phi normalised by pi
+const CONST_u0::Float64 = -1.0;                 # Lower bound for cos(theta)
+const CONST_u1::Float64 = 1.0;                  # Upper bound for cos(theta) 
+const CONST_h0::Float64 = 0.0;                  # Lower bound for phi normalised by pi
+const CONST_h1::Float64 = 2.0;                  # Upper bound for phi normalised by pi

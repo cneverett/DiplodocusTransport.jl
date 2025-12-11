@@ -5,12 +5,17 @@ Returns the contravariant (upper indices) four-flow vector Nᵃ `Vector{Float64}
 
 Takes additional arguments `x_idx`, `y_idx`, and `z_idx` to specify the spatial location in the phase space to evaluate the four-flow.
 """
-function FourFlow(state::Vector{T},PhaseSpace::PhaseSpaceStruct,species::String;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where T<:AbstractFloat
+function FourFlow(state::Vector{T},PhaseSpace::PhaseSpaceStruct,species::S;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where T<:AbstractFloat where S<:Union{String,Int64}
 
     f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
 
-    name_list = PhaseSpace.name_list
-    species_index = findfirst(==(species),name_list)
+    if typeof(species) == Int64
+        species_index = species
+    else
+        name_list = PhaseSpace.name_list
+        species_index = findfirst(==(species),name_list)
+    end
+
     m = PhaseSpace.Grids.mass_list[species_index]
     p_num = PhaseSpace.Momentum.px_num_list[species_index]
     u_num = PhaseSpace.Momentum.py_num_list[species_index]
@@ -86,12 +91,17 @@ end
 
 Returns the contravariant (upper indices) stress-energy tensor Tab `Matrix{Float64}` for a given particle `species` given a `state` vector. The stress-energy is calculated as the second moment of the distribution function over momentum space.
 """
-function StressEnergyTensor(state::Vector{T},PhaseSpace::PhaseSpaceStruct,species::String;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where T<:AbstractFloat
+function StressEnergyTensor(state::Vector{T},PhaseSpace::PhaseSpaceStruct,species::S;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where T<:AbstractFloat where S<:Union{String,Int64}
 
     f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
 
-    name_list = PhaseSpace.name_list
-    species_index = findfirst(==(species),name_list)
+    if typeof(species) == Int64
+        species_index = species
+    else
+        name_list = PhaseSpace.name_list
+        species_index = findfirst(==(species),PhaseSpace.name_list)
+    end
+
     m = PhaseSpace.Grids.mass_list[species_index]
     p_num = PhaseSpace.Momentum.px_num_list[species_index]
     u_num = PhaseSpace.Momentum.py_num_list[species_index]
@@ -215,9 +225,14 @@ function ScalarNumberDensity(Nᵃ::Vector{Float64},Uₐ::Vector{Float64})
 
 end
 
-function ScalarMassDensity(n::Vector{Float64},PhaseSpace::PhaseSpaceStruct,species::String)
+function ScalarMassDensity(n::Vector{Float64},PhaseSpace::PhaseSpaceStruct,species::T) where T<:Union{String,Int64}
 
-    species_index = findfirst(==(species),PhaseSpace.name_list)
+    if typeof(species) == Int64
+        species_index = species
+    else
+        name_list = PhaseSpace.name_list
+        species_index = findfirst(==(species),PhaseSpace.name_list)
+    end
     m = PhaseSpace.Grids.mass_list[species_index]
 
     ρ::Float64 = n*m
