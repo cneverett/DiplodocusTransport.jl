@@ -124,7 +124,6 @@ function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
-    offset = PhaseSpace.Grids.momentum_species_offset
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -133,20 +132,9 @@ function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # A_flux uses only first time step!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
+
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -154,19 +142,17 @@ function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
                 a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
                 b = a
 
                 # integration sign introduced here
-                A_plus = AFluxFunction(space_coords,momentum_coords,tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                A_minus = -AFluxFunction(space_coords,momentum_coords,tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                A_plus = AFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+                A_minus = -AFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
 
                 # normalisation
-                norm = (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])
+                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
                 # fill
                 Ap_Flux[a,b] += convert(T,A_plus / norm)
@@ -194,16 +180,11 @@ function Fill_Vol!(Vol::Vector{T},PhaseSpace::PhaseSpaceStruct) where T<:Union{F
     y_num = Space.y_num
     z_num = Space.z_num
 
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
-
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
         space = (x-1)*y_num*z_num+(y-1)*z_num+z
 
-        Vol[space] = convert(T,VolFunction(space_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1]))
+        Vol[space] = convert(T,VolFunction(space_coords,Grids,1,x,y,z))
 
     end
 
@@ -223,7 +204,6 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
-    offset = PhaseSpace.Grids.momentum_species_offset
 
     BCp = momentum_coords.xp_BC
     BCm = momentum_coords.xm_BC 
@@ -242,20 +222,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -287,8 +255,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
         
                 # scheme
                 if scheme == "upwind"
@@ -327,18 +295,22 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                normp = MomentumSpaceNorm(Grids,name,pxp,py,pz)
+                normm = MomentumSpaceNorm(Grids,name,pxm,py,pz)
+
                 # normalised fluxes
                 if b != bp
-                    I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / normp)
+                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / norm) 
                 elseif BCp isa Open # b=bp
-                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / norm) 
                 end
                 if b != bm
-                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                    I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / norm) 
+                    I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / normm) 
                 elseif BCm isa Open # b=bm
-                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / norm) 
                 end
 
             end # Forces loop
@@ -378,21 +350,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -424,8 +383,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
+                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
@@ -463,18 +422,22 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                normp = MomentumSpaceNorm(Grids,name,px,pyp,pz)
+                normm = MomentumSpaceNorm(Grids,name,px,pym,pz)
+
                 # normalised fluxes
                 if b != bp
-                    J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
-                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / normp)
+                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / norm)
                 elseif BCp isa Open # b=bp
-                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / norm)
                 end
                 if b != bm
-                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                    J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / norm)
+                    J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / normm)
                 elseif BCm isa Open # b=bm
-                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / norm)
                 end
 
             end # Force loop
@@ -514,21 +477,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     pz_num_list = Momentum.pz_num_list
 
     Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -560,8 +510,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
-                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
+                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
@@ -599,17 +549,21 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                normp = MomentumSpaceNorm(Grids,name,px,py,pzp)
+                normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
+
                 if b != bp
-                    K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
-                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / normp)
+                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / norm)
                 elseif BCp isa Open # b=bp
-                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / norm)
                 end
                 if b != bm
-                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                    K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
+                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / norm)
+                    K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / normm)
                 elseif BCm isa Open # b=bm
-                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / norm)
                 end
                 
             end # force loop
@@ -632,7 +586,6 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
-    offset = PhaseSpace.Grids.momentum_species_offset
 
     BCp = space_coords.xp_BC
     BCm = space_coords.xm_BC 
@@ -644,22 +597,8 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -690,8 +629,8 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            B_plus = BFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-            B_minus = -BFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+            B_plus = BFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+            B_minus = -BFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -730,18 +669,20 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
             # normalised fluxes
             if b != bp
-                B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / norm) 
+                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / norm) 
             elseif BCp isa Open # b=bp
-                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / norm) 
             end
             if b != bm
-                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / norm) 
+                B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / norm) 
             elseif BCm isa Open # b=bm
-                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / norm) 
             end
 
         end # end coordinates loop
@@ -774,22 +715,8 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -820,8 +747,8 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            C_plus = CFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-            C_minus = -CFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+            C_plus = CFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+            C_minus = -CFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -860,18 +787,20 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
             # normalised fluxes
             if b != bp
-                C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / norm) 
+                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / norm) 
             elseif BCp isa Open # b=bp
-                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / norm) 
             end
             if b != bm
-                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / norm) 
+                C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / norm) 
             elseif BCm isa Open # b=bm
-                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / norm) 
             end
 
         end # end coordinates loop
@@ -892,7 +821,6 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
-    offset = PhaseSpace.Grids.momentum_species_offset
 
     BCp = space_coords.zp_BC
     BCm = space_coords.zm_BC 
@@ -904,22 +832,8 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -965,8 +879,8 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             end
 
             # integration sign introduced here
-            D_plus = DFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-            D_minus = -DFluxFunction(space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+            D_plus = DFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
+            D_minus = -DFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -1005,20 +919,37 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
+            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
             # normalised fluxes
             if b != bp
-                D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / norm) 
+                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / norm) 
             elseif BCp isa Open # b=bp
-                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / norm) 
             end
             if b != bm
-                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / norm) 
+                D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / norm) 
             elseif BCm isa Open # b=bm
-                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / norm) 
             end
 
         end # end coordinates loop
     end
+end
+
+"""
+    MomentumSpaceNorm(Grids,species_index,px_idx,py_idx,pz_idx)
+
+Returns the normalization factor for a species distribution function in given momentum space sub-domain.
+"""
+function MomentumSpaceNorm(Grids::GridsStruct,species_index,px_idx,py_idx,pz_idx)
+
+    dpx = Grids.dpx_list[species_index][px_idx]
+    dpy = Grids.dpy_list[species_index][py_idx]
+    dpz = Grids.dpz_list[species_index][pz_idx]
+
+    return dpx*dpy*dpz
+
 end
