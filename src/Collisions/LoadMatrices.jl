@@ -1,4 +1,4 @@
-function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct;mode::ModeType=Ani(),corrected::Bool=true) where F<:AbstractFloat
+function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true,Bin_sparse::Bool=false) where F<:AbstractFloat
 
     Binary_list = PhaseSpace.Binary_list
 
@@ -35,17 +35,34 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         name3 = interaction.name3
         name4 = interaction.name4
 
-        name1_loc = findfirst(==(name1),name_list)
-        name2_loc = findfirst(==(name2),name_list)
-        name3_loc = findfirst(==(name3),name_list)
-        name4_loc = findfirst(==(name4),name_list)
+        if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
+            if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho") # "Pos" compton scattering
+                return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
+            elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
+                GainScale = 1/4.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4
+                name1_loc = findfirst(==(name1),name_list)
+                name2_loc = findfirst(==("Ele"),name_list)
+                name3_loc = findfirst(==(name3),name_list)
+                name4_loc = findfirst(==(name4),name_list)
+            elseif (name1,name2,name3,name4) == ("Pho","Pho","Ele","Pos") # "Ele" "Pos" pair production
+                GainScale = 1.0
+                name1_loc = findfirst(==(name1),name_list)
+                name2_loc = findfirst(==(name2),name_list)
+                name3_loc = findfirst(==(name3),name_list)
+                name4_loc = findfirst(==("Ele"),name_list)
+            end
+        else
+            GainScale = 1.0
+            name1_loc = findfirst(==(name1),name_list)
+            name2_loc = findfirst(==(name2),name_list)
+            name3_loc = findfirst(==(name3),name_list)
+            name4_loc = findfirst(==(name4),name_list)
+        end
 
-        # ele pos swap for compton
-        if name1 == "Pos" && name2 == "Pho" && name3 == "Pos" && name4 == "Pho"
+        # ele pos swap for compton i.e. use ele compton matrices for pos compton
+        if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho")
             name1 = "Ele"
-            name2 = "Pho"
             name3 = "Ele"
-            name4 = "Pho"
         end
 
         px1_grid::String = px_grid_list[name1_loc]
@@ -97,13 +114,15 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
 
         Output = BinaryFileLoad_Matrix(DataDirectory,filename,corrected=corrected)
         Parameters = Output[1]
-        GainMatrix3 = Output[2]
-        GainMatrix4 = Output[3]
+        GainMatrix3 = Output[2] .* GainScale
+        GainMatrix4 = Output[3] .* GainScale
         LossMatrix1 = Output[4]
         LossMatrix2 = Output[5]
 
+        name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
+
         DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode)
+        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode,Bin_sparse=Bin_sparse)
 
     end # for
 
@@ -145,6 +164,13 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSp
         name2::String = interaction.name2
         name3::String = interaction.name3
         type::String = interaction.EmiName
+        mode::ModeType = interaction.mode
+
+        if !isnothing(findfirst(==("Pos"),[name1,name2,name3])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
+            if (name1,name2,name3) == ("Pos","Pos","Pho") # "Pos" synchrotron 
+                return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
+            end
+        end
 
         # ele pos swap for synchrotron
         if name1 == "Pos" && name2 == "Pos" && name3 == "Pho"
@@ -209,7 +235,9 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSp
             EmissionCorrection!(PhaseSpace,matrix,Parameters)
         end
 
-        Fill_M_Emi!(M_Emi,interaction,PhaseSpace;GainMatrix3=matrix)
+        name_locs = (name1_loc,name2_loc,name3_loc)
+
+        Fill_M_Emi!(M_Emi,name_locs,PhaseSpace;GainMatrix3=matrix,mode=mode)
     
     end # for
 

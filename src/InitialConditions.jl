@@ -66,8 +66,8 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     type = zero(S)
     if (typeof(type) == Float32) || (typeof(type) == Float64) 
-        pmin_index = location(pl,pu,p_num,Float64(pmin),p_grid)
-        pmax_index = location(pl,pu,p_num,Float64(pmax),p_grid)
+        pmin_index = location(pl,pu,p_num,Float64(pmin),p_grid)-1 # location assigns 1 to underflow bin, so subtract 1 to get first physical bin
+        pmax_index = location(pl,pu,p_num,Float64(pmax),p_grid)-1 
         umin_index = location(CONST_u0,CONST_u1,u_num,Float64(umin),u_grid)
         umax_index = location(CONST_u0,CONST_u1,u_num,Float64(umax),u_grid)
         hmin_index = location(CONST_h0,CONST_h1,h_num,Float64(hmin),h_grid)
@@ -160,8 +160,8 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
     Emax_UB::Float64 = sqrt(mass^2+pmax_UB^2)
 
 
-    pmin_index = location(pl,pu,p_num,pmin_UB,p_grid)
-    pmax_index = location(pl,pu,p_num,pmax_UB,p_grid)
+    pmin_index = location(pl,pu,p_num,pmin_UB,p_grid) -1 # location assigns 1 to underflow bin, so subtract 1 to get first physical bin
+    pmax_index = location(pl,pu,p_num,pmax_UB,p_grid) -1
 
     # power law averaged over cell width.
     for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 

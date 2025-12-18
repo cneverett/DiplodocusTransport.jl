@@ -307,8 +307,8 @@ A struct for storing the big matrices associated with interactions in the simula
 """
 struct BigMatricesStruct{T<:Union{Float32,Float64}}
     
-    M_Bin::Matrix{T}  # big matrix for binary interactions
-    M_Emi::Matrix{T}  # big matrix for emission interactions
+    M_Bin::AbstractMatrix{T}  # big matrix for binary interactions
+    M_Emi::AbstractMatrix{T}  # big matrix for emission interactions
 
 end
 
