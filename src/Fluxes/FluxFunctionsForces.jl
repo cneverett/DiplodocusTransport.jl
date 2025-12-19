@@ -14,16 +14,16 @@
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
         if plus_minus == "plus"
-            p = pxr_list[species_idx][px_idx+1]
+            p = Grids.pxr_list[species_idx][px_idx+1]
         elseif plus_minus == "minus"
-            p = pxr_list[species_idx][px_idx]
+            p = Grids.pxr_list[species_idx][px_idx]
         else
             error("plus_minus string not recognised.")
         end
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the I surface i.e. surface of constant p
 
@@ -71,17 +71,17 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
         if plus_minus == "plus"
-            u = pyr_list[species_idx][py_idx+1]
+            u = Grids.pyr_list[species_idx][py_idx+1]
         elseif plus_minus == "minus"
-            u = pyr_list[species_idx][py_idx]
+            u = Grids.pyr_list[species_idx][py_idx]
         else
             error("plus_minus string not recognised.")
         end
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the J surface i.e. surface of constant u
 
@@ -125,14 +125,14 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
         if plus_minus == "plus"
-            h = pzr_list[species_idx][pz_idx+1]
+            h = Grids.pzr_list[species_idx][pz_idx+1]
         elseif plus_minus == "minus"
-            h = pzr_list[species_idx][pz_idx]
+            h = Grids.pzr_list[species_idx][pz_idx]
         else
             error("plus_minus string not recognised.")
         end
@@ -175,16 +175,16 @@
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
         if plus_minus == "plus"
-            p = pxr_list[species_idx][px_idx+1]
+            p = Grids.pxr_list[species_idx][px_idx+1]
         elseif plus_minus == "minus"
-            p = pxr_list[species_idx][px_idx]
+            p = Grids.pxr_list[species_idx][px_idx]
         else
             error("plus_minus string not recognised.")
         end
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the I surface i.e. surface of constant p
 
@@ -232,17 +232,17 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
         if plus_minus == "plus"
-            u = pyr_list[species_idx][py_idx+1]
+            u = Grids.pyr_list[species_idx][py_idx+1]
         elseif plus_minus == "minus"
-            u = pyr_list[species_idx][py_idx]
+            u = Grids.pyr_list[species_idx][py_idx]
         else
             error("plus_minus string not recognised.")
         end
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the J surface i.e. surface of constant u
 
@@ -286,14 +286,14 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
         if plus_minus == "plus"
-            h = pzr_list[species_idx][pz_idx+1]
+            h = Grids.pzr_list[species_idx][pz_idx+1]
         elseif plus_minus == "minus"
-            h = pzr_list[species_idx][pz_idx]
+            h = Grids.pzr_list[species_idx][pz_idx]
         else
             error("plus_minus string not recognised.")
         end
@@ -335,16 +335,16 @@
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
         if plus_minus == "plus"
-            p = pxr_list[species_idx][px_idx+1]
+            p = Grids.pxr_list[species_idx][px_idx+1]
         elseif plus_minus == "minus"
-            p = pxr_list[species_idx][px_idx]
+            p = Grids.pxr_list[species_idx][px_idx]
         else
             error("plus_minus string not recognised.")
         end
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the I surface i.e. surface of constant p
 
@@ -378,17 +378,17 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
         if plus_minus == "plus"
-            u = pyr_list[species_idx][py_idx+1]
+            u = Grids.pyr_list[species_idx][py_idx+1]
         elseif plus_minus == "minus"
-            u = pyr_list[species_idx][py_idx]
+            u = Grids.pyr_list[species_idx][py_idx]
         else
             error("plus_minus string not recognised.")
         end
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
         # Evaluate the flux through the J surface i.e. surface of constant u
 
         E0 = force.E0
@@ -421,14 +421,14 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
         if plus_minus == "plus"
-            h = pzr_list[species_idx][pz_idx+1]
+            h = Grids.pzr_list[species_idx][pz_idx+1]
         elseif plus_minus == "minus"
-            h = pzr_list[species_idx][pz_idx]
+            h = Grids.pzr_list[species_idx][pz_idx]
         else
             error("plus_minus string not recognised.")
         end
@@ -476,10 +476,10 @@
         else
             error("plus_minus string not recognised.")
         end
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
-        h0 = pzr_list[species_idx][pz_idx]
-        h1 = pzr_list[species_idx][pz_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
         # Evaluate the flux through the I surface i.e. surface of constant p
 
@@ -514,12 +514,12 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
         if plus_minus == "plus"
-            u = pyr_list[species_idx][py_idx+1]
+            u = Grids.pyr_list[species_idx][py_idx+1]
         elseif plus_minus == "minus"
-            u = pyr_list[species_idx][py_idx]
+            u = Grids.pyr_list[species_idx][py_idx]
         else
             error("plus_minus string not recognised.")
         end
@@ -559,14 +559,14 @@
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        p0 = pxr_list[species_idx][px_idx]
-        p1 = pxr_list[species_idx][px_idx+1]
-        u0 = pyr_list[species_idx][py_idx]
-        u1 = pyr_list[species_idx][py_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
         if plus_minus == "plus"
-            h = pzr_list[species_idx][pz_idx+1]
+            h = Grids.pzr_list[species_idx][pz_idx+1]
         elseif plus_minus == "minus"
-            h = pzr_list[species_idx][pz_idx]
+            h = Grids.pzr_list[species_idx][pz_idx]
         else
             error("plus_minus string not recognised.")
         end

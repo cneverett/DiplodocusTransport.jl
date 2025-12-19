@@ -24,7 +24,7 @@ end
 
 Modifies the initial state vector `Initial` with a power law distribution with `index` for `species`. A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
-function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::P,pmax::P,umin::S=-1.0,umax::S=1.0,hmin::S=0.0,hmax::S=2.0,index::AbstractFloat,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where P <: Union{Float32,Float64,Int64} where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -50,6 +50,7 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
     pr = pr_list[species_index]
     dp = dp_list[species_index]
     du = du_list[species_index]
+    dh = du_list[species_index]
 
     f0_3D_species = zeros(Float64,p_num_list[species_index],u_num_list[species_index],h_num_list[species_index])
 
@@ -64,17 +65,21 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
     h_grid = h_grid_list[species_index]
     mass = mass_list[species_index]
 
-    type = zero(S)
-    if (typeof(type) == Float32) || (typeof(type) == Float64) 
-        pmin_index = location(pl,pu,p_num,Float64(pmin),p_grid)-1 # location assigns 1 to underflow bin, so subtract 1 to get first physical bin
-        pmax_index = location(pl,pu,p_num,Float64(pmax),p_grid)-1 
+    typeP = zero(P)
+    if (typeof(typeP) == Float32) || (typeof(typeP) == Float64) 
+        pmin_index = location(pl,pu,p_num,Float64(pmin),p_grid)
+        pmax_index = location(pl,pu,p_num,Float64(pmax),p_grid) 
+    elseif typeof(typeP)==Int64
+        pmin_index = pmin
+        pmax_index = pmax
+    end
+    typeS = zero(S)
+    if (typeof(typeS) == Float32) || (typeof(typeS) == Float64) 
         umin_index = location(CONST_u0,CONST_u1,u_num,Float64(umin),u_grid)
         umax_index = location(CONST_u0,CONST_u1,u_num,Float64(umax),u_grid)
         hmin_index = location(CONST_h0,CONST_h1,h_num,Float64(hmin),h_grid)
         hmax_index = location(CONST_h0,CONST_h1,h_num,Float64(hmax),h_grid)
-    elseif typeof(type)==Int64
-        pmin_index = pmin
-        pmax_index = pmax
+    elseif typeof(typeS)==Int64
         umin_index = umin
         umax_index = umax
         hmin_index = hmin
@@ -85,9 +90,15 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     # power law averaged over cell width.
     for px in pmin_index:pmax_index, py in umin_index:umax_index, pz in hmin_index:hmax_index 
-        f0_3D_species[px,py,pz] = sqrt(mass^2+pr[px+1]^2)^(1-index) - sqrt(mass^2+pr[px]^2)^(1-index)
-        f0_3D_species[px,py,pz] /= 1-index
-        #f0_3D_species[px,py,pz] /= (pr[px+1]-pr[px])
+        if index != 1
+            f0_3D_species[px,py,pz] = sqrt(mass^2+pr[px+1]^2)^(1-index) - sqrt(mass^2+pr[px]^2)^(1-index)
+            f0_3D_species[px,py,pz] /= 1-index
+            f0_3D_species[px,py,pz] *= du[py] * dh[pz] / (4pi)
+        else 
+            f0_3D_species[px,py,pz] = log(sqrt(mass^2+pr[px+1]^2)) - log(sqrt(mass^2+pr[px]^2))
+            f0_3D_species[px,py,pz] /= 2.0
+            f0_3D_species[px,py,pz] *= du[py] * dh[pz] / (4pi)
+        end
     end
     # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
@@ -110,7 +121,7 @@ end
 """
     Initial_UnBoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
-Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
+Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the local z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
 """
 function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64} where F<:AbstractFloat
 
@@ -159,9 +170,18 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
     Emin_UB::Float64 = sqrt(mass^2+pmin_UB^2)
     Emax_UB::Float64 = sqrt(mass^2+pmax_UB^2)
 
+    println("Boost Gamma: ",Gamma," w:",w)
+    println("p1,p2,p3,p4: ",p1,", ",p2,", ",p3,", ",p4)
+    println("Emin: ",Emin," Emax: ",Emax)
+    println("Unboosted pmin: ",pmin_UB," Unboosted pmax: ",pmax_UB)
+    println("Unboosted Emin: ",Emin_UB," Unboosted Emax: ",Emax_UB)
 
-    pmin_index = location(pl,pu,p_num,pmin_UB,p_grid) -1 # location assigns 1 to underflow bin, so subtract 1 to get first physical bin
-    pmax_index = location(pl,pu,p_num,pmax_UB,p_grid) -1
+    pmin_index = location(pl,pu,p_num,pmin_UB,p_grid)
+    pmax_index = location(pl,pu,p_num,pmax_UB,p_grid)
+
+    if pmax_index > p_num
+        error("Unboosted pmax index exceeds momentum grid size. p_max: ",pmax_UB)
+    end
 
     # power law averaged over cell width.
     for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 

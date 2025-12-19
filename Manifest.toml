@@ -2,7 +2,7 @@
 
 julia_version = "1.12.0"
 manifest_format = "2.0"
-project_hash = "630fb0ee6541ba7c21faacc7fb9cb8fd965f6a39"
+project_hash = "520975ce4916fc4d632390fd7d69cc939f02b588"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -101,15 +101,15 @@ version = "5.9.5"
 
 [[deps.CUDA_Compiler_jll]]
 deps = ["Artifacts", "CUDA_Driver_jll", "CUDA_Runtime_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "b63428872a0f60d87832f5899369837cd930b76d"
+git-tree-sha1 = "147c18cdffe34911a3ed1be32028e324f0e89427"
 uuid = "d1e2174e-dfdc-576e-b43e-73b79eb1aca8"
-version = "0.3.0+0"
+version = "0.3.0+1"
 
 [[deps.CUDA_Driver_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "2023be0b10c56d259ea84a94dbfc021aa452f2c6"
+git-tree-sha1 = "63b4911c80ade9de10ec4b766e99cb1a628f465f"
 uuid = "4ee394cb-3365-5eb0-8335-949819d2adfc"
-version = "13.0.2+0"
+version = "13.1.0+0"
 
 [[deps.CUDA_Runtime_Discovery]]
 deps = ["Libdl"]
@@ -124,9 +124,9 @@ uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
 version = "0.19.2+0"
 
 [[deps.ChunkCodecCore]]
-git-tree-sha1 = "51f4c10ee01bda57371e977931de39ee0f0cdb3e"
+git-tree-sha1 = "1a3ad7e16a321667698a19e77362b35a1e94c544"
 uuid = "0b6fb165-00bc-4d37-ab8b-79f91016dbe1"
-version = "1.0.0"
+version = "1.0.1"
 
 [[deps.ChunkCodecLibZlib]]
 deps = ["ChunkCodecCore", "Zlib_jll"]
@@ -215,12 +215,12 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
 [[deps.DiplodocusCollisions]]
-deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter", "Random"]
-git-tree-sha1 = "5b123992a020e12c8fec87d44ded7be310b34654"
+deps = ["BenchmarkTools", "Bessels", "JLD2", "ProgressMeter", "Random", "Revise"]
+git-tree-sha1 = "66713309aac8d875a887540f7364cf0732293dce"
 repo-rev = "dev"
 repo-url = "https://github.com/cneverett/DiplodocusCollisions.jl"
 uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
-version = "0.1.2"
+version = "0.2.0"
 
 [[deps.DiplodocusTransport]]
 deps = ["Bessels", "CUDA", "DiplodocusCollisions", "JLD2", "KernelAbstractions", "LinearAlgebra", "ProgressMeter", "Revise", "SparseArrays", "Statistics"]
@@ -272,9 +272,9 @@ version = "1.11.0"
 
 [[deps.GPUArrays]]
 deps = ["Adapt", "GPUArraysCore", "KernelAbstractions", "LLVM", "LinearAlgebra", "Printf", "Random", "Reexport", "ScopedValues", "Serialization", "SparseArrays", "Statistics"]
-git-tree-sha1 = "18da8dd0b6aded0c47184e9d2a17573ae8257f36"
+git-tree-sha1 = "d6ee21b67347871a78da57c4a77318caa5e75a05"
 uuid = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-version = "11.3.1"
+version = "11.3.2"
 weakdeps = ["JLD2"]
 
     [deps.GPUArrays.extensions]
@@ -363,9 +363,9 @@ version = "1.3.0"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "c98fa9e3a241e92895be025614ec33eca0ffa5f7"
+git-tree-sha1 = "80580012d4ed5a3e8b18c7cd86cebe4b816d17a6"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.10.8"
+version = "0.10.9"
 
 [[deps.JuliaNVTXCallbacks_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -559,9 +559,9 @@ version = "1.3.3"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "0f27480397253da18fe2c12a4ba4eb9eb208bf3d"
+git-tree-sha1 = "522f093a29b31a93e34eaea17ba055d850edea28"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.5.0"
+version = "1.5.1"
 
 [[deps.PrettyTables]]
 deps = ["Crayons", "LaTeXStrings", "Markdown", "PrecompileTools", "Printf", "REPL", "Reexport", "StringManipulation", "Tables"]
