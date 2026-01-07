@@ -8,3 +8,5 @@ Setup_test.jl
 
 # mathematica files
 *.nb
+
+Plotting.jl
