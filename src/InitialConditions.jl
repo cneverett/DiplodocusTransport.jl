@@ -154,11 +154,11 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 end
 
 """
-    Initial_UnBoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
+    Initial_BoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
 """
-function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64} where F<:AbstractFloat
+function Initial_BoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0) where S <: Union{Float32,Float64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -209,7 +209,7 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
     pmin_index = DC.location(pl,pu,p_num,pmin_UB,p_grid)
     pmax_index = DC.location(pl,pu,p_num,pmax_UB,p_grid)
 
-    # power law averaged over cell width.
+    #=# power law averaged over cell width.
     for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 
         # f calculated using simple trapezium rule (fabc is f at the a bound of p, b bound of u and c bound of h)
         pp = p_r[px+1]
@@ -233,7 +233,9 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
         elseif px == pmax_index
             f0_3D_species[px,py,pz] *= (pmax_UB-p_r[px]) / (p_r[px+1]-p_r[px])
         end
-    end
+    end=#
+
+    DistributionToDIP_TrapeziumIntegration!(f0_3D_species,p_r,u_r,h_r,Distribution_Boosted,Gamma,mass,Distribution_PowerLaw,index,pmin,pmax,mass)
 
     # set values and normlaise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
@@ -447,6 +449,7 @@ end
 
 #================ OUTDATED ======================#
 #================================================#
+#=
 
 """
     Initial_PowerLaw(PhaseSpace,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Init)
@@ -747,3 +750,4 @@ function Initial_MaxwellJuttner(PhaseSpace::PhaseSpaceStruct,species::String,T::
     return Float32.(f0_species)
 
 end
+=#
