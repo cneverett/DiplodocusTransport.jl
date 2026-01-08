@@ -8,7 +8,7 @@ module DiplodocusTransport
     export CoordinateForce, SyncRadReact
     export BuildBigMatrices, BuildFluxMatrices
     export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_UnBoostedPowerLaw!, Initial_BlackBody!
-    export Initialise_Injection_Condition, Injection_Constant!, Injection_MaxwellJuttner!, Injection_PowerLaw!, Injection_UnBoostedPowerLaw!, Injection_BlackBody!
+    export Initialise_Injection_Condition, Injection_Constant!, Injection_MaxwellJuttner!, Injection_PowerLaw!, Injection_BoostedPowerLaw!, Injection_BlackBody!
     export Solve, EulerStruct
     export SolutionFileLoad
     export MaxwellJuttner_Distribution

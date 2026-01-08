@@ -119,11 +119,11 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 end
 
 """
-    Initial_UnBoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
+    Initial_BoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the local z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
 """
-function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64} where F<:AbstractFloat
+function Initial_BoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64} where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -183,40 +183,11 @@ function Initial_UnBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStr
         error("Unboosted pmax index exceeds momentum grid size. p_max: ",pmax_UB)
     end
 
-    # power law averaged over cell width.
-    for px in pmin_index:pmax_index, py in 1:u_num, pz in 1:h_num 
-        # f calculated using simple trapezium rule (fabc is f at the a bound of p, b bound of u and c bound of h)
-        pp = p_r[px+1]
-        pm = p_r[px]
-        up = u_r[py+1]
-        um = u_r[py]
-        hp = h_r[pz+1]
-        hm = h_r[pz]
-        fmmm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*um)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*um)^2-mass^2)
-        fpmm = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*um)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*um)^2-mass^2)
-        fmpm = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
-        fmmp = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*um)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*um)^2-mass^2)
-        fppm = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
-        fpmp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*um)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*um)^2-mass^2)
-        fmpp = pm^2 * (cw*sqrt(mass^2+pm^2)-sw*pm*up)^(-index) / sqrt(mass^2+pm^2) / sqrt((cw*sqrt(mass^2+pm^2)-sw*pm*up)^2-mass^2)
-        fppp = pp^2 * (cw*sqrt(mass^2+pp^2)-sw*pp*up)^(-index) / sqrt(mass^2+pp^2) / sqrt((cw*sqrt(mass^2+pp^2)-sw*pp*up)^2-mass^2)
-        f0_3D_species[px,py,pz] = (fmmm + fpmm + fmpm + fmmp + fppm + fpmp + fmpp + fppp) / 8
-        f0_3D_species[px,py,pz] *= (pp-pm)*(up-um)*(hp-hm)
-        if px == pmin_index
-            f0_3D_species[px,py,pz] *= (p_r[px+1]-pmin_UB) / (p_r[px+1]-p_r[px])
-        elseif px == pmax_index
-            f0_3D_species[px,py,pz] *= (pmax_UB-p_r[px]) / (p_r[px+1]-p_r[px])
-        end
-    end
+    DistributionToDIP_TrapeziumIntegration!(f0_3D_species,p_r,u_r,h_r,Distribution_Boosted,Gamma,mass,Distribution_PowerLaw,index,pmin,pmax,mass)
 
     # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
     f0_3D_species .*= num_Init/num
-
-    # scale by dp*du 
-    #=for i in axes(u0_2D_species,1), j in axes(u0_2D_species,2)
-        u0_2D_species[i,j] *= dp[i] * du[j]
-    end=#
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
