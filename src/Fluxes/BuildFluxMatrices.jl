@@ -585,7 +585,7 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
-    scheme = Momentum.scheme
+    scheme = Space.scheme
 
     BCp = space_coords.xp_BC
     BCm = space_coords.xm_BC 
@@ -702,7 +702,7 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
-    scheme = Momentum.scheme
+    scheme = Space.scheme
     offset = PhaseSpace.Grids.momentum_species_offset
 
     BCp = space_coords.yp_BC
@@ -820,7 +820,7 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
-    scheme = Momentum.scheme
+    scheme = Space.scheme
 
     BCp = space_coords.zp_BC
     BCm = space_coords.zm_BC 

@@ -29,12 +29,12 @@ end
 
 A struct for storing the time domain of the simulation.
 """
-struct TimeStruct
+@kwdef struct TimeStruct
 
-    t_up::Float64
-    t_low::Float64
-    t_num::Int64
-    t_grid::String
+    t_up::Float64    = getfield(Main,Symbol("t_up"))
+    t_low::Float64   = getfield(Main,Symbol("t_low"))
+    t_num::Int64     = getfield(Main,Symbol("t_num"))
+    t_grid::String   = getfield(Main,Symbol("t_grid"))
 
 end
 
@@ -43,24 +43,25 @@ end
 
 A struct for storing the space domain of the simulation.
 """
-struct SpaceStruct
+@kwdef struct SpaceStruct
 
-    space_coordinates::CoordinateType
+    space_coordinates::CoordinateType = getfield(Main,Symbol("space_coords"))
+    scheme::String = getfield(Main,Symbol("space_scheme"))
 
-    x_up::Float64
-    x_low::Float64
-    x_grid::String 
-    x_num::Int64
+    x_up::Float64   = getfield(Main,Symbol("x_up"))     
+    x_low::Float64  = getfield(Main,Symbol("x_low"))
+    x_grid::String  = getfield(Main,Symbol("x_grid"))
+    x_num::Int64    = getfield(Main,Symbol("x_num"))
 
-    y_up::Float64
-    y_low::Float64
-    y_grid::String
-    y_num::Int64
+    y_up::Float64   = getfield(Main,Symbol("y_up"))
+    y_low::Float64  = getfield(Main,Symbol("y_low"))
+    y_grid::String  = getfield(Main,Symbol("y_grid"))
+    y_num::Int64    = getfield(Main,Symbol("y_num"))
 
-    z_up::Float64
-    z_low::Float64
-    z_grid::String
-    z_num::Int64
+    z_up::Float64   = getfield(Main,Symbol("z_up")) 
+    z_low::Float64  = getfield(Main,Symbol("z_low"))
+    z_grid::String  = getfield(Main,Symbol("z_grid"))
+    z_num::Int64    = getfield(Main,Symbol("z_num"))
 
 end
 
@@ -69,26 +70,25 @@ end
 
 A struct for storing the momentum domain of the simulation.
 """
-struct MomentumStruct 
+@kwdef struct MomentumStruct 
 
-    momentum_coordinates::CoordinateType
+    momentum_coordinates::CoordinateType = getfield(Main,Symbol("momentum_coords"))
+    scheme::String = getfield(Main,Symbol("momentum_scheme"))
 
-    px_up_list::Vector{Float64}  
-    px_low_list::Vector{Float64} 
-    px_grid_list::Vector{String}   
-    px_num_list::Vector{Int64} 
+    px_up_list::Vector{Float64}     = getfield(Main,Symbol("px_up_list"))
+    px_low_list::Vector{Float64}    = getfield(Main,Symbol("px_low_list"))
+    px_grid_list::Vector{String}    = getfield(Main,Symbol("px_grid_list"))
+    px_num_list::Vector{Int64}      = getfield(Main,Symbol("px_num_list"))
 
-    py_up_list::Vector{Float64}  
-    py_low_list::Vector{Float64}  
-    py_grid_list::Vector{String}   
-    py_num_list::Vector{Int64}
+    py_up_list::Vector{Float64}     = getfield(Main,Symbol("py_up_list"))
+    py_low_list::Vector{Float64}    = getfield(Main,Symbol("py_low_list"))
+    py_grid_list::Vector{String}    = getfield(Main,Symbol("py_grid_list"))
+    py_num_list::Vector{Int64}      = getfield(Main,Symbol("py_num_list"))
 
-    pz_up_list::Vector{Float64}  
-    pz_low_list::Vector{Float64}  
-    pz_grid_list::Vector{String}   
-    pz_num_list::Vector{Int64} 
-
-    scheme::String
+    pz_up_list::Vector{Float64}     = getfield(Main,Symbol("pz_up_list"))
+    pz_low_list::Vector{Float64}    = getfield(Main,Symbol("pz_low_list"))
+    pz_grid_list::Vector{String}    = getfield(Main,Symbol("pz_grid_list"))
+    pz_num_list::Vector{Int64}      = getfield(Main,Symbol("pz_num_list"))
 
 end
 
@@ -251,50 +251,41 @@ end
 
 A struct for storing the phase space of the simulation.
 """
-mutable struct PhaseSpaceStruct <: Function
+@kwdef struct PhaseSpaceStruct
 
-    # particles
-    name_list::Vector{String}   # list of particle names
-
-    Characteristic::CharacteristicStruct
-    
-    # time
-    Time::TimeStruct
-
-    # space
-    Space::SpaceStruct
-
-    # momentum
-    Momentum::MomentumStruct
-
-    # force
-    Forces::Vector{ForceType}
+    # list of particle names
+    name_list::Vector{String}           = getfield(Main,Symbol("name_list"))
+    Characteristic::CharacteristicStruct= CharacteristicStruct()
+    Time::TimeStruct                    = TimeStruct()    
+    Space::SpaceStruct                  = SpaceStruct()
+    Momentum::MomentumStruct            = MomentumStruct()
+    Forces::Vector{ForceType}           = getfield(Main,Symbol("Forces"))
 
     # interactions
-    Binary_list::Vector{BinaryStruct} # list of Binary interactions
-    Emi_list::Vector{EmiStruct} # list of Emission interactions
+    Binary_list::Vector{BinaryStruct}   = getfield(Main,Symbol("Binary_list")) 
+    Emi_list::Vector{EmiStruct}         = getfield(Main,Symbol("Emi_list"))
 
     # grids
-    Grids::GridsStruct
+    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum)
 
-    function PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
+    #=function PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
 
         self = new()
 
-        self.name_list = name_list
+        self.name_list      = getfield(Main,Symbol("name_list"))
         self.Characteristic = CharacteristicStruct()
-        self.Time = time
-        self.Space = space
-        self.Momentum = momentum
-        self.Forces = forces
-        self.Binary_list = Binary_list
-        self.Emi_list = Emi_list
+        self.Time           = TimeStruct()
+        self.Space          = SpaceStruct()
+        self.Momentum       = MomentumStruct()
+        self.Forces         = getfield(Main,Symbol("forces"))
+        self.Binary_list    = getfield(Main,Symbol("Binary_list"))
+        self.Emi_list       = getfield(Main,Symbol("Emi_list"))
 
-        self.Grids = GridsStruct(name_list,time,space,momentum)
+        self.Grids = GridsStruct(name_list,self.Time,self.Space,self.Momentum)
 
         return self
 
-    end
+    end=#
 
 
 end

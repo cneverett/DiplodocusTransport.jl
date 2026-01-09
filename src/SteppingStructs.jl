@@ -10,9 +10,6 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     Ap_Flux::AbstractVector{T}
     Vol::AbstractVector{T}
 
-    #BigM::BigMatricesStruct{T}
-    #FluxM::FluxMatricesStruct{T}
-
     Implicit::Bool
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
@@ -29,30 +26,35 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
     Jac::AbstractMatrix{T}                          # Jacobian matrix
     LU::LinearAlgebra.LU{T, AbstractMatrix{T}, AbstractVector{<:Integer}} # LU factorization of the matrix for implicit solving     
 
-    function EulerStruct(Initial::Vector{T},Injection::Vector{T},PhaseSpace::PhaseSpaceStruct,Big_Matrices::BigMatricesStruct,Flux_Matrices::FluxMatricesStruct;Implicit::Bool=false,Backend::BackendType=CPUBackend()) where T<:Union{Float32,Float64}
+    function EulerStruct(Initial::Vector{Float64},Injection::Vector{Float64},PhaseSpace::PhaseSpaceStruct,DataDirectory::String;Implicit::Bool=false,Backend::BackendType=CPUBackend(),Precision::T=Float32) where T<:Union{Float32,Float64}
 
-        self = new{T}()
+        self = new{Precision}()
 
         self.PhaseSpace = PhaseSpace
-        #self.BigM = Big_Matrices
-        #self.FluxM = Flux_Matrices
+
+        # Build Big and Flux Matrices
+        BigM::BigMatricesStruct = BuildBigMatrices(PhaseSpace,DataDirectory;loading_check=false,Precision=Precision);
+        FluxM::FluxMatricesStruct = BuildFluxMatrices(PhaseSpace,Precision=Precision);
+        
+        Initial = convert(Precision,Initial)
+        Injection = convert(Precision,Injection)
 
         self.f_init = copy(Initial)
 
         if Backend isa CPUBackend
-            self.M_Bin = Big_Matrices.M_Bin
-            self.M_Emi = Big_Matrices.M_Emi
-            self.F_Flux = Flux_Matrices.F_Flux
-            self.Ap_Flux = Flux_Matrices.Ap_Flux
-            self.Vol = Flux_Matrices.Vol
-            self.f = copy(Initial)
-            self.df_Inj = copy(Injection)
+            self.M_Bin = BigM.M_Bin
+            self.M_Emi = BigM.M_Emi
+            self.F_Flux = FluxM.F_Flux
+            self.Ap_Flux = FluxM.Ap_Flux
+            self.Vol = FluxM.Vol
+            self.f = convert(Precision,Initial)
+            self.df_Inj = convert(Precision,Injection)
         elseif Backend isa CUDABackend
-            self.M_Bin = CuArray(Big_Matrices.M_Bin)
-            self.M_Emi = CuArray(Big_Matrices.M_Emi)
-            self.F_Flux = CuSparseMatrixCSC(Flux_Matrices.F_Flux)
-            self.Ap_Flux = CuArray(Flux_Matrices.Ap_Flux)
-            self.Vol = CuArray(Flux_Matrices.Vol)
+            self.M_Bin = CuArray(BigM.M_Bin)
+            self.M_Emi = CuArray(BigM.M_Emi)
+            self.F_Flux = CuSparseMatrixCSC(FluxM.F_Flux)
+            self.Ap_Flux = CuArray(FluxM.Ap_Flux)
+            self.Vol = CuArray(FluxM.Vol)
             self.f = CuArray(Initial)
             self.df_Inj = CuArray(Injection)
         else
@@ -73,17 +75,17 @@ mutable struct EulerStruct{T<:AbstractFloat} <: SteppingMethodType
         n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
         if isempty(PhaseSpace.Binary_list) == false
-            self.M_Bin_Mul_Step = zeros(Backend,T,n_momentum,n_momentum)
+            self.M_Bin_Mul_Step = zeros(Backend,Precision,n_momentum,n_momentum)
             self.M_Bin_Mul_Step_reshape = reshape(self.M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
         end
-        self.df = zeros(Backend,T,length(Initial))
-        self.df_Bin = zeros(Backend,T,length(Initial))
-        self.df_Emi = zeros(Backend,T,length(Initial))
-        self.df_Flux = zeros(Backend,T,length(Initial))
-        self.df_tmp = zeros(Backend,T,length(Initial))
+        self.df = zeros(Backend,Precision,length(Initial))
+        self.df_Bin = zeros(Backend,Precision,length(Initial))
+        self.df_Emi = zeros(Backend,Precision,length(Initial))
+        self.df_Flux = zeros(Backend,Precision,length(Initial))
+        self.df_tmp = zeros(Backend,Precision,length(Initial))
         if Implicit
-            self.Jac = zeros(Backend,T,length(Initial),length(Initial))
-            self.LU = lu(zeros(Backend,T,length(Initial),length(Initial))+I)
+            self.Jac = zeros(Backend,Precision,length(Initial),length(Initial))
+            self.LU = lu(zeros(Backend,Precision,length(Initial),length(Initial))+I)
         end
 
         return self

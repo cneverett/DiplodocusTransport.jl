@@ -1,9 +1,9 @@
 """
-    Initialise_Injection_Condition(PhaseSpace;Precision=Float32)
+    Initialise_Injection_Condition(PhaseSpace)
 
 Returns a zero vector with elements for the injection conditions of all particles at all positions in phase space. 
 """
-function Initialise_Injection_Condition(PhaseSpace::PhaseSpaceStruct;Precision::DataType=Float32)
+function Initialise_Injection_Condition(PhaseSpace::PhaseSpaceStruct)
 
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list
@@ -15,7 +15,7 @@ function Initialise_Injection_Condition(PhaseSpace::PhaseSpaceStruct;Precision::
     n = sum(px_num_list.*py_num_list.*pz_num_list)
     m = n*x_num*y_num*z_num
 
-    return zeros(Precision,m)
+    return zeros(Float64,m)
 
 end
 
@@ -25,7 +25,7 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution generated using `Initial_PowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,umin::S,umax::S,hmin::S,hmax::S,index::AbstractFloat,num_Inj::AbstractFloat=1.0,rate_Inj::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -42,11 +42,11 @@ function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
 end
 
 """
-    Injection_UnBoostedPowerLaw!(Injection,PhaseSpace,species,pmin,pmax,Gamma,index,num_Inj,rate_Inj)
+    Injection_BoostedPowerLaw!(Injection,PhaseSpace,species,pmin,pmax,Gamma,index,num_Inj,rate_Inj)
 
-Modifies the injection state vector `Injection` with a power law distribution generated using `Initial_UnboostedPowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
+Modifies the injection state vector `Injection` with a power law distribution generated using `Initial_BoostedPowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_UnBoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::S,pmax::S,Gamma::S,index::AbstractFloat,num_Inj::AbstractFloat=1.0,rate_Inj::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where S <: Union{Float32,Float64} where F<:AbstractFloat
+function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,Gamma::Float64,index::AbstractFloat,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
 
      # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -89,7 +89,7 @@ end
 
 Modifies the injection state vector `Injection` with a Maxwell-Juttner distribution generated using `Initial_MaxwellJuttner!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Inj::AbstractFloat=1.0,rate_Inj::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
