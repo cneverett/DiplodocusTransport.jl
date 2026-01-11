@@ -35,6 +35,7 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         name3 = interaction.name3
         name4 = interaction.name4
 
+        # Memory optimisation by allowing Ele and Pos populations to be modelled as identical thus only requiring one to be defined
         if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
             if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho") # "Pos" compton scattering
                 return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
