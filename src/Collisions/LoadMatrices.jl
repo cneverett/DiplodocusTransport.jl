@@ -91,7 +91,7 @@ function GainCorrection!(Output::Tuple{Tuple{String, String, String, String, Flo
 
 end
 
-function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true,Bin_sparse::Bool=false) where F<:AbstractFloat
+function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct;mode::ModeType=Ani(),corrected::Bool=true) where F<:AbstractFloat
 
     Binary_list = PhaseSpace.Binary_list
 
@@ -216,7 +216,7 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
         DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode,Bin_sparse=Bin_sparse)
+        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode)
 
     end # for
 
