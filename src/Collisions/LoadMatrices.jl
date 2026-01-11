@@ -202,21 +202,19 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
 
         Parameters = (name1,name2,name3,name4,m1,m2,m3,m4,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,px4_low,px4_up,px4_grid,px4_num,py4_grid,py4_num,pz4_grid,pz4_num)
 
-        filename::String = BinaryFileName(Parameters)
+        filename::String = DC.BinaryFileName(Parameters)
 
         println(filename)
 
-        Output = BinaryFileLoad_Matrix(DataDirectory,filename,corrected=corrected)
+        Output = DC.BinaryFileLoad_Matrix(DataDirectory,filename,corrected=corrected)
         Parameters = Output[1]
         GainMatrix3 = Output[2] .* GainScale
         GainMatrix4 = Output[3] .* GainScale
         LossMatrix1 = Output[4]
         LossMatrix2 = Output[5]
 
-        name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
-
-        DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode)
+        DC.DoesConserve(Output) # print conversion statistic
+        Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode)
 
     end # for
 
