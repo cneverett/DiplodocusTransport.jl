@@ -129,9 +129,10 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         name4 = interaction.name4
 
         # Memory optimisation by allowing Ele and Pos populations to be modelled as identical thus only requiring one to be defined
-        if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
+        if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pos"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
             if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho") # "Pos" compton scattering
-                return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
+                println("Skipping loading of Pos Compton matrices as already accounted for by Ele Compton matrices")
+                continue # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
                 GainScale = 1/4.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4
                 name1_loc = findfirst(==(name1),name_list)
@@ -144,6 +145,8 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
                 name2_loc = findfirst(==(name2),name_list)
                 name3_loc = findfirst(==(name3),name_list)
                 name4_loc = findfirst(==("Ele"),name_list)
+            else
+                error("Interaction $interaction includes 'Pos' but is not recognised. Unable to proceed.")
             end
         else
             GainScale = 1.0
