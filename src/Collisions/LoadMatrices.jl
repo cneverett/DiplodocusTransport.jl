@@ -216,8 +216,10 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         LossMatrix1 = Output[4]
         LossMatrix2 = Output[5]
 
+        name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
+
         DC.DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(M_Bin,interaction,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode)
+        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode)
 
     end # for
 

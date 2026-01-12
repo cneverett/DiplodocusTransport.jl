@@ -87,20 +87,15 @@ end
 
 Fills the big matrix `M_Bin` with the interaction rates for binary interactions between all particles in the simulation.
 """
-function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6},mode::ModeType=Ani()) where F<:AbstractFloat
+function Fill_M_Bin!(M_Bin::AbstractMatrix{F},name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6};mode::ModeType=Ani()) where F<:Union{Float32,Float64}
 
     name_list = PhaseSpace.name_list
+    Grids = PhaseSpace.Grids
     Momentum = PhaseSpace.Momentum
-    #Mode = Momentum.momentum_coordinates.Mode
 
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    name1 = interaction.name1
-    name2 = interaction.name2
-    name3 = interaction.name3
-    name4 = interaction.name4
 
     # first find offsets of the different species in the big matrix A
 
@@ -113,10 +108,7 @@ function Fill_M_Bin!(M_Bin::AbstractMatrix{F},interaction::BinaryStruct,PhaseSpa
         end
     end
 
-    name1_loc = findfirst(==(name1),name_list)
-    name2_loc = findfirst(==(name2),name_list)
-    name3_loc = findfirst(==(name3),name_list)
-    name4_loc = findfirst(==(name4),name_list)
+    (name1_loc,name2_loc,name3_loc,name4_loc) = name_locs
 
     if typeof(mode) == Ani
 
