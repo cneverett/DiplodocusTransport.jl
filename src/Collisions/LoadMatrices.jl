@@ -134,8 +134,8 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
                 println("Skipping loading of Pos Compton matrices as already accounted for by Ele Compton matrices")
                 continue # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
-                GainScale = 1/4.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4
-                LossScale = 1/4.0 # 
+                GainScale = 1/2.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4 but times by two for the two particles created
+                LossScale = 1.0#1/4.0 # 
                 name1_loc = findfirst(==(name1),name_list)
                 name2_loc = findfirst(==("Ele"),name_list)
                 name3_loc = findfirst(==(name3),name_list)
