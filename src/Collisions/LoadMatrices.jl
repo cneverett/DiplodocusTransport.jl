@@ -135,12 +135,14 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
                 continue # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
                 GainScale = 1/4.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4
+                LossScale = 1/4.0 # 
                 name1_loc = findfirst(==(name1),name_list)
                 name2_loc = findfirst(==("Ele"),name_list)
                 name3_loc = findfirst(==(name3),name_list)
                 name4_loc = findfirst(==(name4),name_list)
             elseif (name1,name2,name3,name4) == ("Pho","Pho","Ele","Pos") # "Ele" "Pos" pair production
                 GainScale = 1.0
+                LossScale = 1.0
                 name1_loc = findfirst(==(name1),name_list)
                 name2_loc = findfirst(==(name2),name_list)
                 name3_loc = findfirst(==(name3),name_list)
@@ -150,6 +152,7 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
             end
         else
             GainScale = 1.0
+            LossScale = 1.0
             name1_loc = findfirst(==(name1),name_list)
             name2_loc = findfirst(==(name2),name_list)
             name3_loc = findfirst(==(name3),name_list)
@@ -213,8 +216,8 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         Parameters = Output[1]
         GainMatrix3 = Output[2] .* GainScale
         GainMatrix4 = Output[3] .* GainScale
-        LossMatrix1 = Output[4]
-        LossMatrix2 = Output[5]
+        LossMatrix1 = Output[4] .* LossScale    
+        LossMatrix2 = Output[5] .* LossScale
 
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
