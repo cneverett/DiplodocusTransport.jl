@@ -72,6 +72,37 @@ function BlackBody_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::
 
 end
 
+function Wien_Distribution(PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;n::Float64=1e0)
+    # Generates the height of the BB distribution at positions of the mean momentum per bin
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    species_index = findfirst(x->x==species,name_list)
+
+    dp = Grids.dpx_list[species_index]
+    #du = Grids.dpy_list[species_index] # angle averaged therefore not used and dudh = 4π
+    #dh = Grids.dpz_list[species_index]
+    meanp = Grids.mpx_list[species_index]
+    mass = Grids.mass_list[species_index]
+
+    mEle = 9.11e-31
+    c = 3e8
+    kb = 1.38e-23
+    h = 6.62607015e-34
+
+    WienPoints = zeros(Float64,size(meanp))
+    invtheta = mEle*c^2/(kb*T)
+    @. WienPoints = (meanp^2) / (exp(meanp*invtheta)) * dp
+
+    num = sum(WienPoints)
+    WienPoints = WienPoints ./ num .*n # scale to number density
+
+    return WienPoints
+
+end
+
 
 """
     DistributionToDIP_TrapeziumIntegration(f::Array{Float64,3},DistributionFunction::Function,pxr::Vector{Float64},pyr::Vector{Float64},pzr::Vector{Float64},Parameters...;samples::Int64=10)
