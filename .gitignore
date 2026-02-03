@@ -10,3 +10,9 @@ Setup_test.jl
 *.nb
 
 Plotting.jl
+
+TestingGround/
+Amsterdam/
+examples/
+figures/
+cspell.json
