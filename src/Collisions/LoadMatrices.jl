@@ -1,6 +1,7 @@
 function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true,Bin_sparse::Bool=false) where F<:AbstractFloat
 
     Binary_list = PhaseSpace.Binary_list
+    Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
 
     if isempty(Binary_list) # no binary interactions to load
         return
@@ -117,6 +118,11 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},DataDirectory::String,Phas
         println(filename)
 
         Output = BinaryFileLoad_Matrix(DataDirectory,filename,corrected=corrected)
+        
+        # apply correct scaling from DiplodocusCollisions to non-dimensionalisation of DiplodocusTransport
+        GainScale *= Bin_Norm 
+        LossScale *= Bin_Norm
+
         Parameters = Output[1]
         GainMatrix3 = Output[2] .* GainScale
         GainMatrix4 = Output[3] .* GainScale
@@ -135,6 +141,7 @@ end
 function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSpace::PhaseSpaceStruct;corrected::Bool=true) where F<:AbstractFloat
 
     Emi_list = PhaseSpace.Emi_list
+    Emi_Norm = PhaseSpace.Characteristic.Emi_Norm
 
     if isempty(Emi_list) # no emission interactions to load
         return
@@ -234,6 +241,9 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},DataDirectory::String,PhaseSp
         #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
         #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
         matrix = EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
+
+        # apply correct scaling from DiplodocusCollisions to non-dimensionalisation of DiplodocusTransport
+        matrix .*= Emi_Norm 
 
         if corrected
             EmissionCorrection!(PhaseSpace,matrix,Parameters)

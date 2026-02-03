@@ -2,6 +2,8 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
     (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext) = Parameters
 
+    Characteristic = PhaseSpace.Characteristic
+
     if type == "Sync"
 
         force = SyncRadReact(Ani(),Ext[1])
@@ -26,25 +28,10 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         GainSumE3 = zero(Float64)
         LossSumE1 = zero(Float64)
 
-        # calculate total rate of energy loss from p1 state via flux matrix elements
-        tr = Grids.tr
-        xr = Grids.xr
-        yr = Grids.yr
-        zr = Grids.zr
-        pxr = Grids.pxr_list[name1_loc]
-        pyr = Grids.pyr_list[name1_loc]
-        pzr = Grids.pzr_list[name1_loc]
-        pxr3 = Grids.pxr_list[name3_loc]
-        pyr3 = Grids.pyr_list[name3_loc]
-        pzr3 = Grids.pzr_list[name3_loc]
-
         pxp = px+1
         pxm = px-1
 
         px_num = px1_num
-        py_num = py1_num
-        pz_num = pz1_num
-
 
         #= Boundary Conditions:
             Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
@@ -59,8 +46,8 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
         I_plus = zero(Float64)
         I_minus = zero(Float64)
 
-        I_plus += IFluxFunction(force,space_coords,momentum_coords,tr[1],tr[2],xr[1],xr[1+1],yr[1],yr[1+1],zr[1],zr[1+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name1_loc])
-        I_minus -= IFluxFunction(force,space_coords,momentum_coords,tr[1],tr[2],xr[1],xr[1+1],yr[1],yr[1+1],zr[1],zr[1+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name1_loc])
+        I_plus += IFluxFunction(force,space_coords,momentum_coords,Grids,Characteristic,name1_loc,"plus",1,1,1,1,px,py,pz)
+        I_minus -= IFluxFunction(force,space_coords,momentum_coords,Grids,Characteristic,name1_loc,"minus",1,1,1,1,px,py,pz)
 
         # scheme
         if scheme == "upwind"
@@ -95,13 +82,15 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
                 b-1       b        b+1  
         =#
 
+        Mom_norm = MomentumSpaceNorm(Grids,name1_loc,px,py,pz)
+
         # normalised fluxes
         if px != pxp
             #LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp]
-            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))  * (dE1[px]-dE1[px+1])
+            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / Mom_norm)  * (dE1[px]-dE1[px+1])
         end
         if px != pxm
-            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * (dE1[px]-dE1[px-1])
+            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / Mom_norm) * (dE1[px]-dE1[px-1])
             #LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
         end
 
@@ -110,9 +99,10 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
             GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
         end
 
-        vol = VolFunction(space_coords,tr[1],tr[2],xr[1],xr[2],yr[1],yr[2],zr[1],zr[2])
+        vol = VolFunction(space_coords,Grids,1,1,1,1)
 
         GainSumE3 *= vol
+
 
         if GainSumE3 != 0e0
             Correction = (LossSumE1)/GainSumE3

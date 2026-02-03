@@ -200,6 +200,7 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -255,8 +256,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
         
                 # scheme
                 if scheme == "upwind"
@@ -295,22 +296,22 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
-                normp = MomentumSpaceNorm(Grids,name,pxp,py,pz)
-                normm = MomentumSpaceNorm(Grids,name,pxm,py,pz)
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,pxp,py,pz)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,pxm,py,pz)
 
                 # normalised fluxes
                 if b != bp
-                    I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / normp)
-                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / norm) 
+                    I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / Mom_Normp)
+                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
                 elseif BCp isa Open # b=bp
-                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / norm) 
+                    I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
                 end
                 if b != bm
-                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / norm) 
-                    I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / normm) 
+                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
+                    I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / Mom_Normm) 
                 elseif BCm isa Open # b=bm
-                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / norm) 
+                    I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
                 end
 
             end # Forces loop
@@ -328,6 +329,7 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -383,8 +385,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
@@ -422,22 +424,22 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
-                normp = MomentumSpaceNorm(Grids,name,px,pyp,pz)
-                normm = MomentumSpaceNorm(Grids,name,px,pym,pz)
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,px,pyp,pz)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,px,pym,pz)
 
                 # normalised fluxes
                 if b != bp
-                    J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / normp)
-                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / norm)
+                    J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / Mom_Normp)
+                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
                 elseif BCp isa Open # b=bp
-                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / norm)
+                    J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
                 end
                 if b != bm
-                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / norm)
-                    J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / normm)
+                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
+                    J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm)
                 elseif BCm isa Open # b=bm
-                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / norm)
+                    J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
                 end
 
             end # Force loop
@@ -455,6 +457,7 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -510,8 +513,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
@@ -549,21 +552,21 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
                 # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
                 # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
-                normp = MomentumSpaceNorm(Grids,name,px,py,pzp)
-                normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,px,py,pzp)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
 
                 if b != bp
-                    K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / normp)
-                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / norm)
+                    K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp)
+                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
                 elseif BCp isa Open # b=bp
-                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / norm)
+                    K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
                 end
                 if b != bm
-                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / norm)
-                    K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / normm)
+                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
+                    K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm)
                 elseif BCm isa Open # b=bm
-                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / norm)
+                    K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
                 end
                 
             end # force loop
@@ -582,6 +585,7 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -629,8 +633,8 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            B_plus = BFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-            B_minus = -BFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+            B_plus = BFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+            B_minus = -BFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -669,20 +673,20 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+            Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
             # normalised fluxes
             if b != bp
-                B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / norm) 
-                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / norm) 
+                B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / Mon_Norm) 
+                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
             elseif BCp isa Open # b=bp
-                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / norm) 
+                B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
             end
             if b != bm
-                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / norm) 
-                B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / norm) 
+                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
+                B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / Mon_Norm) 
             elseif BCm isa Open # b=bm
-                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / norm) 
+                B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
             end
 
         end # end coordinates loop
@@ -699,6 +703,7 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -747,8 +752,8 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            C_plus = CFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-            C_minus = -CFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+            C_plus = CFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+            C_minus = -CFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -787,20 +792,20 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+            Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
             # normalised fluxes
             if b != bp
-                C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / norm) 
-                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / norm) 
+                C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / Mom_Norm) 
+                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
             elseif BCp isa Open # b=bp
-                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / norm) 
+                C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
             end
             if b != bm
-                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / norm) 
-                C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / norm) 
+                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
+                C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / Mom_Norm) 
             elseif BCm isa Open # b=bm
-                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / norm) 
+                C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
             end
 
         end # end coordinates loop
@@ -817,6 +822,7 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
@@ -879,8 +885,8 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             end
 
             # integration sign introduced here
-            D_plus = DFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-            D_minus = -DFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+            D_plus = DFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
+            D_minus = -DFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -919,20 +925,20 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
             # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
 
-            norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+            Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
             # normalised fluxes
             if b != bp
-                D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / norm) 
-                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / norm) 
+                D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / Mon_Norm) 
+                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
             elseif BCp isa Open # b=bp
-                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / norm) 
+                D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
             end
             if b != bm
-                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / norm) 
-                D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / norm) 
+                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
+                D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / Mon_Norm) 
             elseif BCm isa Open # b=bm
-                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / norm) 
+                D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
             end
 
         end # end coordinates loop

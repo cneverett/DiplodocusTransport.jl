@@ -20,6 +20,11 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
     CHAR_mass_density::Float64 = CHAR_mass*CHAR_number_density
     CHAR_energy_density::Float64 = CHAR_mass_density*CHAR_speed^2
     CHAR_pressure::Float64 = CHAR_energy_density
+
+    # scales used in DiplodocusCollisions and for normalisation of Big and Flux Matrices
+    Bin_Norm = CONST_σT * CONST_c * CHAR_time * CHAR_number_density
+    Emi_Norm = CONST_σT * CONST_c * CHAR_time
+    Flux_Norm = CONST_c * CHAR_time / CHAR_length
     
 end
 

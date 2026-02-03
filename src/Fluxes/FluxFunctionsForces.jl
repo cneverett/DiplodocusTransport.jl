@@ -1,6 +1,13 @@
+#= A Note of Dimensions 
+
+    If spatial coordinates have dimension L and time coordinates have dimensions of cT.
+    All force fluxes i.e. `flux` calculated in the functions below have dimensions of: either c*T*L^2 or L^3T/T_c depending on if the flux depends on external parameters that denote a characteristic time (e.g. magnetic field in synchrotron radiation reaction). 
+
+=#
+
 # ======= IJK Sync Rad Reaction Cylindrical ============== #
 
-    function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function IFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -30,12 +37,14 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        # fluxScale must have no dimensions
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
+        T = Characteristic.CHAR_time
         
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             if typeof(mode) == Ani
                 flux *= 1/(6*m^2)
@@ -58,7 +67,7 @@
 
     end
 
-    function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function JFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -88,12 +97,13 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             if typeof(mode) == Ani
                 flux *= 1/4
@@ -112,7 +122,7 @@
 
     end
 
-    function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function KFluxFunction(force::SyncRadReact,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -142,12 +152,13 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)  
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             flux *= 0e0
         end
@@ -160,7 +171,7 @@
 
 # ======= IJK Sync Rad Reaction Spherical ============== #
 
-    function IFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function IFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
 
         m = Grids.mass_list[species_idx]
@@ -191,12 +202,13 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2)  * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             if typeof(mode) == Ani
                 flux *= -1/(9*m^2)
@@ -219,7 +231,7 @@
 
     end
 
-    function JFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function JFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -249,12 +261,13 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             if typeof(mode) == Ani
                 flux *= -1/6
@@ -273,7 +286,7 @@
 
     end
 
-    function KFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function KFluxFunction(force::SyncRadReact,space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -303,12 +316,13 @@
         mode = force.mode
         B = force.B
 
-        fluxScale = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) # normalised by σT*c
+        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            flux = 0e0
+            flux *= 0e0
         else
             flux *= 0e0
         end
@@ -321,7 +335,7 @@
 
 # =============== IJK ExB Cylindrical ================== #
 
-    function IFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function IFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -351,12 +365,17 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        xi = 1.0 # value of x at which E0 and B0 are defined
+
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c) 
+        T = Characteristic.CHAR_time
+
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            return flux = 0f0
+            flux *= 0.0
         else
-            flux = 1/2 * E0 * (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+            flux *= 1/2 * E0 * (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1) * xi
             flux *= (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1))
             flux *= fluxScale
         end
@@ -365,7 +384,7 @@
 
     end
 
-    function JFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function JFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -394,12 +413,17 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        xi = 1.0 # value of x at which E0 and B0 are defined
+
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time
+        
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            return flux = 0f0
+            flux *= 0.0
         else
-            flux = (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) 
+            flux *= (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) * xi
             flux *= E0 * u * sqrt(1 - u^2) * log(p1/p0)*(-sinpi(h0/pi) + sinpi(h1/pi))
             flux *= fluxScale
         end
@@ -408,7 +432,7 @@
 
     end
 
-    function KFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function KFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -438,12 +462,17 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        xi = 1.0 # value of x at which E0 and B0 are defined
+
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time
+
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
-            return flux = 0f0
+            flux *= 0.0
         else
-            flux = (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) 
+            flux *= (-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1) * xi
             flux *= (1/2 * B0 * (-u0 + u1) * (-2asinh(p0/m) + 2asinh(p1/m)) + 2*E0 * acot_mod(u0) * log(p1/p0) * sinpi(phi/pi) - 2*E0 * acot_mod(u1) * log(p1/p0) * sinpi(phi/pi))
             flux *= fluxScale
         end
@@ -456,7 +485,7 @@
 
 # ================= IJK ExB Cartesian ==================== #
 
-    function IFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function IFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -486,9 +515,10 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
             flux *= 0e0
@@ -501,7 +531,7 @@
 
     end
 
-    function JFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function JFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -531,9 +561,10 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time    
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
             flux *= 0e0
@@ -546,7 +577,7 @@
 
     end
 
-    function KFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function KFluxFunction(force::ExB,space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -576,9 +607,10 @@
         E0 = force.E0
         B0 = force.B0
 
-        fluxScale = (Z*CONST_q) / (m*CONST_mEle) / (CONST_σT*CONST_c) 
+        invTc = (Z*CONST_q) / (m*CONST_mEle) # old normalisation / (CONST_σT*CONST_c)
+        T = Characteristic.CHAR_time    
 
-        flux::Float64 = fluxScale
+        flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
             flux *= 0e0

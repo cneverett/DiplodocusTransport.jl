@@ -19,6 +19,7 @@ function BuildBigMatrices(PhaseSpace::PhaseSpaceStruct,DataDirectory::String;loa
         M_Bin = Allocate_M_Bin(PhaseSpace,loading_check,Precision,Bin_sparse)
         LoadMatrices_Binary(M_Bin,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected,Bin_sparse)
     end
+
     if isempty(PhaseSpace.Emi_list)
         M_Emi = Matrix{Precision}(undef,0,0)
     else
