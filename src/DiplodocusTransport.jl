@@ -4,12 +4,12 @@ module DiplodocusTransport
     export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
     export BinaryStruct, EmiStruct, ForceType
     export Cylindrical, Spherical, Cartesian, Ani, Axi, Iso
-    export CoordinateForce, SyncRadReact
+    export CoordinateForce, SyncRadReact, ExB
     export BuildBigMatrices, BuildFluxMatrices
     export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_BoostedPowerLaw!, Initial_BlackBody!
     export Solve, EulerStruct
     export SolutionFileLoad
-    export MaxwellJuttner_Distribution
+    export MaxwellJuttner_Distribution, BlackBody_Distribution, Wien_Distribution
 
     using JLD2
     import DiplodocusCollisions as DC

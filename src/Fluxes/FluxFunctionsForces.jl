@@ -444,7 +444,7 @@
             flux *= 0e0
         else
             flux *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) *  (-z0 + z1) 
-            flux *= -E0 * (-2acot_mod(u0)+2acot_mod(u1)) * cospi(phi/pi) * log(p1/p0) + B0 * (u0 - u1) * (-asinh(p064/m) + asinh(p164/m)) # sign of E0 flipped to make sure direction is correct ?????
+            flux *= E0 * (-2acot_mod(u0)+2acot_mod(u1)) * cospi(phi/pi) * log(p1/p0) + B0 * (u0 - u1) * (-asinh(p064/m) + asinh(p164/m))
         end
 
         return flux
