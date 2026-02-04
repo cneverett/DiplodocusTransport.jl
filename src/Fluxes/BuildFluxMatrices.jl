@@ -256,8 +256,8 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                I_plus = IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-                I_minus = -IFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+                I_plus = IFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                I_minus = -IFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
         
                 # scheme
                 if scheme == "upwind"
@@ -385,8 +385,8 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                J_plus = JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-                J_minus = -JFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+                J_plus = JFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                J_minus = -JFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
@@ -513,8 +513,8 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 
             for f in 1:length(Forces)
                 # integration sign introduced here
-                K_plus = KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-                K_minus = -KFluxFunction(Forces[f],space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+                K_plus = KFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                K_minus = -KFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                 # scheme
                 if scheme == "upwind"
