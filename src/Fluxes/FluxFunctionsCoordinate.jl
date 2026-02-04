@@ -8,9 +8,13 @@
 
 =#
 
-# =============== ABCD Vol Cartesian ===================== #
+# =============== ABCD Vol  ===================== #
 
-    function AFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function AFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        space_coords = PhaseSpace.space_coords
+        momentum_coords = PhaseSpace.momentum_coords
 
         m = Grids.mass_list[species_idx]
 
@@ -36,14 +40,37 @@
 
         # Evaluate the flux through the A surface i.e. surface of constant t
 
-        flux::Float64 = (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
-        flux *= (-p0 + p1) * (-u0 + u1) * (-h0 + h1)
+        flux::Float64 = 0.0
+
+        if space_coords isa Cartesian && momentum_coords isa Spherical
+
+            flux *= (-x0 + x1) * (-y0 + y1) * (-z0 + z1) 
+            flux *= (-p0 + p1) * (-u0 + u1) * (-h0 + h1)
+
+        elseif space_coords isa Cylindrical && momentum_coords isa Spherical
+
+            flux *= (-x0^2 + x1^2) / 2 * (-y0 + y1) * (-z0 + z1) 
+            flux *= (-p0 + p1) * (-u0 + u1) * (-h0 + h1)
+
+        elseif space_coords isa Spherical && momentum_coords isa Spherical
+
+            flux *= -(1/3) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
+            flux *= (p0 - p1) * (u0 - u1) * (h0 - h1)
+
+        else
+            error("A Flux function not implemented for this combination of co-ordinate systems.")
+        end
 
         return flux
 
     end
 
-    function BFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function BFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.space_coords
+        momentum_coords = PhaseSpace.momentum_coords
 
         m = Grids.mass_list[species_idx]
 
@@ -67,7 +94,7 @@
         h0 = Grids.pzr_list[species_idx][pz_idx]
         h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
-        # Evaluate the flux through the B surface i.e. surface of constant x
+        # Evaluate the flux through the B surface i.e. surface of constant x coordinate: cartesian x, spherical r, cylindrical r
 
         T = Characteristic.CHAR_time
         L = Characteristic.CHAR_length
@@ -75,14 +102,35 @@
 
         flux::Float64 = c * T / L
 
-        flux *=  (t0 - t1) * (y0 - y1) * (z0 - z1)
-        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
+        if space_coords isa Cartesian && momentum_coords isa Spherical
+        
+            flux *=  (t0 - t1) * (y0 - y1) * (z0 - z1)
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
+
+        elseif space_coords isa Cylindrical && momentum_coords isa Spherical
+
+            flux *= (t0 - t1) * x * (y0 - y1) * (z0 - z1) 
+            flux *= (1/2)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sinpi(h0/pi) - sinpi(h1/pi))
+
+        elseif space_coords isa Spherical && momentum_coords isa Spherical 
+
+            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi))
+
+        else
+            error("B Flux function not implemented for this combination of co-ordinate systems.")
+        end
 
         return flux
 
     end
 
-    function CFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function CFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.space_coords
+        momentum_coords = PhaseSpace.momentum_coords
 
         m = Grids.mass_list[species_idx]
 
@@ -106,7 +154,7 @@
         h0 = Grids.pzr_list[species_idx][pz_idx]
         h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
-        # Evaluate the flux through the C surface i.e. surface of constant y
+        # Evaluate the flux through the C surface i.e. surface of constant y coordinate: cartesian y, spherical θ, cylindrical ϕ
 
         T = Characteristic.CHAR_time
         L = Characteristic.CHAR_length
@@ -114,14 +162,31 @@
 
         flux::Float64 = c * T / L
 
-        flux *=  (t0 - t1) * (x0 - x1) * (z0 - z1) 
-        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2 
+        if space_coords isa Cartesian && momentum_coords isa Spherical
+
+            flux *=  (t0 - t1) * (x0 - x1) * (z0 - z1) 
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2 
+
+        elseif space_coords isa Cylindrical && momentum_coords isa Spherical
+
+            
+            flux *= (t0 - t1) * (x0 - x1) * (z0 - z1) 
+            flux *= (1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cospi(h0/pi) - cospi(h1/pi))
+
+        elseif space_coords isa Spherical && momentum_coords isa Spherical
+
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2
+
+        else 
+            error("C Flux function not implemented for this combination of co-ordinate systems.")
+        end
 
         return flux
 
     end
 
-    function DFluxFunction(space_coords::Cartesian,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function DFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -146,7 +211,7 @@
         h0 = Grids.pzr_list[species_idx][pz_idx]
         h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
-        # Evaluate the flux through the D surface i.e. surface of constant z
+        # Evaluate the flux through the D surface i.e. surface of constant z coordinate: cartesian z, spherical ϕ, cylindrical z
 
         T = Characteristic.CHAR_time
         L = Characteristic.CHAR_length
@@ -154,14 +219,33 @@
 
         flux::Float64 = c * T / L
 
-        flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) 
-        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1) / 2
+        if space_coords isa Cartesian && momentum_coords isa Spherical
+
+            flux *= (t0 - t1) * (x0 - x1) * (y0 - y1) 
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1) / 2
+
+        elseif space_coords isa Cylindrical && momentum_coords isa Spherical
+
+            flux *= (t0 - t1) * (x0^2 - x1^2) / 2 * (y0 - y1) 
+            flux *= (1/2) * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1)
+
+        elseif space_coords isa Spherical && momentum_coords isa Spherical
+
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1) / 2
+
+        else
+            error("D Flux function not implemented for this combination of co-ordinate systems.")
+        end
 
         return flux
 
     end
 
-    function VolFunction(space_coords::Cartesian,Grids::GridsStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
+    function VolFunction(PhaseSpace::PhaseSpaceStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        space_coords = PhaseSpace.space_coords
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -174,7 +258,23 @@
 
         # Evaluate the spacetime volume element
 
-        vol::Float64 = (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+        vol::Float64 = 0.0
+
+        if space_coords isa Cartesian
+
+            vol *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+
+        elseif space_coords isa Cylindrical
+
+            vol *=(-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
+
+        elseif space_coords isa Spherical
+
+            vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
+
+        else
+            error("Volume function not implemented for this co-ordinate system.")
+        end
 
         return vol
 
@@ -297,173 +397,7 @@
 
 # =============== ABCD Vol Cylindrical ===================== #
 
-    function AFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
-        m = Grids.mass_list[species_idx]
-
-        if plus_minus == "plus"
-            t = Grids.tr[t_idx+1]
-        elseif plus_minus == "minus"
-            t = Grids.tr[t_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the A surface i.e. surface of constant t
-
-        flux::Float64 = (-x0^2 + x1^2) / 2 * (-y0 + y1) * (-z0 + z1) 
-        flux *= (-p0 + p1) * (-u0 + u1) * (-h0 + h1)
-
-        return flux
-
-    end
-
-    function BFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        if plus_minus == "plus"
-            x = Grids.xr[x_idx+1]
-        elseif plus_minus == "minus"
-            x = Grids.xr[x_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the B surface i.e. surface of constant x, spherical r, cylindrical r
-
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * x * (y0 - y1) * (z0 - z1) 
-        flux *= (1/2)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sinpi(h0/pi) - sinpi(h1/pi))
-
-        return flux
-
-    end
-
-    function CFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        if plus_minus == "plus"
-            y = Grids.yr[y_idx+1]
-        elseif plus_minus == "minus"
-            y = Grids.yr[y_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the C surface i.e. surface of constant y, spherical θ, cylindrical ϕ
-         
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * (x0 - x1) * (z0 - z1) 
-        flux *= (1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cospi(h0/pi) - cospi(h1/pi))
-
-        return flux
-
-    end
-
-    function DFluxFunction(space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-        Z = Grids.charge_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        if plus_minus == "plus"
-            z = Grids.zr[z_idx+1]
-        elseif plus_minus == "minus"
-            z = Grids.zr[z_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-        
-        # Evaluate the flux through the D surface i.e. surface of constant z, spherical ϕ, cylindrical z
-
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * (x0^2 - x1^2) / 2 * (y0 - y1) 
-        flux *= (1/2) * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1)
-
-        return flux
-
-    end
-
-    function VolFunction(space_coords::Cylindrical,Grids::GridsStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-
-        # Evaluate the spacetime volume element
-
-        return (-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
-
-    end
 
 # ======================================================== #
 
@@ -596,178 +530,6 @@
         flux *= (-3u0^2*cospi(β)*sinpi(β) + 3u1^2*cospi(β)*sinpi(β) + u0^2*cospi(β)*cospi(phi/pi)^2*sinpi(β) - u1^2*cospi(β)*cospi(phi/pi)^2*sinpi(β) + 4acot_mod(u1)*sinpi(phi/pi) - 4acot_mod(u0)*sinpi(phi/pi) - 2*u0*sqrt(1 - u0^2)*cospi(β)^2*sinpi(phi/pi) + 2u1*sqrt(1 - u1^2)*cospi(β)^2*sinpi(phi/pi) + 2u0*sqrt(1 - u0^2)*sinpi(β)^2*sinpi(phi/pi) - 2u1*sqrt(1 - u1^2)*sinpi(β)^2*sinpi(phi/pi) - u0^2*cospi(β)*sinpi(β)*sinpi(phi/pi)^2 + u1^2*cospi(β)*sinpi(β)*sinpi(phi/pi)^2)
 
         return flux
-
-    end
-
-# ======================================================== #
-
-# =============== ABCD Vol Spherical ===================== #
-
-    function AFluxFunction(space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-
-        if plus_minus == "plus"
-            t = Grids.tr[t_idx+1]
-        elseif plus_minus == "minus"
-            t = Grids.tr[t_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the A surface i.e. surface of constant t
-
-        flux::Float64 = -(1/3) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
-        flux *= (p0 - p1) * (u0 - u1) * (h0 - h1)
-
-        return flux
-
-    end
-
-    function BFluxFunction(space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        if plus_minus == "plus"
-            x = Grids.xr[x_idx+1]
-        elseif plus_minus == "minus"
-            x = Grids.xr[x_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-        # Evaluate the flux through the B surface i.e. surface of constant spherical r
-
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
-        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi))
-        return flux
-
-    end
-
-    function CFluxFunction(space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        if plus_minus == "plus"
-            y = Grids.yr[y_idx+1]
-        elseif plus_minus == "minus"
-            y = Grids.yr[y_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the C surface i.e. surface of constant spherical θ 
-
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
-        flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2
-
-        return flux
-
-    end
-
-    function DFluxFunction(space_coords::Spherical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
-
-        m = Grids.mass_list[species_idx]
-        Z = Grids.charge_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        if plus_minus == "plus"
-            z = Grids.zr[z_idx+1]
-        elseif plus_minus == "minus"
-            z = Grids.zr[z_idx]
-        else
-            error("plus_minus string not recognised.")
-        end
-        p0 = Grids.pxr_list[species_idx][px_idx]
-        p1 = Grids.pxr_list[species_idx][px_idx+1]
-        u0 = Grids.pyr_list[species_idx][py_idx]
-        u1 = Grids.pyr_list[species_idx][py_idx+1]
-        h0 = Grids.pzr_list[species_idx][pz_idx]
-        h1 = Grids.pzr_list[species_idx][pz_idx+1]
-
-        # Evaluate the flux through the D surface i.e. surface of constant spherical ϕ
-
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        flux::Float64 = c * T / L
-
-        flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
-        flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1) / 2
-
-        return flux
-
-    end
-
-    function VolFunction(space_coords::Spherical,Grids::GridsStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
-        x0 = Grids.xr[x_idx]
-        x1 = Grids.xr[x_idx+1]
-        y0 = Grids.yr[y_idx]
-        y1 = Grids.yr[y_idx+1]
-        z0 = Grids.zr[z_idx]
-        z1 = Grids.zr[z_idx+1]
-
-        # Evaluate the spacetime volume element
-
-        vol::Float64 = -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
-
-        return vol
 
     end
 

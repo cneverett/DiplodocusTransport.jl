@@ -148,8 +148,8 @@ function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC
                 b = a
 
                 # integration sign introduced here
-                A_plus = AFluxFunction(space_coords,momentum_coords,Grids,name,"plus",1,x,y,z,px,py,pz)
-                A_minus = -AFluxFunction(space_coords,momentum_coords,Grids,name,"minus",1,x,y,z,px,py,pz)
+                A_plus = AFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                A_minus = -AFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                 # normalisation
                 norm = MomentumSpaceNorm(Grids,name,px,py,pz)
@@ -184,7 +184,7 @@ function Fill_Vol!(Vol::Vector{T},PhaseSpace::PhaseSpaceStruct) where T<:Union{F
 
         space = (x-1)*y_num*z_num+(y-1)*z_num+z
 
-        Vol[space] = convert(T,VolFunction(space_coords,Grids,1,x,y,z))
+        Vol[space] = convert(T,VolFunction(PhaseSpace,1,x,y,z))
 
     end
 
@@ -633,8 +633,8 @@ function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            B_plus = BFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-            B_minus = -BFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+            B_plus = BFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            B_minus = -BFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -752,8 +752,8 @@ function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
 
             # integration sign introduced here
-            C_plus = CFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-            C_minus = -CFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+            C_plus = CFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            C_minus = -CFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
@@ -885,8 +885,8 @@ function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
             end
 
             # integration sign introduced here
-            D_plus = DFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"plus",1,x,y,z,px,py,pz)
-            D_minus = -DFluxFunction(space_coords,momentum_coords,Grids,Characteristic,name,"minus",1,x,y,z,px,py,pz)
+            D_plus = DFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            D_minus = -DFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
     
             # scheme
             if scheme == "upwind"
