@@ -14,50 +14,50 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
+function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
     # reset arrays
-    fill!(Euler.df,zero(eltype(Euler.df)))
+    fill!(ForwardEuler.df,zero(eltype(ForwardEuler.df)))
     #fill!(Euler.temp,zero(eltype(Euler.temp)))
-    if Euler.Implicit
-        fill!(Euler.Jac,zero(eltype(Euler.Jac)))
+    if ForwardEuler.Implicit
+        fill!(ForwardEuler.Jac,zero(eltype(ForwardEuler.Jac)))
     end
         
-    # create df_Bin due to binary interactions (jacobians are added in update_Big_Bin! if implicit)
-    if isempty(Euler.PhaseSpace.Binary_list) == false
-        update_Big_Bin!(Euler)
-        @. Euler.df += Euler.df_Bin
-        if !isfinite(sum(Euler.df_Bin))
-            println("overflow in df_Bin calculation, $(sum(Euler.df_Bin))")
+    # create df_Bin due to binary interactions
+    if ForwardEuler.Binary_Interactions
+        update_Big_Bin!(ForwardEuler)
+        @. ForwardEuler.df += ForwardEuler.df_Bin
+        if !isfinite(sum(ForwardEuler.df_Bin))
+            println("non-finite value in df_Bin calculation, $(sum(ForwardEuler.df_Bin))")
         end
     end
-    # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
-    if isempty(Euler.PhaseSpace.Emi_list) == false
-        update_Big_Emi!(Euler)
-        @. Euler.df += Euler.df_Emi
+
+    # create df_Emi due to emission terms
+    if ForwardEuler.Emission_Interactions
+        mul!(ForwardEuler.df_Emi,ForwardEuler.M_Emi,ForwardEuler.f)
+        @. ForwardEuler.df += ForwardEuler.df_Emi
+        if !isfinite(sum(ForwardEuler.df_Emi))
+            println("non-finite value in df_Emi calculation, $(sum(ForwardEuler.df_Emi))")
+        end
     end
 
     # create df_Flux due to space and momentum flux terms
-    mul!(Euler.df_Flux,Euler.F_Flux,Euler.f)
-    @. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
-    if !isfinite(sum(Euler.df_Flux))
-        println("overflow in df_Flux calculation, $(sum(Euler.df_Flux))")
-    end
-    if Euler.Implicit
-        @. Euler.Jac -= Euler.F_Flux
+    mul!(ForwardEuler.df_Flux,ForwardEuler.F_Flux,ForwardEuler.f)
+    @. ForwardEuler.df -= ForwardEuler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+    if !isfinite(sum(ForwardEuler.df_Flux))
+        println("non-finite value in df_Flux calculation, $(sum(ForwardEuler.df_Flux))")
     end
 
     # Add injection term 
-    @. Euler.df += Euler.df_Inj
-
+    @. ForwardEuler.df += ForwardEuler.df_Inj
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
-    if Euler.PhaseSpace.Time.t_grid != "u" 
-        Euler.df .*= dt / dt0
-        if Euler.Implicit
-            Euler.Jac .*= dt / dt0
+    if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
+        ForwardEuler.df .*= dt / dt0
+        if ForwardEuler.Implicit
+            ForwardEuler.Jac .*= dt / dt0
         end
     end
 
@@ -65,11 +65,103 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
     #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
     #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
 
-    if !isfinite(sum(Euler.df))
+    if !isfinite(sum(ForwardEuler.df))
+        println("non-finite value in df calculation")
+    end
+
+    @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
+
+    # Cr (CFL) condition check
+    @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
+    #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
+    Cr = maximum(abs.(filter(isfinite,ForwardEuler.df_tmp)))
+
+    if Verbose
+        print("\rCr = $Cr, t=$t, dt=$dt")
+    elseif Cr > 1.0
+        println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+    end
+
+    # Add injection term 
+    if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
+        @. ForwardEuler.df += ForwardEuler.df_Inj * dt / dt0
+    else
+        @. ForwardEuler.df += ForwardEuler.df_Inj
+    end
+    
+    # update state vector f
+    @. ForwardEuler.f += ForwardEuler.df
+    # removing negative values (values less than 1f-28 for better stability)
+    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f>=1f-28)
+    # hacky fix for inf values
+    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f!=Inf)
+
+
+end
+
+"""
+    BackwardsEuler(dg,g,t,dt)
+
+Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolean `Implicit` flag when defining the EulerStruct.
+
+# Implicit method:
+
+
+"""
+function (BackwardEuler::BackwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
+
+    # limit u to be positive, now done in solver
+    #@. f = f*(f>=0f0)
+
+    # reset arrays
+    fill!(BackwardEuler.df,zero(eltype(BackwardEuler.df)))
+    #fill!(Euler.temp,zero(eltype(Euler.temp)))
+    if BackwardEuler.Implicit
+        fill!(BackwardEuler.Jac,zero(eltype(BackwardEuler.Jac)))
+    end
+        
+    # create df_Bin due to binary interactions (jacobians are added in update_Big_Bin! if implicit)
+    if BackwardEuler.Binary_Interactions
+        update_Big_Bin!(BackwardEuler)
+        @. BackwardEuler.df += BackwardEuler.df_Bin
+        if !isfinite(sum(BackwardEuler.df_Bin))
+            println("overflow in df_Bin calculation, $(sum(BackwardEuler.df_Bin))")
+        end
+    end
+    # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
+    if BackwardsEuler.Emission_Interactions
+        update_Big_Emi!(BackwardEuler)
+        @. BackwardEuler.df += BackwardEuler.df_Emi
+    end
+
+    # create df_Flux due to space and momentum flux terms
+    mul!(BackwardEuler.df_Flux,BackwardEuler.F_Flux,BackwardEuler.f)
+    @. BackwardEuler.df -= BackwardEuler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+    if !isfinite(sum(BackwardEuler.df_Flux))
+        println("overflow in df_Flux calculation, $(sum(BackwardEuler.df_Flux))")
+    end
+    if BackwardEuler.Implicit
+        @. BackwardEuler.Jac -= BackwardEuler.F_Flux
+    end
+
+    # Add injection term 
+    @. BackwardEuler.df += BackwardEuler.df_Inj
+    # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
+    if BackwardEuler.PhaseSpace.Time.t_grid != "u" 
+        BackwardEuler.df .*= dt / dt0
+        if BackwardEuler.Implicit
+            BackwardEuler.Jac .*= dt / dt0
+        end
+    end
+
+    # df_Flux due to time fluxes TODO: can remove this step if system is stationary therefore Ap=-Am. This will also allow more timestep control
+    #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
+    #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+
+    if !isfinite(sum(BackwardEuler.df))
         println("overflow in df calculation")
     end
 
-    if Euler.Implicit
 
         # TODO: Update Implicit
         #mul!(Euler.df_temp,Euler.temp,f)
@@ -80,40 +172,20 @@ function (Euler::EulerStruct)(dt0,dt,t;Verbose::Bool=false)
         #ldiv!(Euler.df,Euler.LU,Euler.df_temp)
 
 
-    else
-
-        @. Euler.df /= Euler.Ap_Flux # Assumes Ap_flux is diagonal and stored as a vector
-
-        # Cr (CFL) condition check
-        @. Euler.df_tmp = Euler.df / Euler.f 
-        #replace!(Euler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-        Cr = maximum(abs.(filter(isfinite,Euler.df_tmp)))
-
-        if Verbose
-            print("\rCr = $Cr, t=$t, dt=$dt")
-        elseif Cr > 1.0
-            println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
-        end
-
-    end
-
     # Add injection term 
-    if Euler.PhaseSpace.Time.t_grid != "u" 
-        @. Euler.df += Euler.df_Inj * dt / dt0
+    if BackwardEuler.PhaseSpace.Time.t_grid != "u" 
+        @. BackwardEuler.df += BackwardEuler.df_Inj * dt / dt0
     else
-        @. Euler.df += Euler.df_Inj
+        @. BackwardEuler.df += BackwardEuler.df_Inj
     end
     
     # update state vector f
-    @. Euler.f += Euler.df
-
+    @. BackwardEuler.f += BackwardEuler.df
     # removing negative values (values less than 1f-28 for better stability)
-    @. Euler.f = Euler.f*(Euler.f>=1f-28)
+    @. BackwardEuler.f = BackwardEuler.f*(BackwardEuler.f>=1f-28)
     # hacky fix for inf values
-    @. Euler.f = Euler.f*(Euler.f!=Inf)
+    @. BackwardEuler.f = BackwardEuler.f*(BackwardEuler.f!=Inf)
 
-    #println("$df")
-    #error("")
 
 end
 
@@ -140,34 +212,44 @@ function update_Big_Bin!(method::SteppingMethodType)
 
     Vol = method.Vol
 
+    Domain = method.Bin_Domain
+
     # Thanks to Emma Godden for fixing a bug here
     #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
+        if isnothing(Domain) || in(off_space,Domain)
 
-        start_idx = n_momentum*off_space+1
-        end_idx = n_momentum*(off_space+1)
+            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
 
-        fView = @view f[start_idx:end_idx]
-        df_BinView = @view method.df_Bin[start_idx:end_idx]
-        mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
-        mul!(df_BinView,method.M_Bin_Mul_Step,fView)
+            start_idx = n_momentum*off_space+1
+            end_idx = n_momentum*(off_space+1)
 
-        #println("M_Bin = $(sum(method.M_Bin))")
-        #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
-        #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
+            fView = @view f[start_idx:end_idx]
+            df_BinView = @view method.df_Bin[start_idx:end_idx]
+            mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+            mul!(df_BinView,method.M_Bin_Mul_Step,fView)
 
-        # multiply by volume element
-        df_BinView .*= view(Vol,off_space+1)
+            #println("M_Bin = $(sum(method.M_Bin))")
+            #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
+            #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
+
+            # multiply by volume element
+            df_BinView .*= view(Vol,off_space+1)
+
+        else
+            continue
+        end
 
     end
 
+    #=
+    # TODO: Update Implicit
     if method.Implicit
         # assign jacobian elements
         @. method.Jac += 2*method.M_Bin_Mul_Step*view(Vol,off_space+1)
-    end
+    end=#
 
     return nothing
 
@@ -215,10 +297,12 @@ function update_Big_Emi!(method::SteppingMethodType)
 
     end
 
+    #=
+    TODO: Update Implicit
     # assign jacobian elements
     if method.Implicit
         @. method.Jac += method.M_Emi
-    end
+    end=#
 
     return nothing
 

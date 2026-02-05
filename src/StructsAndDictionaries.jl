@@ -9,9 +9,19 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
     CHAR_mass::Float64 = CONST_mEle
     CHAR_charge::Float64 = CONST_q
     CHAR_speed::Float64 = CONST_c
-    CHAR_length::Float64 = CONST_pcs
-    CHAR_number_density::Float64 = 1.0e6 # 1 particle per cm^3
     CHAR_magnetic_field::Float64 = 1.0 # 1 Tesla
+
+    # user defined scales (SI units)
+    CHAR_length::Float64 = try 
+            getfield(Main,Symbol("CHAR_length"))
+        catch
+            CONST_pcs
+        end
+    CHAR_number_density::Float64 = try 
+            getfield(Main,Symbol("CHAR_number_density"))
+        catch
+            1.0e6 # 1 particle per cm^3
+        end
 
     # derived scales (SI units)
     CHAR_time::Float64 = CHAR_length/CHAR_speed
@@ -20,11 +30,12 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
     CHAR_mass_density::Float64 = CHAR_mass*CHAR_number_density
     CHAR_energy_density::Float64 = CHAR_mass_density*CHAR_speed^2
     CHAR_pressure::Float64 = CHAR_energy_density
+    CHAR_electric_field::Float64 = CHAR_magnetic_field*CONST_c
 
     # scales used in DiplodocusCollisions and for normalisation of Big and Flux Matrices
-    Bin_Norm = CONST_σT * CONST_c * CHAR_time * CHAR_number_density
-    Emi_Norm = CONST_σT * CONST_c * CHAR_time
-    Flux_Norm = CONST_c * CHAR_time / CHAR_length
+    Bin_Norm::Float64 = CONST_σT * CONST_c * CHAR_time * CHAR_number_density
+    Emi_Norm::Float64 = CONST_σT * CONST_c * CHAR_time
+    Flux_Norm::Float64 = CONST_c * CHAR_time / CHAR_length
     
 end
 
@@ -102,7 +113,7 @@ end
 
 A struct for storing the grid values for each particle in the simulation.
 """
-mutable struct GridsStruct <: Function
+@kwdef mutable struct GridsStruct <: Function
 
     mass_list::Vector{Float64}
     charge_list::Vector{Float64}
@@ -138,36 +149,39 @@ mutable struct GridsStruct <: Function
 
     momentum_species_offset::Vector{Int64}
 
-    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct)
+    B_field::Array{Float64,3} # magnetic field values on the x,y,z grid
+    E_field::Array{Float64,3} # electric field values on the x,y,z grid
+
+    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct,characteristic::CharacteristicStruct,ElectromagneticField::Union{ElectroMagneticFieldType,Nothing})
 
         self = new()
 
         # time domain grids
 
-            t_up = time.t_up
-            t_low = time.t_low
-            t_num = time.t_num
-            t_grid = time.t_grid
+            t_up    = time.t_up
+            t_low   = time.t_low
+            t_num   = time.t_num
+            t_grid  = time.t_grid
 
             self.tr = bounds(t_low,t_up,t_num,t_grid)
             self.dt = deltaVector(self.tr)
 
         # space domain grids
 
-            x_up = space.x_up
-            x_low = space.x_low
-            x_grid = space.x_grid
-            x_num = space.x_num
+            x_up    = space.x_up
+            x_low   = space.x_low
+            x_grid  = space.x_grid
+            x_num   = space.x_num
 
-            y_up = space.y_up
-            y_low = space.y_low
-            y_grid = space.y_grid
-            y_num = space.y_num
+            y_up    = space.y_up
+            y_low   = space.y_low
+            y_grid  = space.y_grid
+            y_num   = space.y_num
 
-            z_up = space.z_up
-            z_low = space.z_low
-            z_grid = space.z_grid
-            z_num = space.z_num
+            z_up    = space.z_up
+            z_low   = space.z_low
+            z_grid  = space.z_grid
+            z_num   = space.z_num
 
             self.xr = bounds(x_low,x_up,x_num,x_grid)
             self.yr = bounds(y_low,y_up,y_num,y_grid)
@@ -183,59 +197,59 @@ mutable struct GridsStruct <: Function
 
         # momentum domain grids
 
-            px_up_list = momentum.px_up_list
-            px_low_list = momentum.px_low_list
-            px_grid_list = momentum.px_grid_list
-            px_num_list = momentum.px_num_list
+            px_up_list      = momentum.px_up_list
+            px_low_list     = momentum.px_low_list
+            px_grid_list    = momentum.px_grid_list
+            px_num_list     = momentum.px_num_list
 
-            py_up_list = momentum.py_up_list
-            py_low_list = momentum.py_low_list
-            py_grid_list = momentum.py_grid_list
-            py_num_list = momentum.py_num_list
+            py_up_list      = momentum.py_up_list
+            py_low_list     = momentum.py_low_list
+            py_grid_list    = momentum.py_grid_list
+            py_num_list     = momentum.py_num_list
 
-            pz_up_list = momentum.pz_up_list
-            pz_low_list = momentum.pz_low_list
-            pz_grid_list = momentum.pz_grid_list
-            pz_num_list = momentum.pz_num_list
+            pz_up_list      = momentum.pz_up_list
+            pz_low_list     = momentum.pz_low_list
+            pz_grid_list    = momentum.pz_grid_list
+            pz_num_list     = momentum.pz_num_list
 
-            num_species = length(name_list);
+            num_species     = length(name_list);
 
-            self.mass_list = Vector{Float64}(undef,num_species)
-            self.charge_list =Vector{Float64}(undef,num_species)
+            self.mass_list  = Vector{Float64}(undef,num_species)
+            self.charge_list=Vector{Float64}(undef,num_species)
 
-            self.pxr_list = Vector{Vector{Float64}}(undef,num_species);
-            self.pyr_list = Vector{Vector{Float64}}(undef,num_species);
-            self.pzr_list = Vector{Vector{Float64}}(undef,num_species);
+            self.pxr_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.pyr_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.pzr_list   = Vector{Vector{Float64}}(undef,num_species);
 
-            self.dpx_list = Vector{Vector{Float64}}(undef,num_species);
-            self.dpy_list = Vector{Vector{Float64}}(undef,num_species);
-            self.dpz_list = Vector{Vector{Float64}}(undef,num_species);
+            self.dpx_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.dpy_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.dpz_list   = Vector{Vector{Float64}}(undef,num_species);
 
-            self.mpx_list = Vector{Vector{Float64}}(undef,num_species);
-            self.mpy_list = Vector{Vector{Float64}}(undef,num_species);
-            self.mpz_list = Vector{Vector{Float64}}(undef,num_species);
+            self.mpx_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.mpy_list   = Vector{Vector{Float64}}(undef,num_species);
+            self.mpz_list   = Vector{Vector{Float64}}(undef,num_species);
 
-            self.dE_list = Vector{Vector{Float64}}(undef,num_species);
+            self.dE_list    = Vector{Vector{Float64}}(undef,num_species);
 
             self.momentum_species_offset = Vector{Int64}(undef,num_species);
 
             for i in eachindex(name_list)
 
-                self.mass_list[i] = eval(Symbol("CONST_mu"*name_list[i]));
+                self.mass_list[i]   = eval(Symbol("CONST_mu"*name_list[i]));
                 self.charge_list[i] = eval(Symbol("CONST_z"*name_list[i]));
 
-                self.pxr_list[i] = bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
-                self.pyr_list[i] = bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
-                self.pzr_list[i] = bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
+                self.pxr_list[i]    = bounds(px_low_list[i],px_up_list[i],px_num_list[i],px_grid_list[i]);
+                self.pyr_list[i]    = bounds(py_low_list[i],py_up_list[i],py_num_list[i],py_grid_list[i]);
+                self.pzr_list[i]    = bounds(pz_low_list[i],pz_up_list[i],pz_num_list[i],pz_grid_list[i]);
 
-                self.dpx_list[i] = deltaVector(self.pxr_list[i]);
-                self.dpy_list[i] = deltaVector(self.pyr_list[i]);
-                self.dpz_list[i] = deltaVector(self.pzr_list[i]);
-                self.mpx_list[i] = meanVector(self.pxr_list[i]);
-                self.mpy_list[i] = meanVector(self.pyr_list[i]);
-                self.mpz_list[i] = meanVector(self.pzr_list[i]);
+                self.dpx_list[i]    = deltaVector(self.pxr_list[i]);
+                self.dpy_list[i]    = deltaVector(self.pyr_list[i]);
+                self.dpz_list[i]    = deltaVector(self.pzr_list[i]);
+                self.mpx_list[i]    = meanVector(self.pxr_list[i]);
+                self.mpy_list[i]    = meanVector(self.pyr_list[i]);
+                self.mpz_list[i]    = meanVector(self.pzr_list[i]);
 
-                self.dE_list[i] = deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.dpx_list[i];
+                self.dE_list[i]     = deltaEVector(self.pxr_list[i],self.mass_list[i]) ./ self.dpx_list[i];
 
                 if i == 1
                     self.momentum_species_offset[i] = 0
@@ -243,6 +257,16 @@ mutable struct GridsStruct <: Function
                     self.momentum_species_offset[i] = self.momentum_species_offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
                 end
 
+            end
+
+            if !isnothing(ElectromagneticField)
+                # build electromagnetic field grids
+                parameters = ElectromagneticField.parameters
+                ElectromagneticFieldFunction = ElectromagneticField.ElectromagneticFieldFunction
+                self.B_field, self.E_field = ElectromagneticFieldFunction(space,momentum,characteristic,self,parameters)
+            else
+                self.B_field = zeros(Float64,0,0,0)
+                self.E_field = zeros(Float64,0,0,0)
             end
 
         return self
@@ -270,41 +294,40 @@ A struct for storing the phase space of the simulation.
     Binary_list::Vector{BinaryStruct}   = getfield(Main,Symbol("Binary_list")) 
     Emi_list::Vector{EmiStruct}         = getfield(Main,Symbol("Emi_list"))
 
+    ElectromagneticField::Union{ElectroMagneticFieldType,Nothing} = try 
+            getfield(Main,Symbol("ElectromagneticField"))
+        catch
+            nothing 
+        end
+
     # grids
-    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum)
-
-    #=function PhaseSpaceStruct(name_list,time,space,momentum,Binary_list,Emi_list,forces)
-
-        self = new()
-
-        self.name_list      = getfield(Main,Symbol("name_list"))
-        self.Characteristic = CharacteristicStruct()
-        self.Time           = TimeStruct()
-        self.Space          = SpaceStruct()
-        self.Momentum       = MomentumStruct()
-        self.Forces         = getfield(Main,Symbol("forces"))
-        self.Binary_list    = getfield(Main,Symbol("Binary_list"))
-        self.Emi_list       = getfield(Main,Symbol("Emi_list"))
-
-        self.Grids = GridsStruct(name_list,self.Time,self.Space,self.Momentum)
-
-        return self
-
-    end=#
-
+    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum,Characteristic,ElectromagneticField)
 
 end
 
 
 """
-    BigMatrices()
+    BinaryMatricesStruct()
 
-A struct for storing the big matrices associated with interactions in the simulation.
+A struct for storing the big matrices associated with binary interactions in the simulation.
 """
-struct BigMatricesStruct{T<:Union{Float32,Float64}}
+struct BinaryMatricesStruct{T<:Union{Float32,Float64}}
     
     M_Bin::AbstractMatrix{T}  # big matrix for binary interactions
+    Binary_list::Vector{BinaryStruct} # list of binary interactions
+    Domain::Vector{Int64} # domain of the binary interaction in the state vector
+
+end
+
+"""
+    EmissionMatricesStruct()
+
+A struct for storing the big matrices associated with emission interactions and their corresponding reaction forces if applicable in the simulation.
+"""
+struct EmissionMatricesStruct{T<:Union{Float32,Float64}}
+    
     M_Emi::AbstractMatrix{T}  # big matrix for emission interactions
+    Emission_list::Vector{EmiStruct} # list of emission interactions
 
 end
 

@@ -56,12 +56,14 @@ struct CylindricalMag <: CoordinateType
     b2::Float64
 end
 
-# ForceType Structs: 
+# Force Structs: 
 struct CoordinateForce <: ForceType end
-struct SyncRadReact <: ForceType
+
+mutable struct SyncRadReact <: ForceType
     mode::ModeType
     B::Float64
 end
+
 struct ExB <: ForceType
     E0::Float64
     B0::Float64
@@ -74,11 +76,37 @@ struct BinaryStruct <: InteractionType
     name3::String
     name4::String
 end
-struct EmiStruct <: InteractionType
+
+"""
+    EmiStruct
+
+A struct to contain information pertaining to a particular emissive interaction. 
+# Fields
+- `name1::String`: name of incoming particle (absorbed)
+- `name2::String`: name of outgoing particle 1 (emitted)
+- `name3::String`: name of outgoing particle 2 (emitted)
+- `EmiName::String`: name of the emissive interaction e.g. "Sync" for synchrotron radiation
+- `Ext_sampled::Vector{Float64}`: vector of sampled values of the external parameter for which the emissive interaction matrices are built e.g. sampled magnetic field values for synchrotron radiation
+- `mode::ModeType`: mode of the emissive interaction e.g. "Iso", "Axi" or "Ani"
+- `Force::Bool`: if name1==name2 the emissive interaction may be treated as reactive force e.g. radiation reaction for synchrotron. In which case this force can be applied directly, within the emission matrix or separately as a regular force.
+- `Domain::Union{Vector{Int64},Nothing}`: vector of spatial indices (offset_space) referring to spatial sub-domains in which to apply the emissive interaction. If `nothing` the interaction will be applied to all spatial sub-domains.
+"""
+@kwdef struct EmiStruct <: InteractionType
     name1::String
     name2::String
     name3::String
     EmiName::String
-    Ext::Vector{Float64}
+    Ext_sampled::Vector{Float64}
     mode::ModeType
+    Force::Bool = true
+    Domain::Union{Vector{Int64},Nothing} = nothing
+end
+
+# ElectromagneticField Structs 
+abstract type ElectroMagneticFieldType end
+
+@kwdef struct Constant_ElectromagneticField <: ElectroMagneticFieldType
+    # Define the constant magnetic field with strength B in the z-direction
+    parameters::Vector{Float64} = [1e-5,0.0] # B (Tesla), E (Tesla*c)
+    ElectroMagneticFieldFunction::Function = Constant_ElectroMagneticFieldFunction
 end

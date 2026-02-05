@@ -39,7 +39,9 @@ module DiplodocusTransport
     include("GlobalToStateIndices.jl")
 
     # Collisions
-    include("Collisions/BuildBigMatrices.jl")
+    include("Collisions/CollisionDomains.jl")
+    include("Collisions/BuildBinaryMatrices.jl")
+    include("Collisions/BuildEmissionMatrices.jl")
     include("Collisions/LoadMatrices.jl")
     include("Collisions/EmissionCorrection.jl")
 
@@ -47,6 +49,7 @@ module DiplodocusTransport
     include("Fluxes/BuildFluxMatrices.jl")
     include("Fluxes/FluxFunctionsCoordinate.jl")
     include("Fluxes/FluxFunctionsForces.jl")
+    include("Fluxes/FluxFunctionsEmissionForces.jl")
 
     # Stepping 
     include("SteppingStructs.jl")

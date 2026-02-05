@@ -1,4 +1,4 @@
-function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,6},Parameters)
+function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractArray{Float64,6},Parameters,Ext_idx::Int64)
 
     (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext) = Parameters
 
@@ -6,7 +6,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
 
     if type == "Sync"
 
-        force = SyncRadReact(Ani(),Ext[1])
+        force = SyncRadReact(Ani(),Ext[Ext_idx])
         Momentum = PhaseSpace.Momentum
         Space = PhaseSpace.Space
         scheme = Momentum.scheme
@@ -99,7 +99,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Flo
             GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
         end
 
-        vol = VolFunction(space_coords,Grids,1,1,1,1)
+        vol = VolFunction(PhaseSpace,1,1,1,1)
 
         GainSumE3 *= vol
 

@@ -7,7 +7,9 @@ Function that builds the flux matrices associated with coordinate forces and reg
 - `debug_mode::Bool=false`: If true, all flux matrices are built and returned. If false, only the essential flux matrices are built and returned to save memory.
 - `Precision::DataType=Float32`: The data type for the elements of the flux matrices and volume elements. Defines the machine error of the simulation. Can be either `Float32` or `Float64`.
 """
-function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,Precision::DataType=Float32)
+function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false)
+
+    Precision::DataType = getfield(Main,Symbol("Precision"))
 
     @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
