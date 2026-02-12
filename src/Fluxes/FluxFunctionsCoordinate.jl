@@ -13,8 +13,8 @@
     function AFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         Grids = PhaseSpace.Grids
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
 
@@ -40,7 +40,7 @@
 
         # Evaluate the flux through the A surface i.e. surface of constant t
 
-        flux::Float64 = 0.0
+        flux::Float64 = 1.0
 
         if space_coords isa Cartesian && momentum_coords isa Spherical
 
@@ -69,8 +69,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
 
@@ -129,8 +129,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
 
@@ -187,6 +187,11 @@
     end
 
     function DFluxFunction(PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -245,7 +250,7 @@
     function VolFunction(PhaseSpace::PhaseSpaceStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
 
         Grids = PhaseSpace.Grids
-        space_coords = PhaseSpace.space_coords
+        space_coords = PhaseSpace.Space.space_coordinates
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -258,7 +263,7 @@
 
         # Evaluate the spacetime volume element
 
-        vol::Float64 = 0.0
+        vol::Float64 = 1.0
 
         if space_coords isa Cartesian
 
@@ -288,8 +293,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -343,8 +348,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -407,8 +412,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]

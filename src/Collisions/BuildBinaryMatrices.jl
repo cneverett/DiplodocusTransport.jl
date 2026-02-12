@@ -3,7 +3,7 @@
 
 Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BinaryMatricesStruct`.
 """
-function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryStruct},Domain::Vector{Int64},DataDirectory::String;loading_check::Bool=false,Bin_Mode::ModeType=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
+function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryStruct},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;loading_check::Bool=false,Bin_Mode::ModeType=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 

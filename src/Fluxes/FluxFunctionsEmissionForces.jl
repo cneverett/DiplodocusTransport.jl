@@ -11,8 +11,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -85,8 +85,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]
@@ -153,8 +153,8 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
-        space_coords = PhaseSpace.space_coords
-        momentum_coords = PhaseSpace.momentum_coords
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
         m = Grids.mass_list[species_idx]
         Z = Grids.charge_list[species_idx]

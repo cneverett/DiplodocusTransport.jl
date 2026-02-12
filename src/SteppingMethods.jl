@@ -19,6 +19,9 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
+    println(ForwardEuler.f)
+    println("t = $t")
+
     # reset arrays
     fill!(ForwardEuler.df,zero(eltype(ForwardEuler.df)))
     #fill!(Euler.temp,zero(eltype(Euler.temp)))
@@ -74,6 +77,11 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
     # Cr (CFL) condition check
     @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
     #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
+    println(ForwardEuler.df)
+    println(sum(ForwardEuler.df_Emi))
+    println(sum(ForwardEuler.df_Flux))
+    println(ForwardEuler.invAp_Flux)
+    #println(filter(isfinite,ForwardEuler.df_tmp))
     Cr = maximum(abs.(filter(isfinite,ForwardEuler.df_tmp)))
 
     if Verbose

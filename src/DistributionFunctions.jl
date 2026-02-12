@@ -209,7 +209,7 @@ function Distribution_Boosted(px::Float64,py::Float64,pz::Float64,Gamma::Float64
 
     f::Float64 = DistributionFunction(px_prime,py_prime,pz_prime,Parameters...;kwargs...)
 
-    f_Boosted = cw*f*E_prime/E + sw*pxpy_prime*f/E
+    f_Boosted::Float64 = f# = cw*f*E_prime/E + sw*pxpy_prime*f/E but all these terms cancel to just give f'(p'(p)) in the boosted frame, which is just f here.
 
     return f_Boosted
 

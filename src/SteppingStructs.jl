@@ -7,7 +7,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
     Emission_Interactions::Bool
 
     M_Bin::AbstractMatrix{T}
-    Bin_Domain::Vector{Int64}
+    Bin_Domain::Union{Vector{Int64},Nothing}
 
     M_Emi::AbstractMatrix{T}
 
@@ -43,9 +43,6 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self.Emission_Interactions = !isempty(EmiM.Emission_list)
 
         self.PhaseSpace = PhaseSpace
-        
-        Initial = convert(Precision,Initial)
-        Injection = convert(Precision,Injection)
 
         self.Bin_Domain = BinM.Domain
 
@@ -59,8 +56,8 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
             self.F_Flux = FluxM.F_Flux
             self.invAp_Flux = invAp_Flux
             self.Vol = FluxM.Vol
-            self.f = convert(Precision,Initial)
-            self.df_Inj = convert(Precision,Injection)
+            self.f = convert(Vector{Precision},Initial)
+            self.df_Inj = convert(Vector{Precision},Injection)
         elseif Backend isa CUDABackend
             self.M_Bin = CuArray(BinM.M_Bin)
             self.M_Emi = CuArray(EmiM.M_Emi)
@@ -85,7 +82,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
         n_space = x_num+y_num+z_num
         n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
-        if isempty(PhaseSpace.Binary_list) == false
+        if !isempty(BinM.Binary_list)
             self.M_Bin_Mul_Step = zeros(Backend,Precision,n_momentum,n_momentum)
             self.M_Bin_Mul_Step_reshape = reshape(self.M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
         end

@@ -7,7 +7,7 @@ Function that builds the flux matrices associated with coordinate forces and reg
 - `debug_mode::Bool=false`: If true, all flux matrices are built and returned. If false, only the essential flux matrices are built and returned to save memory.
 - `Precision::DataType=Float32`: The data type for the elements of the flux matrices and volume elements. Defines the machine error of the simulation. Can be either `Float32` or `Float64`.
 """
-function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false)
+function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType};debug_mode::Bool=false)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
@@ -22,9 +22,9 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false)
         Fill_B_Flux!(B_Flux,PhaseSpace)
         Fill_C_Flux!(C_Flux,PhaseSpace)
         Fill_D_Flux!(D_Flux,PhaseSpace)
-        Fill_I_Flux!(I_Flux,PhaseSpace) 
-        Fill_J_Flux!(J_Flux,PhaseSpace)
-        Fill_K_Flux!(K_Flux,PhaseSpace) 
+        Fill_I_Flux!(I_Flux,PhaseSpace,Forces) 
+        Fill_J_Flux!(J_Flux,PhaseSpace,Forces)
+        Fill_K_Flux!(K_Flux,PhaseSpace,Forces) 
         Fill_Vol!(Vol,PhaseSpace)
         @. F_Flux = I_Flux + J_Flux + K_Flux + B_Flux + C_Flux + D_Flux  
 
@@ -36,9 +36,9 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false)
         Fill_B_Flux!(F_Flux,PhaseSpace)
         Fill_C_Flux!(F_Flux,PhaseSpace)
         Fill_D_Flux!(F_Flux,PhaseSpace)
-        Fill_I_Flux!(F_Flux,PhaseSpace) 
-        Fill_J_Flux!(F_Flux,PhaseSpace)
-        Fill_K_Flux!(F_Flux,PhaseSpace) 
+        Fill_I_Flux!(F_Flux,PhaseSpace,Forces) 
+        Fill_J_Flux!(F_Flux,PhaseSpace,Forces)
+        Fill_K_Flux!(F_Flux,PhaseSpace,Forces) 
         Fill_Vol!(Vol,PhaseSpace)
 
         if isdiag(Ap_Flux)
@@ -193,11 +193,11 @@ function Fill_Vol!(Vol::Vector{T},PhaseSpace::PhaseSpaceStruct) where T<:Union{F
 end
 
 """
-    Fill_I_Flux!(I_Flux,PhaseSpace)
+    Fill_I_Flux!(I_Flux,PhaseSpace,Forces)
 
 Generates `I_Flux` terms.
 """
-function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -223,8 +223,6 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
     
     for name in 1:length(name_list)
 
@@ -322,11 +320,11 @@ function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
 end
 
 """
-    Fill_J_Flux!(J_Flux,PhaseSpace)
+    Fill_J_Flux!(J_Flux,PhaseSpace,Forces)
 
 Generates `J_Flux` terms.
 """
-function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -352,8 +350,6 @@ function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
     
     for name in 1:length(name_list)
 
@@ -454,7 +450,7 @@ end
 
 Generates `K_Flux` terms.
 """
-function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -480,8 +476,6 @@ function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStr
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
     
     for name in 1:length(name_list)
 

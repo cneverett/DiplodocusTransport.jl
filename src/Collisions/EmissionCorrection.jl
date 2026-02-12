@@ -46,8 +46,8 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
         I_plus = zero(Float64)
         I_minus = zero(Float64)
 
-        I_plus += IFluxFunction(force,space_coords,momentum_coords,Grids,Characteristic,name1_loc,"plus",1,1,1,1,px,py,pz)
-        I_minus -= IFluxFunction(force,space_coords,momentum_coords,Grids,Characteristic,name1_loc,"minus",1,1,1,1,px,py,pz)
+        I_plus += IFluxFunction(force,PhaseSpace,name1_loc,"plus",1,1,1,1,px,py,pz)
+        I_minus -= IFluxFunction(force,PhaseSpace,name1_loc,"minus",1,1,1,1,px,py,pz)
 
         # scheme
         if scheme == "upwind"

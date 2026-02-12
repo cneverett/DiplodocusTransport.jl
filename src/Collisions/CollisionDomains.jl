@@ -25,7 +25,7 @@ function CollisionDomain(PhaseSpace::PhaseSpaceStruct;x_dom=(-Inf, Inf),y_dom=(-
 
     offset_space_indices::Vector{Int64} = Int64[]
 
-    for x in 1:mx, y in 1:my, z in 1:mz
+    for x in 1:length(mx), y in 1:length(my), z in 1:length(mz)
         if (x_dom_low <= mx[x] <= x_dom_up) && (y_dom_low <= my[y] <= y_dom_up) && (z_dom_low <= mz[z] <= z_dom_up)
 
             off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1

@@ -158,9 +158,9 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
     y_num = Space.y_num
     z_num = Space.z_num
 
-    for i in eachindex(Emi_list)
+    for i in eachindex(Emission_list)
 
-        interaction = Emi_list[i]
+        interaction = Emission_list[i]
 
         name1::String = interaction.name1
         name2::String = interaction.name2
@@ -240,7 +240,7 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
         # apply energy correction
         if Emi_corrected
             for Ext_idx in eachindex(Ext_sampled)
-                EmissionCorrection!(PhaseSpace,GainMatrix3_All,Parameters,Ext_idx)
+                EmissionCorrection!(PhaseSpace,view(GainMatrix3_All,:,:,:,:,:,:,Ext_idx),Parameters,Ext_idx)
             end
         end
 
@@ -252,20 +252,22 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
 
             if isnothing(Domain) || in(off_space,Domain)
 
+                B_field = PhaseSpace.Grids.B_field[x,y,z]
+                Ext_idx = findmin(abs.(Ext_sampled .- B_field))[2]
+
                 if type=="Sync" && Force 
                     
-                    B_field = PhaseSpace.Grids.B_field[x,y,z]
-                    Ext_idx = findmin(abs.(Ext_sampled .- B_field))[2]
                     force = SyncRadReact(mode,Ext_sampled[Ext_idx])
-
                     Fill_I_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
                     Fill_J_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
                     Fill_K_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
 
                 end
 
+                GainMatrix3 = view(GainMatrix3_All,:,:,:,:,:,:,Ext_idx)
+
                 #= Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields =#
-                Fill_M_Emi!(M_Emi,PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3_All,mode=mode)
+                Fill_M_Emi!(M_Emi,PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode)
 
             else
                 continue

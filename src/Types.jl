@@ -103,9 +103,9 @@ A struct to contain information pertaining to a particular emissive interaction.
 end
 
 # ElectromagneticField Structs 
-abstract type ElectroMagneticFieldType end
+abstract type ElectroMagneticFieldStruct end
 
-@kwdef struct Constant_ElectromagneticField <: ElectroMagneticFieldType
+@kwdef struct Constant_ElectroMagneticField <: ElectroMagneticFieldStruct
     # Define the constant magnetic field with strength B in the z-direction
     parameters::Vector{Float64} = [1e-5,0.0] # B (Tesla), E (Tesla*c)
     ElectroMagneticFieldFunction::Function = Constant_ElectroMagneticFieldFunction

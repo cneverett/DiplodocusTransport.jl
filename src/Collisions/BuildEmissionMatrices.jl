@@ -116,9 +116,9 @@ function Fill_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStruct,names
 end
 
 
-function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStruct,GainMatrix::Array{Float64,6},name2::Int64,name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType) where F<:Union{Float32,Float64}
+function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractArray{Float64,6},name2::Int64,name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType) where F<:Union{Float32,Float64}
 
-    vol = VolFunction(PhaseSpace,x,y,z)
+    vol = VolFunction(PhaseSpace,1,x,y,z)
 
     dpy1 = PhaseSpace.Grids.dpy_list[name1]
     dpy2 = PhaseSpace.Grids.dpy_list[name2]
@@ -178,7 +178,7 @@ end
 
 function LossMatrix_to_M_Emi!(M_Emi::Matrix{F},PhaseSpace::PhaseSpaceStruct,LossMatrix::Array{Float64,2},name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType) where F<:Union{Float32,Float64}
 
-    vol = VolFunction(PhaseSpace,x,y,z)
+    vol = VolFunction(PhaseSpace,1,x,y,z)
 
     dpy1 = PhaseSpace.Grids.dpy_list[name1]
     dpz1 = PhaseSpace.Grids.dpz_list[name1]
@@ -489,11 +489,11 @@ function Fill_J_Emi!(J_Flux::AbstractMatrix{T},PhaseSpace::PhaseSpaceStruct,Forc
 end
 
 """
-    Fill_K_Flux!(K_Flux,PhaseSpace,Force,x_idx,y_idx,z_idx,species_idx)
+    Fill_K_Emi!(K_Flux,PhaseSpace,Force,x_idx,y_idx,z_idx,species_idx)
 
 Generates `K_Flux` terms in the Emission matrix `M_Emi` if the emission interaction has an associated `Force`.
 """
-function Fill_K_Flux!(K_Flux::AbstractMatrix{T},PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64) where T<:Union{Float32,Float64}
+function Fill_K_Emi!(K_Flux::AbstractMatrix{T},PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum

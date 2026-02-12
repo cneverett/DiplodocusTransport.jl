@@ -62,7 +62,11 @@ A struct for storing the space domain of the simulation.
 @kwdef struct SpaceStruct
 
     space_coordinates::CoordinateType = getfield(Main,Symbol("space_coords"))
-    scheme::String = getfield(Main,Symbol("space_scheme"))
+    scheme::String = try 
+            getfield(Main,Symbol("space_scheme"))
+        catch
+            "upwind"
+        end
 
     x_up::Float64   = getfield(Main,Symbol("x_up"))     
     x_low::Float64  = getfield(Main,Symbol("x_low"))
@@ -89,7 +93,11 @@ A struct for storing the momentum domain of the simulation.
 @kwdef struct MomentumStruct 
 
     momentum_coordinates::CoordinateType = getfield(Main,Symbol("momentum_coords"))
-    scheme::String = getfield(Main,Symbol("momentum_scheme"))
+    scheme::String = try 
+            getfield(Main,Symbol("momentum_scheme"))
+        catch
+            "upwind"
+        end
 
     px_up_list::Vector{Float64}     = getfield(Main,Symbol("px_up_list"))
     px_low_list::Vector{Float64}    = getfield(Main,Symbol("px_low_list"))
@@ -152,7 +160,7 @@ A struct for storing the grid values for each particle in the simulation.
     B_field::Array{Float64,3} # magnetic field values on the x,y,z grid
     E_field::Array{Float64,3} # electric field values on the x,y,z grid
 
-    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct,characteristic::CharacteristicStruct,ElectromagneticField::Union{ElectroMagneticFieldType,Nothing})
+    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct,characteristic::CharacteristicStruct,ElectroMagneticField::Union{ElectroMagneticFieldStruct,Nothing})
 
         self = new()
 
@@ -259,12 +267,13 @@ A struct for storing the grid values for each particle in the simulation.
 
             end
 
-            if !isnothing(ElectromagneticField)
+            if !isnothing(ElectroMagneticField)
                 # build electromagnetic field grids
-                parameters = ElectromagneticField.parameters
-                ElectromagneticFieldFunction = ElectromagneticField.ElectromagneticFieldFunction
-                self.B_field, self.E_field = ElectromagneticFieldFunction(space,momentum,characteristic,self,parameters)
+                parameters = ElectroMagneticField.parameters
+                ElectroMagneticFieldFunction = ElectroMagneticField.ElectroMagneticFieldFunction
+                self.B_field, self.E_field = ElectroMagneticFieldFunction(space,momentum,characteristic,self,parameters)
             else
+                println("here")
                 self.B_field = zeros(Float64,0,0,0)
                 self.E_field = zeros(Float64,0,0,0)
             end
@@ -288,20 +297,15 @@ A struct for storing the phase space of the simulation.
     Time::TimeStruct                    = TimeStruct()    
     Space::SpaceStruct                  = SpaceStruct()
     Momentum::MomentumStruct            = MomentumStruct()
-    Forces::Vector{ForceType}           = getfield(Main,Symbol("Forces"))
 
-    # interactions
-    Binary_list::Vector{BinaryStruct}   = getfield(Main,Symbol("Binary_list")) 
-    Emi_list::Vector{EmiStruct}         = getfield(Main,Symbol("Emi_list"))
-
-    ElectromagneticField::Union{ElectroMagneticFieldType,Nothing} = try 
-            getfield(Main,Symbol("ElectromagneticField"))
+    ElectroMagneticField::Union{ElectroMagneticFieldStruct,Nothing} = try 
+            getfield(Main,Symbol("ElectroMagneticField"))
         catch
             nothing 
         end
 
     # grids
-    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum,Characteristic,ElectromagneticField)
+    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum,Characteristic,ElectroMagneticField)
 
 end
 
@@ -315,7 +319,7 @@ struct BinaryMatricesStruct{T<:Union{Float32,Float64}}
     
     M_Bin::AbstractMatrix{T}  # big matrix for binary interactions
     Binary_list::Vector{BinaryStruct} # list of binary interactions
-    Domain::Vector{Int64} # domain of the binary interaction in the state vector
+    Domain::Union{Vector{Int64},Nothing} # domain of the binary interaction in the state vector
 
 end
 
