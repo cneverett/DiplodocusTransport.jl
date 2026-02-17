@@ -105,8 +105,8 @@ end
 # ElectromagneticField Structs 
 abstract type ElectroMagneticFieldStruct end
 
-@kwdef struct Constant_ElectroMagneticField <: ElectroMagneticFieldStruct
+@kwdef struct ElectroMagneticField_Constant <: ElectroMagneticFieldStruct
     # Define the constant magnetic field with strength B in the z-direction
     parameters::Vector{Float64} = [1e-5,0.0] # B (Tesla), E (Tesla*c)
-    ElectroMagneticFieldFunction::Function = Constant_ElectroMagneticFieldFunction
+    ElectroMagneticFieldFunction::Function = ElectroMagneticFieldFunction_Constant
 end

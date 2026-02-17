@@ -1,10 +1,10 @@
 """
-    Constant_ElectroMagneticField(PhaseSpace, x_index,y_index,z_index)
+    ElectroMagneticFieldFunction_Constant(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64})
 
 Returns the values of the magnetic and electric fields at a given spatial grid point (x_index,y_index,z_index) for a constant electromagnetic field with parameters defined by the `Constant_ElectroMagneticField` struct. For a constant magnetic field in the z-direction, this function returns the magnetic field strength B and zero electric field.
 
 """
-function Constant_ElectroMagneticFieldFunction(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64}) 
+function ElectroMagneticFieldFunction_Constant(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64}) 
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates

@@ -1,4 +1,4 @@
-function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Bool=false)
+function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
 
     if isdir(fileLocation) == false
         mkpath(fileLocation)
@@ -36,7 +36,7 @@ function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false
         dt = tr[i+1] - tr[i]
         t = tr[i]
 
-        method(dt0,dt,t,Verbose=Verbose)
+        method(dt0,dt,t,Verbose)
         #@. tmp += dtmp # now done in stepping method
 
         #Filter_Distribution!(tmp,PhaseSpace,filter_vector)

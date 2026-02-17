@@ -14,7 +14,7 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 
 
 """
-function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
+function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
@@ -72,20 +72,25 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
-    # Cr (CFL) condition check
-    @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
-    #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-    #println(ForwardEuler.df)
-    #println(sum(ForwardEuler.df_Emi))
-    #println(sum(ForwardEuler.df_Flux))
-    #println(ForwardEuler.invAp_Flux)
-    #println(filter(isfinite,ForwardEuler.df_tmp))
-    Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+    if Verbose == 1 || 2
+        # Cr (CFL) condition check
+        @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
+        #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
+        #println(ForwardEuler.df)
+        #println(sum(ForwardEuler.df_Emi))
+        #println(sum(ForwardEuler.df_Flux))
+        #println(ForwardEuler.invAp_Flux)
+        if sum(ForwardEuler.f) == 0.0
+            Cr = 0.0
+        else
+            Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+        end
 
-    if Verbose
-        print("\rCr = $Cr, t=$t, dt=$dt")
-    elseif Cr > 1.0
-        println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+        if Verbose == 1 && Cr > 1.0
+            println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+        elseif Verbose == 2
+            print("\rCr = $Cr, t=$t, dt=$dt")
+        end   
     end
 
     # Add injection term 
