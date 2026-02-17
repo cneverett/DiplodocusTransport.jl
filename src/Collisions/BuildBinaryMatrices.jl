@@ -24,6 +24,18 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
         LoadMatrices_Binary(M_Bin,Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected,Bin_sparse)
     end
 
+    size = Base.summarysize(M_Bin)
+
+    if size > 1e9
+        println("M_Bin is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("M_Bin is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("M_Bin is approx. $(size/1e3) KB in memory")
+    else
+        println("M_Bin is approx. $size bytes in memory")
+    end
+
     return BinaryMatricesStruct{Precision}(M_Bin,Binary_list,Domain)
 
 end
@@ -50,13 +62,13 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,Precisi
     if loading_check
 
         if size > 1e9
-            println("M_Bin will be approx. $(size/1e9) GB in memory")
+            println("M_Bin will be approx. $(size/1e9) GB in memory if dense")
         elseif size > 1e6
-            println("M_Bin will be approx. $(size/1e6) MB in memory")
+            println("M_Bin will be approx. $(size/1e6) MB in memory if dense")
         elseif size > 1e3
-            println("M_Bin will be approx. $(size/1e3) KB in memory")
+            println("M_Bin will be approx. $(size/1e3) KB in memory if dense")
         else
-            println("M_Bin will be approx. $size bytes in memory")
+            println("M_Bin will be approx. $size bytes in memory if dense")
         end
 
         #println("Do you want to proceed? (y/n)")
@@ -69,13 +81,13 @@ function Allocate_M_Bin(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,Precisi
 
         println("Building binary interaction matrix")
         if size > 1e9
-            println("M_Bin is approx. $(size/1e9) GB in memory")
+            println("M_Bin will be approx. $(size/1e9) GB in memory if dense")
         elseif size > 1e6
-            println("M_Bin is approx. $(size/1e6) MB in memory")
+            println("M_Bin will be approx. $(size/1e6) MB in memory if dense")
         elseif size > 1e3
-            println("M_Bin is approx. $(size/1e3) KB in memory")
+            println("M_Bin will be approx. $(size/1e3) KB in memory if dense")
         else
-            println("M_Bin is approx. $size bytes in memory")
+            println("M_Bin will be approx. $size bytes in memory if dense")
         end
 
     end

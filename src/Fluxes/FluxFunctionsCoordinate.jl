@@ -103,19 +103,40 @@
         flux::Float64 = c * T / L
 
         if space_coords isa Cartesian && momentum_coords isa Spherical
+
+            h1 = h1/pi
+            h0 = h0/pi
         
             flux *=  (t0 - t1) * (y0 - y1) * (z0 - z1)
-            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(h0) - sinpi(h1)) / 2
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            flux *= (t0 - t1) * x * (y0 - y1) * (z0 - z1) 
-            flux *= (1/2)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(sinpi(h0/pi) - sinpi(h1/pi))
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+
+            if α != 0.0
+                error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            h1 = h1/pi
+            h0 = h0/pi
+
+            flux *= 1/2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * x * (y0 - y1) * (z0 - z1)
+            flux *= (-u0 * sqrt(1 - u0^2) + u1 * sqrt(1 - u1^2) + 2*acot_mod(u0) - 2*acot_mod(u1)) * (sinpi(γ - h0) - sinpi(γ - h1))
+
+
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical 
 
-            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi)) * (sinpi(h0/pi) - sinpi(h1/pi)) / 2
-            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(h0/pi) - sinpi(h1/pi))
+            h1 = h1/pi
+            h0 = h0/pi
+            y1 = y1/pi
+            y0 = y0/pi
+
+            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) * (sinpi(h0) - sinpi(h1)) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(h0) - sinpi(h1))
 
         else
             error("B Flux function not implemented for this combination of co-ordinate systems.")
@@ -164,19 +185,35 @@
 
         if space_coords isa Cartesian && momentum_coords isa Spherical
 
+            h1 = h1/pi
+            h0 = h0/pi
+
             flux *=  (t0 - t1) * (x0 - x1) * (z0 - z1) 
-            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2 
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (cospi(h0) - cospi(h1)) / 2 
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            
-            flux *= (t0 - t1) * (x0 - x1) * (z0 - z1) 
-            flux *= (1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1))*(cospi(h0/pi) - cospi(h1/pi))
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+
+            if α != 0.0
+                error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            h1 = h1/pi
+            h0 = h0/pi
+
+            flux *= 1/2*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (-t0 + t1) * (-x0 + x1) * (-z0 + z1) 
+            flux *= ((-u0 * sqrt(1 - u0^2) + u1 * sqrt(1 - u1^2) + 2*acot_mod(u0) - 2*acot_mod(u1)) * cospi(β) * (cospi(γ - h0) - cospi(γ - h1)) + u0^2 * h0 * sinpi(β) - u1^2 * h0 * sinpi(β) - u0^2 * h1 * sinpi(β) + u1^2 * h1 * sinpi(β))
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical
 
+            h1 = h1/pi
+            h0 = h0/pi
+
             flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
-            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0/pi) - cospi(h1/pi)) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0) - cospi(h1)) / 2
 
         else 
             error("C Flux function not implemented for this combination of co-ordinate systems.")
@@ -231,8 +268,16 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            flux *= (t0 - t1) * (x0^2 - x1^2) / 2 * (y0 - y1) 
-            flux *= (1/2) * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1)
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+
+            if α != 0.0
+                error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            flux *= (1/4) * (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) 
+            flux *= ((-u0^2 + u1^2) * (h0 - h1) * cospi(β) + (-u0 * sqrt(1 - u0^2) + u1 * sqrt(1 - u1^2) + 2*acot_mod(u0) - 2*acot_mod(u1)) * (cospi(γ - h0) - cospi(γ - h1)) * sinpi(β))
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical
 
@@ -275,7 +320,10 @@
 
         elseif space_coords isa Spherical
 
-            vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0/pi) - cospi(y1/pi))
+            y1 = y1/pi
+            y0 = y0/pi
+
+            vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0) - cospi(y1))
 
         else
             error("Volume function not implemented for this co-ordinate system.")
@@ -351,6 +399,8 @@
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
+        m = Grids.mass_list[species_idx]
+
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
         x0 = Grids.xr[x_idx]
@@ -389,16 +439,25 @@
             β::Float64 = space_coords.β
             γ::Float64 = space_coords.γ
 
-            if α != 0.0 || γ != 0.0
-                error("JFluxFunction not implemented for non-zero α or γ in Cylindrical coordinates.")
+            if α != 0.0
+                error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
 
-            flux *= -(1/2)*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2))*(-t0 + t1)*(-x0 + x1)*(-y0 + y1)*(-z0 + z1)
-            flux *=  sinpi(β)*(sinpi(h0/pi) - sinpi(h1/pi))*(-2u*sqrt(1 - u^2)*sinpi(β) + (-1 + u^2)*cospi(β)*(sinpi(h0/pi) + sinpi(h1/pi)))
+            h1 = h1/pi
+            h0 = h0/pi
+
+            flux *= 1/2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1) 
+            flux *= cospi(γ - h0/2 - h1/2) * sinpi(β) * sinpi((h0 - h1)/2) * (-4u*sqrt(1 - u^2)*sinpi(β) -4(-1 + u^2)*cospi(β)*cospi((h0 - h1)/2)*sinpi(γ - h0/2 - h1/2))
+
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical
 
-            flux *= -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/(2pi)) * sinpi((h0 - h1)/(2pi)) * sinpi((y0 + y1 + h0 + h1)/(2pi))
+            h1 = h1/pi
+            h0 = h0/pi
+            y1 = y1/pi
+            y0 = y0/pi
+
+            flux *= -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/2) * sinpi((h0 - h1)/2) * sinpi((y0 + y1 + h0 + h1)/2)
 
         else
             error("JFluxFunction not implemented for this combination of co-ordinate systems.")
@@ -414,6 +473,8 @@
         Characteristic = PhaseSpace.Characteristic
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
+
+        m = Grids.mass_list[species_idx]
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -453,17 +514,23 @@
             β::Float64 = space_coords.β
             γ::Float64 = space_coords.γ
 
-            if α != 0.0 || γ != 0.0
-                error("KFluxFunction not implemented for non-zero α or γ in Cylindrical coordinates.")
+            if α != 0.0
+                error("KFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
 
-            flux *= (1/4)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(t0 - t1)*(x0 - x1)*(y0 - y1)*(z0 - z1)
-            flux *= (-3u0^2*cospi(β)*sinpi(β) + 3u1^2*cospi(β)*sinpi(β) + u0^2*cospi(β)*cospi(phi/pi)^2*sinpi(β) - u1^2*cospi(β)*cospi(phi/pi)^2*sinpi(β) + 4acot_mod(u1)*sinpi(phi/pi) - 4acot_mod(u0)*sinpi(phi/pi) - 2*u0*sqrt(1 - u0^2)*cospi(β)^2*sinpi(phi/pi) + 2u1*sqrt(1 - u1^2)*cospi(β)^2*sinpi(phi/pi) + 2u0*sqrt(1 - u0^2)*sinpi(β)^2*sinpi(phi/pi) - 2u1*sqrt(1 - u1^2)*sinpi(β)^2*sinpi(phi/pi) - u0^2*cospi(β)*sinpi(β)*sinpi(phi/pi)^2 + u1^2*cospi(β)*sinpi(β)*sinpi(phi/pi)^2)
+            h = h/pi
+
+            flux *= -(1/16) * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)
+            flux *= (6u0^2*sinpi(2*β) - 6u1^2*sinpi(2*β) - 8*asin(u0)*sinpi(γ - h) + 8*asin(u1)*sinpi(γ - h) - u0^2*sinpi(2*(β + γ - h)) + u1^2*sinpi(2*(β + γ - h)) - 4*u0*sqrt(1 - u0^2)*sinpi(2*β + γ - h) + 4*u1*sqrt(1 - u1^2)*sinpi(2*β + γ - h) - u0^2*sinpi(2*(β - γ + h)) + u1^2*sinpi(2*(β - γ + h)) + 4*u0*sqrt(1 - u0^2)*sinpi(2*β - γ + h) - 4*u1*sqrt(1 - u1^2)*sinpi(2*β - γ + h))
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical
 
+            h = h/pi
+            y1 = y1/pi
+            y0 = y0/pi
+
             flux *=  (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) / 2
-            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + asin(u1) * (cospi(phi/pi) * (sinpi(y0/pi) - sinpi(y1/pi)) + 2(cospi(y0/pi) - cospi(y1/pi)) * sinpi(phi/pi)) + asin(u0) * (cospi(phi/pi) * (-sinpi(y0/pi) + sinpi(y1/pi)) + 2(-cospi(y0/pi) + cospi(y1/pi))*sinpi(phi/pi))) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(h) * (sinpi(y0) - sinpi(y1)) + asin(u1) * (cospi(h) * (sinpi(y0) - sinpi(y1)) + 2(cospi(y0) - cospi(y1)) * sinpi(h)) + asin(u0) * (cospi(h) * (-sinpi(y0) + sinpi(y1)) + 2(-cospi(y0) + cospi(y1))*sinpi(h))) / 2
 
         else
             error("KFluxFunction not implemented for this combination of co-ordinate systems.")
@@ -480,13 +547,15 @@ function acot_mod(x)
     # ArcCot[(1+x)/Sqrt[1-x^2]]
     # this is actually just acos(x)/2
 
-    if x == -1
+    #=if x == -1
         return pi/2
     elseif x == 1
         return 0.0
     else
         return acot((1 + x)/sqrt(1 - x^2))
-    end
+    end=#
+
+    return acos(x)/2
 
 end
 

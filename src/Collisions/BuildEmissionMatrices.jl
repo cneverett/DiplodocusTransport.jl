@@ -24,6 +24,18 @@ function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vecto
         LoadMatrices_Emi(M_Emi,Emission_list,DataDirectory,PhaseSpace,Emi_corrected,Emi_sparse)
     end
 
+    size = Base.summarysize(M_Emi)
+
+    if size > 1e9
+        println("M_Emi is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("M_Emi is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("M_Emi is approx. $(size/1e3) KB in memory")
+    else
+        println("M_Emi is approx. $size bytes in memory")
+    end
+
     return EmissionMatricesStruct{Precision}(M_Emi,Emission_list)
 
 end
@@ -73,13 +85,13 @@ function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,Precisi
 
         println("Building emission interaction matrix")
         if size > 1e9
-            println("M_Emi is approx. $(size/1e9) GB in memory if dense")
+            println("M_Emi will be approx. $(size/1e9) GB in memory if dense")
         elseif size > 1e6
-            println("M_Emi is approx. $(size/1e6) MB in memory if dense")
+            println("M_Emi will be approx. $(size/1e6) MB in memory if dense")
         elseif size > 1e3
-            println("M_Emi is approx. $(size/1e3) KB in memory if dense")
+            println("M_Emi will be approx. $(size/1e3) KB in memory if dense")
         else
-            println("M_Emi is approx. $size bytes in memory if dense")
+            println("M_Emi will be approx. $size bytes in memory if dense")
         end
 
     end

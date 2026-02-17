@@ -19,8 +19,8 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
-    println(ForwardEuler.f)
-    println("t = $t")
+    #println(ForwardEuler.f)
+    #println("t = $t")
 
     # reset arrays
     fill!(ForwardEuler.df,zero(eltype(ForwardEuler.df)))
@@ -56,12 +56,10 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     # Add injection term 
     @. ForwardEuler.df += ForwardEuler.df_Inj
+
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
     if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
         ForwardEuler.df .*= dt / dt0
-        if ForwardEuler.Implicit
-            ForwardEuler.Jac .*= dt / dt0
-        end
     end
 
     # df_Flux due to time fluxes TODO: can remove this step if system is stationary therefore Ap=-Am. This will also allow more timestep control
@@ -77,12 +75,12 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
     # Cr (CFL) condition check
     @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
     #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-    println(ForwardEuler.df)
-    println(sum(ForwardEuler.df_Emi))
-    println(sum(ForwardEuler.df_Flux))
-    println(ForwardEuler.invAp_Flux)
+    #println(ForwardEuler.df)
+    #println(sum(ForwardEuler.df_Emi))
+    #println(sum(ForwardEuler.df_Flux))
+    #println(ForwardEuler.invAp_Flux)
     #println(filter(isfinite,ForwardEuler.df_tmp))
-    Cr = maximum(abs.(filter(isfinite,ForwardEuler.df_tmp)))
+    Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp))
 
     if Verbose
         print("\rCr = $Cr, t=$t, dt=$dt")

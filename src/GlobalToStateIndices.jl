@@ -53,7 +53,7 @@ function Location_Species_To_StateVector(StateVector::Vector{F},PhaseSpace::Phas
     off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
     off_name = offset[species_index]
 
-    n_space = x_num+y_num+z_num
+    n_space = x_num*y_num*z_num
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
 
     start_idx = n_momentum*off_space+off_name+1

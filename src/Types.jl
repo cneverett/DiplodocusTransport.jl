@@ -33,10 +33,10 @@ end
     α::Float64 = 0.0# != 0 not implemented
     β::Float64 = 0.0
     γ::Float64 = 0.0# != 0 not implemented 
-    xp_BC::BoundaryType = Periodic()
-    xm_BC::BoundaryType = Periodic()
-    yp_BC::BoundaryType = Closed()
-    ym_BC::BoundaryType = Closed()
+    xp_BC::BoundaryType = Closed()
+    xm_BC::BoundaryType = Closed()
+    yp_BC::BoundaryType = Periodic()
+    ym_BC::BoundaryType = Periodic()
     zp_BC::BoundaryType = Periodic()
     zm_BC::BoundaryType = Periodic() 
 end

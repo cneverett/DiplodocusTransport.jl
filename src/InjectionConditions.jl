@@ -52,7 +52,7 @@ function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceS
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_UnBoostedPowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,Gamma=Gamma,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_BoostedPowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,Gamma=Gamma,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
