@@ -246,6 +246,8 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
 
         name_locs = (name1_loc,name2_loc,name3_loc)
 
+        println("Filling M_Emi for $type emission: $(name1) -> $(name2) + $(name3)")
+
         for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
             off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
@@ -264,9 +266,9 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
 
                 end
 
-                GainMatrix3 = view(GainMatrix3_All,:,:,:,:,:,:,Ext_idx)
+                GainMatrix3 = @view(GainMatrix3_All[:,:,:,:,:,:,Ext_idx])
 
-                #= Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields =#
+                # Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields
                 Fill_M_Emi!(M_Emi,PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode)
 
             else

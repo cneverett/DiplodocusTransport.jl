@@ -8,6 +8,9 @@ function Solve(method::SteppingMethodType;save_steps::Int=1,progress::Bool=false
     Time = PhaseSpace.Time
     Grids = PhaseSpace.Grids
 
+    # reset method.f to initial condition
+    method.f .= method.f_init
+
     f = copy(method.f_init)
     tr = Grids.tr
     dt0 = tr[2] - tr[1]

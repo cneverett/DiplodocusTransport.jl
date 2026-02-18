@@ -273,7 +273,6 @@ A struct for storing the grid values for each particle in the simulation.
                 ElectroMagneticFieldFunction = ElectroMagneticField.ElectroMagneticFieldFunction
                 self.B_field, self.E_field = ElectroMagneticFieldFunction(space,momentum,characteristic,self,parameters)
             else
-                println("here")
                 self.B_field = zeros(Float64,0,0,0)
                 self.E_field = zeros(Float64,0,0,0)
             end

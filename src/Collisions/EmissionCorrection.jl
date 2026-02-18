@@ -23,93 +23,93 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
         dE1 = dE_list[name1_loc]
         dE3 = dE_list[name3_loc]
 
-        for px in axes(GainMatrix3, 4), py in axes(GainMatrix3,5), pz in axes(GainMatrix3,6)
+        for px in axes(GainMatrix3, 4), py in axes(GainMatrix3,5), pz in axes(GainMatrix3,6) # loop over p1 states
         
-        GainSumE3 = zero(Float64)
-        LossSumE1 = zero(Float64)
+            GainSumE3 = zero(Float64)
+            LossSumE1 = zero(Float64)
 
-        pxp = px+1
-        pxm = px-1
+            pxp = px+1
+            pxm = px-1
 
-        px_num = px1_num
+            px_num = px1_num
 
-        #= Boundary Conditions:
-            Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
-        =#
-        if pxp > px_num
-            pxp = px_num
-        end
-        if pxm < 1
-            pxm = 1
-        end
-
-        I_plus = zero(Float64)
-        I_minus = zero(Float64)
-
-        I_plus += IFluxFunction(force,PhaseSpace,name1_loc,"plus",1,1,1,1,px,py,pz)
-        I_minus -= IFluxFunction(force,PhaseSpace,name1_loc,"minus",1,1,1,1,px,py,pz)
-
-        # scheme
-        if scheme == "upwind"
-            if sign(I_plus) == 1
-                i_plus_right = 0
-                i_plus_left = 1
-            else
-                i_plus_right = 1
-                i_plus_left = 0
+            #= Boundary Conditions:
+                Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
+            =#
+            if pxp > px_num
+                pxp = px_num
             end
-            if sign(I_minus) == 1
-                i_minus_right = 1
-                i_minus_left = 0
-            else
-                i_minus_right = 0
-                i_minus_left = 1
+            if pxm < 1
+                pxm = 1
             end
-        elseif scheme == "central"
-            i_plus_right = 0.5
-            i_plus_left = 0.5
-            i_minus_right = 0.5
-            i_minus_left = 0.5
-        else
-            error("Unknown scheme")
-        end
 
-        
-        #=
-        ________________________________
-        a |  I_m   | I_m+I_p | I_p    |
-        __|________|_________|________|_
-                b-1       b        b+1  
-        =#
+            I_plus = zero(Float64)
+            I_minus = zero(Float64)
 
-        Mom_norm = MomentumSpaceNorm(Grids,name1_loc,px,py,pz)
+            I_plus += IFluxFunction(force,PhaseSpace,name1_loc,"plus",1,1,1,1,px,py,pz)
+            I_minus -= IFluxFunction(force,PhaseSpace,name1_loc,"minus",1,1,1,1,px,py,pz)
 
-        # normalised fluxes
-        if px != pxp
-            #LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp]
-            LossSumE1 += convert(Float64,(I_plus * i_plus_left) / Mom_norm)  * (dE1[px]-dE1[px+1])
-        end
-        if px != pxm
-            LossSumE1 += convert(Float64,(I_minus * i_minus_right) / Mom_norm) * (dE1[px]-dE1[px-1])
-            #LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
-        end
+            # scheme
+            if scheme == "upwind"
+                if sign(I_plus) == 1
+                    i_plus_right = 0
+                    i_plus_left = 1
+                else
+                    i_plus_right = 1
+                    i_plus_left = 0
+                end
+                if sign(I_minus) == 1
+                    i_minus_right = 1
+                    i_minus_left = 0
+                else
+                    i_minus_right = 0
+                    i_minus_left = 1
+                end
+            elseif scheme == "central"
+                i_plus_right = 0.5
+                i_plus_left = 0.5
+                i_minus_right = 0.5
+                i_minus_left = 0.5
+            else
+                error("Unknown scheme")
+            end
 
-        # calculate total rate of energy gain from p1 state
-        for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
-            GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
-        end
+            
+            #=
+            ________________________________
+            a |  I_m   | I_m+I_p | I_p    |
+            __|________|_________|________|_
+                    b-1       b        b+1  
+            =#
 
-        vol = VolFunction(PhaseSpace,1,1,1,1)
+            Mom_norm = MomentumSpaceNorm(Grids,name1_loc,px,py,pz)
 
-        GainSumE3 *= vol
+            # normalised fluxes
+            if px != pxp
+                #LossSumE1 += convert(Float64,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxp]
+                LossSumE1 += convert(Float64,(I_plus * i_plus_left) / Mom_norm)  * (dE1[px]-dE1[px+1])
+            end
+            if px != pxm
+                LossSumE1 += convert(Float64,(I_minus * i_minus_right) / Mom_norm) * (dE1[px]-dE1[px-1])
+                #LossSumE1 += convert(Float64,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) * dE1[pxm]
+            end
 
+            # calculate total rate of energy gain from p1 state
+            for p3 in axes(GainMatrix3,1), u3 in axes(GainMatrix3,2), h3 in axes(GainMatrix3,3) 
+                GainSumE3 += GainMatrix3[p3,u3,h3,px,py,pz] * dE3[p3]
+            end
 
-        if GainSumE3 != 0e0
-            Correction = (LossSumE1)/GainSumE3
-            @view(GainMatrix3[:,:,:,px,py,pz]) .= Correction * @view(GainMatrix3[:,:,:,px,py,pz])
-        end
+            vol = VolFunction(PhaseSpace,1,1,1,1)
 
-        end
+            GainSumE3 *= vol
+
+            if GainSumE3 != 0e0
+                Correction = (LossSumE1)/GainSumE3
+                println("$Correction")
+                @view(GainMatrix3[:,:,:,px,py,pz]) .= Correction * @view(GainMatrix3[:,:,:,px,py,pz])
+            end
+
+        end # loop over p1 states
 
     else
         return nothing

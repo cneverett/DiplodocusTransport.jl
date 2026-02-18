@@ -5,6 +5,214 @@
 
 =#
 
+# ======= IJK GradB Inv Z Decay Cylindrical ============== #
+
+    function IFluxFunction(force::GradBInvZDecay,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
+
+        EMField = PhaseSpace.ElectroMagneticField
+        @assert EMField isa ElectroMagneticField_InvZDecay "ElectroMagneticField must be of type ElectroMagneticField_InvZDecay for GradBInvZDecay force."
+        @assert space_coords isa Cylindrical "Space coordinates must be cylindrical for GradBInvZDecay force."
+
+        B0 = EMField.parameters[1]
+        L0 = EMField.parameters[2]
+
+        m = Grids.mass_list[species_idx]
+        Z = Grids.charge_list[species_idx]
+
+        t0 = Grids.tr[t_idx]
+        t1 = Grids.tr[t_idx+1]
+        x0 = Grids.xr[x_idx]
+        x1 = Grids.xr[x_idx+1]
+        y0 = Grids.yr[y_idx]
+        y1 = Grids.yr[y_idx+1]
+        z0 = Grids.zr[z_idx]
+        z1 = Grids.zr[z_idx+1]
+        if plus_minus == "plus"
+            p = Grids.pxr_list[species_idx][px_idx+1]
+        elseif plus_minus == "minus"
+            p = Grids.pxr_list[species_idx][px_idx]
+        else
+            error("plus_minus string not recognised.")
+        end
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
+
+        # Evaluate the flux through the I surface i.e. surface of constant p
+
+        # fluxScale must have no dimensions
+        T = Characteristic.CHAR_time
+        L = Characteristic.CHAR_length
+        c = CONST_c
+
+        flux::Float64 = c * T / L
+
+        if m == 0 || Z == 0
+            flux *= 0e0
+        else
+            
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+            if α != 0.0
+                error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            # momentum part (independent of space)
+            flux *= -(1/(16(m^2 + p^2)^(3/2))) * c^2 * m^2 * p^2 * (2(u0 - u1)*(u0 + u1)*(-2 + u0^2 + u1^2)*(h0 - h1)*cospi(β) + 2(u0*sqrt(1 - u0^2)*(-5 + 2u0^2) + u1*(5 - 2u1^2)*sqrt(1 - u1^2) - 3asin(u0) + 3asin(u1))*sinpi(β)*sinpi((h0 - h1)/(2pi))*sinpi(γ - h0/(2pi) - h1/(2pi)))
+
+            # space part (independent of momentum)
+            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1) * (log(z0) - log(z1))
+        end
+
+        return flux
+
+    end
+
+    function JFluxFunction(force::GradBInvZDecay,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+        
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
+
+        EMField = PhaseSpace.ElectroMagneticField
+        @assert EMField isa ElectroMagneticField_InvZDecay "ElectroMagneticField must be of type ElectroMagneticField_InvZDecay for GradBInvZDecay force."
+        @assert space_coords isa Cylindrical "Space coordinates must be cylindrical for GradBInvZDecay force."
+
+        B0 = EMField.parameters[1]
+        L0 = EMField.parameters[2]
+
+        m = Grids.mass_list[species_idx]
+        Z = Grids.charge_list[species_idx]
+
+        t0 = Grids.tr[t_idx]
+        t1 = Grids.tr[t_idx+1]
+        x0 = Grids.xr[x_idx]
+        x1 = Grids.xr[x_idx+1]
+        y0 = Grids.yr[y_idx]
+        y1 = Grids.yr[y_idx+1]
+        z0 = Grids.zr[z_idx]
+        z1 = Grids.zr[z_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        if plus_minus == "plus"
+            u = Grids.pyr_list[species_idx][py_idx+1]
+        elseif plus_minus == "minus"
+            u = Grids.pyr_list[species_idx][py_idx]
+        else
+            error("plus_minus string not recognised.")
+        end
+        h0 = Grids.pzr_list[species_idx][pz_idx]
+        h1 = Grids.pzr_list[species_idx][pz_idx+1]
+
+        # Evaluate the flux through the J surface i.e. surface of constant u
+
+        # fluxScale must have no dimensions
+        T = Characteristic.CHAR_time
+        L = Characteristic.CHAR_length
+        c = CONST_c
+
+        flux::Float64 = c * T / L
+
+        if m == 0 || Z == 0
+            flux *= 0e0
+        else
+            
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+            if α != 0.0
+                error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            # momentum part (independent of space)
+            flux *= (c^2 * m^2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-1 + u^2) * ((-1 + u^2) * (h0 - h1) * cospi(β) + u * sqrt(1 - u^2) * (cospi(γ - h0/pi) - cospi(γ - h1/pi)) * sinpi(β)))/(2 * sqrt((m^2 + p0^2) * (m^2 + p1^2)))
+
+            # space part (independent of momentum)
+            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1) * (log(z0) - log(z1))
+            
+        end
+
+        return flux
+
+    end
+
+    function KFluxFunction(force::SyncRadReact,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+        space_coords = PhaseSpace.Space.space_coordinates
+        momentum_coords = PhaseSpace.Momentum.momentum_coordinates
+
+        EMField = PhaseSpace.ElectroMagneticField
+        @assert EMField isa ElectroMagneticField_InvZDecay "ElectroMagneticField must be of type ElectroMagneticField_InvZDecay for GradBInvZDecay force."
+        @assert space_coords isa Cylindrical "Space coordinates must be cylindrical for GradBInvZDecay force."
+
+        B0 = EMField.parameters[1]
+        L0 = EMField.parameters[2]        
+
+        m = Grids.mass_list[species_idx]
+        Z = Grids.charge_list[species_idx]
+
+        t0 = Grids.tr[t_idx]
+        t1 = Grids.tr[t_idx+1]
+        x0 = Grids.xr[x_idx]
+        x1 = Grids.xr[x_idx+1]
+        y0 = Grids.yr[y_idx]
+        y1 = Grids.yr[y_idx+1]
+        z0 = Grids.zr[z_idx]
+        z1 = Grids.zr[z_idx+1]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
+        u0 = Grids.pyr_list[species_idx][py_idx]
+        u1 = Grids.pyr_list[species_idx][py_idx+1]
+        if plus_minus == "plus"
+            h = Grids.pzr_list[species_idx][pz_idx+1]
+        elseif plus_minus == "minus"
+            h = Grids.pzr_list[species_idx][pz_idx]
+        else
+            error("plus_minus string not recognised.")
+        end
+
+        # Evaluate the flux through the K surface i.e. surface of constant phi
+
+        # fluxScale must have no dimensions
+        T = Characteristic.CHAR_time
+        L = Characteristic.CHAR_length
+        c = CONST_c
+
+        flux::Float64 = c * T / L
+
+        if m == 0 || Z == 0
+            flux *= 0e0
+        else
+            
+            α::Float64 = space_coords.α
+            β::Float64 = space_coords.β
+            γ::Float64 = space_coords.γ
+            if α != 0.0
+                error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
+            end
+
+            # momentum part (independent of space)
+            flux *= -((c^2*m^2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))  * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cospi(γ - h/pi) * sinpi(β))/(4 * sqrt((m^2 + p0^2) * (m^2 + p1^2))))
+
+            # space part (independent of momentum)
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (log(z0) - log(z1))
+        end
+
+        return flux
+
+    end
+
+
 # ================= IJK ExB Cartesian ==================== #
 
     function IFluxFunction(force::ExB,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
@@ -189,7 +397,7 @@
 # ======================================================== #
 
 
-## TODO: Update this function for aximuthal B and radial E to meet standards of functions above
+# TODO: Update this function for aximuthal B and radial E to meet standards of functions above
 # =============== IJK ExB Cylindrical ================== #
 
     function IFluxFunction(force::ExB,space_coords::Cylindrical,momentum_coords::Spherical,Grids::GridsStruct,Characteristic::CharacteristicStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)

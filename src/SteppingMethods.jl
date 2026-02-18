@@ -25,9 +25,6 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
     # reset arrays
     fill!(ForwardEuler.df,zero(eltype(ForwardEuler.df)))
     #fill!(Euler.temp,zero(eltype(Euler.temp)))
-    if ForwardEuler.Implicit
-        fill!(ForwardEuler.Jac,zero(eltype(ForwardEuler.Jac)))
-    end
         
     # create df_Bin due to binary interactions
     if ForwardEuler.Binary_Interactions
@@ -72,27 +69,50 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
 
     @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
-    if Verbose == 1 || 2
+    if Verbose == 1 || Verbose == 2 || Verbose == 3
+
+        Cr = 0.0
+        Cr_Bin = 0.0
+        Cr_Emi = 0.0
+        Cr_Flux = 0.0
+
         # Cr (CFL) condition check
-        @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f 
-        #replace!(ForwardEuler.df_tmp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-        #println(ForwardEuler.df)
-        #println(sum(ForwardEuler.df_Emi))
-        #println(sum(ForwardEuler.df_Flux))
-        #println(ForwardEuler.invAp_Flux)
-        if sum(ForwardEuler.f) == 0.0
-            Cr = 0.0
-        else
-            Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp))
-        end
+        if sum(ForwardEuler.f) != 0.0
+
+            if Verbose == 3
+        
+                # Binary CFL
+                if ForwardEuler.Binary_Interactions
+                    @. ForwardEuler.df_tmp = ForwardEuler.df_Bin / ForwardEuler.f 
+                    Cr_Bin = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+                end
+
+                # Emission CFL
+                if ForwardEuler.Emission_Interactions
+                    @. ForwardEuler.df_tmp = ForwardEuler.df_Emi / ForwardEuler.f 
+                    Cr_Emi = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+                end
+
+                # Flux CFL
+                @. ForwardEuler.df_tmp = -ForwardEuler.df_Flux / ForwardEuler.f 
+                Cr_Flux = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+
+            end
+
+            @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f
+            Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp)) 
+
+        end   
 
         if Verbose == 1 && Cr > 1.0
             println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
         elseif Verbose == 2
-            print("\rCr = $Cr, t=$t, dt=$dt")
-        end   
+            println("\rCr = $Cr, t=$t, dt=$dt")
+        elseif Verbose == 3
+            println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t, dt=$dt")
+        end
     end
-
+    
     # Add injection term 
     if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
         @. ForwardEuler.df += ForwardEuler.df_Inj * dt / dt0

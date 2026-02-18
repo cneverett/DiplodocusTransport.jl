@@ -8,10 +8,6 @@ function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vecto
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
     @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
-    
-    if Emi_sparse == true && Emi_corrected == false
-        error("Emi_sparse=true requires Emi_corrected=true")
-    end
 
     if isempty(Emission_list)
         if Emi_sparse
@@ -139,10 +135,10 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
     
     for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1)
 
-        val = 0.0
-        w = 1.0
-
         if mode isa Iso
+            
+            val = 0.0
+            w = 1.0
 
             # average over incoming and outgoing u and phi angles (py,pz)
             for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
@@ -156,6 +152,9 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
         for py1 in axes(GainMatrix,5), py2 in axes(GainMatrix,2)
             
             if mode isa Axi
+                
+                val = 0.0
+                w = 1.0
 
                 # average over incoming and outgoing phi angles (pz)
                 for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
@@ -170,13 +169,15 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
 
                 if mode isa Ani 
 
+                    val = 0.0
+                    w = 1.0
+
                     val += GainMatrix[px2,py2,pz2,px1,py1,pz1]
 
                 end
 
                 a = GlobalIndices_To_StateIndex(x,y,z,px2,py2,pz2,name2,PhaseSpace)
                 b = GlobalIndices_To_StateIndex(x,y,z,px1,py1,pz1,name1,PhaseSpace)
-
 
                 M_Emi[a,b] += convert(F,val*w*vol) 
 
@@ -196,11 +197,11 @@ function LossMatrix_to_M_Emi!(M_Emi::Matrix{F},PhaseSpace::PhaseSpaceStruct,Loss
     dpz1 = PhaseSpace.Grids.dpz_list[name1]
 
     for px1 in axes(LossMatrix,1)
-        
-        val = 0.0 
-        w = 1.0 
 
         if mode isa Iso
+
+            val = 0.0 
+            w = 1.0 
 
             # average over incoming and outgoing u and phi angles (py,pz)
             for py1 in axes(LossMatrix,2), pz1 in axes(LossMatrix,3)
@@ -215,6 +216,9 @@ function LossMatrix_to_M_Emi!(M_Emi::Matrix{F},PhaseSpace::PhaseSpaceStruct,Loss
 
             if mode isa Axi
 
+                val = 0.0 
+                w = 1.0 
+
                 # average over incoming phi angles (pz)
                 for pz1 in axes(LossMatrix,3)
                     val += LossMatrix[px1,py1,pz1] * dpz1[pz1]
@@ -227,6 +231,9 @@ function LossMatrix_to_M_Emi!(M_Emi::Matrix{F},PhaseSpace::PhaseSpaceStruct,Loss
             for pz1 in axes(LossMatrix,3)
 
                 if mode isa Ani 
+
+                    val = 0.0 
+                    w = 1.0 
 
                     val += LossMatrix[px1,py1,pz1]
 
@@ -339,7 +346,6 @@ function Fill_I_Emi!(I_Flux::AbstractMatrix{T},PhaseSpace::PhaseSpaceStruct,Forc
         else
             error("Unknown scheme")
         end
-
         
         #=
         ________________________________

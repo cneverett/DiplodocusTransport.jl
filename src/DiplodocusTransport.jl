@@ -10,7 +10,7 @@ module DiplodocusTransport
     export BuildBinaryMatrices, BuildEmissionMatrices, BuildFluxMatrices
     export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_BoostedPowerLaw!, Initial_BlackBody!
     export Initialise_Injection_Condition, Injection_Constant!, Injection_MaxwellJuttner!, Injection_PowerLaw!, Injection_BoostedPowerLaw!, Injection_BlackBody!
-    export ElectroMagneticField_Constant
+    export ElectroMagneticField_Constant, ElectroMagneticField_InvZDecay
     export CollisionDomain
     export Solve, ForwardEulerStruct
     export SolutionFileLoad

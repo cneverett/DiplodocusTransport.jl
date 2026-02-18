@@ -63,10 +63,11 @@ mutable struct SyncRadReact <: ForceType
     mode::ModeType
     B::Float64
 end
-
 struct ExB <: ForceType
     E0::Float64
     B0::Float64
+end
+struct GradBInvZDecay <: ForceType
 end
 
 # InteractionType definitions
@@ -109,4 +110,10 @@ abstract type ElectroMagneticFieldStruct end
     # Define the constant magnetic field with strength B in the z-direction
     parameters::Vector{Float64} = [1e-5,0.0] # B (Tesla), E (Tesla*c)
     ElectroMagneticFieldFunction::Function = ElectroMagneticFieldFunction_Constant
+end
+
+@kwdef struct ElectroMagneticField_InvZDecay <: ElectroMagneticFieldStruct
+    # Define the inverse z-decaying magnetic field with strength B0 in the z-direction
+    parameters::Vector{Float64} = [1e-5,1.0] # B0 (Tesla/code units), L0 (code units)
+    ElectroMagneticFieldFunction::Function = ElectroMagneticFieldFunction_InvZDecay
 end
