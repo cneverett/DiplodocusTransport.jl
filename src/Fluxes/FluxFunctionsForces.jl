@@ -137,14 +137,14 @@
 
             # space part (independent of momentum)
             flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1) * (log(z0) - log(z1))
-            
+
         end
 
         return flux
 
     end
 
-    function KFluxFunction(force::SyncRadReact,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function KFluxFunction(force::GradBInvZDecay,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
