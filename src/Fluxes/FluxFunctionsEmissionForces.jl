@@ -43,7 +43,7 @@
         B = force.B
 
         # fluxScale must have no dimensions
-        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
+        invTc = (Z^4*B^2)/(CONST_μ0*m^3*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c) 
         T = Characteristic.CHAR_time
         
         flux::Float64 = T*invTc
@@ -53,13 +53,13 @@
         else
             # momentum part (independent of space)
             if typeof(mode) == Ani
-                flux *= 1/(3*m^2)
+                flux *= 1/(3*m)
                 flux *= p*sqrt(m^2 + p^2) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (h0 - h1)
             elseif typeof(mode) == Axi # average over azimuthal angles
-                flux *= 1/(3*m^2)
+                flux *= 1/(3*m)
                 flux *= p*sqrt(m^2 + p^2) * (-3*u0 + u0^3 + 3*u1 - u1^3) * (h0 - h1)
             elseif typeof(mode) == Iso # averaged force over all angles
-                flux *= -2/(3*m^2)
+                flux *= -2/(3*m)
                 flux *= p*sqrt(m^2 + p^2) * (h0 - h1) * (u0 - u1)
             else
                 error("Synchrotron mode not recognised.")
@@ -116,7 +116,7 @@
         mode = force.mode
         B = force.B
 
-        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)
+        invTc = (Z^4*B^2)/(CONST_μ0*m^3*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)
         T = Characteristic.CHAR_time
 
         flux::Float64 = T*invTc
@@ -126,9 +126,9 @@
         else
             # momentum part (independent of space)
             if typeof(mode) == Ani
-                flux *= (1/2) * u * (-1 + u^2) * (h0 - h1) * (-2asinh(p0/m)+2asinh(p1/m))
+                flux *= (1/2) * m * u * (-1 + u^2) * (h0 - h1) * (-2asinh(p0/m)+2asinh(p1/m))
             elseif typeof(mode) == Axi
-                flux *= (1/2) * u * (-1 + u^2) * (h0 - h1) * (-2asinh(p0/m)+2asinh(p1/m))
+                flux *= (1/2) * m * u * (-1 + u^2) * (h0 - h1) * (-2asinh(p0/m)+2asinh(p1/m))
             elseif typeof(mode) == Iso
                 flux *= 0e0
             end
@@ -184,7 +184,7 @@
         mode = force.mode
         B = force.B
 
-        invTc = (Z^4*B^2)/(CONST_μ0*m^2*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)  
+        invTc = (Z^4*B^2)/(CONST_μ0*m^3*CONST_mEle*CONST_c^2) * CONST_σT * CONST_c # old normalisation / (CONST_σT*CONST_c)  
         T = Characteristic.CHAR_time
 
         flux::Float64 = T*invTc

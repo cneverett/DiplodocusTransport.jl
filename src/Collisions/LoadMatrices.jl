@@ -257,6 +257,8 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
                 B_field = PhaseSpace.Grids.B_field[x,y,z]
                 Ext_idx = findmin(abs.(Ext_sampled .- B_field))[2]
 
+                println("x: $x, y: $y, z: $z, Ext_idx: $Ext_idx, Ext_val: $(Ext_sampled[Ext_idx])")
+
                 if type=="Sync" && Force 
                     
                     force = SyncRadReact(mode,Ext_sampled[Ext_idx])

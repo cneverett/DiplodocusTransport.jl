@@ -34,5 +34,6 @@ function CollisionDomain(PhaseSpace::PhaseSpaceStruct;x_dom=(-Inf, Inf),y_dom=(-
         end
     end
 
+    return offset_space_indices
 
 end

@@ -36,7 +36,7 @@ function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp/dt0)
+    @. Injection += rate_Inj * (tmp*dt0)
 
     return nothing
 end
@@ -57,7 +57,7 @@ function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceS
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp/dt0)
+    @. Injection += rate_Inj * (tmp*dt0)
 
     return nothing
 
@@ -79,7 +79,7 @@ function Injection_Constant!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp/dt0)
+    @. Injection += rate_Inj * (tmp*dt0)
 
     return nothing
 end
@@ -100,7 +100,7 @@ function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceSt
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp/dt0)
+    @. Injection += rate_Inj * (tmp*dt0)
 
     return nothing
 end
@@ -121,7 +121,7 @@ function Injection_BlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,
     tr = PhaseSpace.Grids.tr
     dt0 = tr[2] - tr[1]
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp/dt0)
+    @. Injection += rate_Inj * (tmp*dt0)
 
     return nothing
 end

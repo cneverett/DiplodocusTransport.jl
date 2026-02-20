@@ -13,7 +13,7 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
 
     @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
-    (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux) = Allocate_Flux(PhaseSpace,Precision,debug_mode)
+    (Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux) = Allocate_Flux(PhaseSpace,Precision,debug_mode)
 
     if debug_mode
 
@@ -33,26 +33,27 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
         println("Filling K flux matrix...")
         Fill_K_Flux!(K_Flux,PhaseSpace,Forces) 
         Fill_Vol!(Vol,PhaseSpace)
-        println("Filling F flux matrix...")
-        @. F_Flux = I_Flux + J_Flux + K_Flux + B_Flux + C_Flux + D_Flux 
+        println("Filling X and P flux matrix...")
+        @. P_Flux = I_Flux + J_Flux + K_Flux
+        @. X_Flux = B_Flux + C_Flux + D_Flux 
         
     else
 
         # Fill flux matrices
         println("Filling A flux matrices...")
         Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
-        println("Filling B direction in F flux matrix...")
-        Fill_B_Flux!(F_Flux,PhaseSpace)
-        println("Filling C direction in F flux matrix...")
-        Fill_C_Flux!(F_Flux,PhaseSpace)
-        println("Filling D direction in F flux matrix...")
-        Fill_D_Flux!(F_Flux,PhaseSpace)
-        println("Filling I direction in F flux matrix...")
-        Fill_I_Flux!(F_Flux,PhaseSpace,Forces) 
-        println("Filling J direction in F flux matrix...")
-        Fill_J_Flux!(F_Flux,PhaseSpace,Forces)
-        println("Filling K direction in F flux matrix...")
-        Fill_K_Flux!(F_Flux,PhaseSpace,Forces) 
+        println("Filling B direction in X flux matrix...")
+        Fill_B_Flux!(X_Flux,PhaseSpace)
+        println("Filling C direction in X flux matrix...")
+        Fill_C_Flux!(X_Flux,PhaseSpace)
+        println("Filling D direction in X flux matrix...")
+        Fill_D_Flux!(X_Flux,PhaseSpace)
+        println("Filling I direction in P flux matrix...")
+        Fill_I_Flux!(P_Flux,PhaseSpace,Forces) 
+        println("Filling J direction in P flux matrix...")
+        Fill_J_Flux!(P_Flux,PhaseSpace,Forces)
+        println("Filling K direction in P flux matrix...")
+        Fill_K_Flux!(P_Flux,PhaseSpace,Forces) 
         Fill_Vol!(Vol,PhaseSpace)
 
     end
@@ -68,19 +69,33 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
         error("Aminus flux is not diagonal, which should be the case for stationary spacetimes")
     end
 
-    size = Base.summarysize(F_Flux)
+    size = Base.summarysize(X_Flux)
 
     if size > 1e9
-        println("F_Flux is approx. $(size/1e9) GB in memory")
+        println("X_Flux is approx. $(size/1e9) GB in memory")
     elseif size > 1e6
-        println("F_Flux is approx. $(size/1e6) MB in memory")
+        println("X_Flux is approx. $(size/1e6) MB in memory")
     elseif size > 1e3
-        println("F_Flux is approx. $(size/1e3) KB in memory")
+        println("X_Flux is approx. $(size/1e3) KB in memory")
     else
-        println("F_Flux is approx. $size bytes in memory")
+        println("X_Flux is approx. $size bytes in memory")
     end
 
-    return FluxMatricesStruct{Precision}(Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
+
+    size = Base.summarysize(P_Flux)
+
+    if size > 1e9
+        println("P_Flux is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("P_Flux is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("P_Flux is approx. $(size/1e3) KB in memory")
+    else
+        println("P_Flux is approx. $size bytes in memory")
+    end
+
+
+    return FluxMatricesStruct{Precision}(Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 
@@ -109,13 +124,13 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,Precision::DataType,debug_mo
     size = n*n*sizeof(Precision)
 
     if size > 1e9
-        println("F_Flux will be approx. $(size/1e9) GB in memory if dense")
+        println("Flux will be approx. $(size/1e9) GB in memory if dense")
     elseif size > 1e6
-        println("F_Flux will be approx. $(size/1e6) MB in memory if dense")
+        println("Flux will be approx. $(size/1e6) MB in memory if dense")
     elseif size > 1e3
-        println("F_Flux will be approx. $(size/1e3) KB in memory if dense")
+        println("Flux will be approx. $(size/1e3) KB in memory if dense")
     else
-        println("F_Flux will be approx. $size bytes in memory if dense")
+        println("Flux will be approx. $size bytes in memory if dense")
     end
 
 
@@ -127,7 +142,8 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,Precision::DataType,debug_mo
     # volume element 
     Vol::Vector{Precision} = zeros(Precision,n_space)
     # sum of space and momentum fluxes 
-    F_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+    X_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+    P_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
     if debug_mode
         # space fluxes
         B_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
@@ -148,7 +164,7 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,Precision::DataType,debug_mo
         K_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} 
     end
 
-    return (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
+    return (Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 

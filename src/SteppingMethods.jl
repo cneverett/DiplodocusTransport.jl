@@ -1,18 +1,13 @@
 """
-    Euler(dg,g,t,dt)
+    ForwardEuler(dt0,dt,t,Verbose)
 
-Explicit and Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolean `Implicit` flag when defining the EulerStruct.
+Forward (Explicit) Euler time-stepping method for the Boltzmann equation.
 
 # Explicit method:
 Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
 ```math
 dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+\\mathcal{D}+\\mathcal{I}+\\mathcal{J}+\\mathcal{K}+\\right)g^{t}+M_\\text{Emi}g^{t}+M_\\text{Bin}g^{t}g^{t}\\right]/ \\mathcal{A}^+
 ````
-
-
-# Implicit method:
-
-
 """
 function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
 
@@ -51,6 +46,8 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
         println("non-finite value in df_Flux calculation, $(sum(ForwardEuler.df_Flux))")
     end
 
+    @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
+
     # Add injection term 
     @. ForwardEuler.df += ForwardEuler.df_Inj
 
@@ -59,15 +56,9 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
         ForwardEuler.df .*= dt / dt0
     end
 
-    # df_Flux due to time fluxes TODO: can remove this step if system is stationary therefore Ap=-Am. This will also allow more timestep control
-    #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
-    #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
-
     if !isfinite(sum(ForwardEuler.df))
         println("non-finite value in df calculation")
     end
-
-    @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
     if Verbose == 1 || Verbose == 2 || Verbose == 3
 
@@ -113,13 +104,6 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
         end
     end
     
-    # Add injection term 
-    if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
-        @. ForwardEuler.df += ForwardEuler.df_Inj * dt / dt0
-    else
-        @. ForwardEuler.df += ForwardEuler.df_Inj
-    end
-    
     # update state vector f
     @. ForwardEuler.f += ForwardEuler.df
     # removing negative values (values less than 1f-28 for better stability)
@@ -131,12 +115,146 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
 end
 
 """
+    ForwardSymplecticEuler(dt0,dt,t,Verbose)
+
+Forward Symplectic (Semi-Implicit) Euler time-stepping method for the Boltzmann equation. Symplectic integrator updates momentum space first then physical space.
+
+# Explicit method:
+Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
+```math
+dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+\\mathcal{D}+\\mathcal{I}+\\mathcal{J}+\\mathcal{K}+\\right)g^{t}+M_\\text{Emi}g^{t}+M_\\text{Bin}g^{t}g^{t}\\right]/ \\mathcal{A}^+
+````
+"""
+function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
+
+    # update momentum space using f at time t
+
+        # create df_PFlux due to momentum flux terms
+        mul!(method.df_PFlux,method.P_Flux,method.f)
+        @. method.df_Momentum = -method.df_PFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Momentum
+        if !isfinite(sum(method.df_PFlux))
+            println("non-finite value in df_PFlux calculation, $(sum(method.df_PFlux))")
+        end
+            
+        # create df_Bin due to binary interactions
+        if method.Binary_Interactions
+            update_Big_Bin!(method)
+            @. method.df_Momentum += method.df_Bin
+            if !isfinite(sum(method.df_Bin))
+                println("non-finite value in df_Bin calculation, $(sum(method.df_Bin))")
+            end
+        end
+
+        # create df_Emi due to emission terms
+        if method.Emission_Interactions
+            mul!(method.df_Emi,method.M_Emi,method.f)
+            @. method.df_Momentum += method.df_Emi
+            if !isfinite(sum(method.df_Emi))
+                println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
+            end
+        end
+
+        @. method.df_Momentum *= method.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
+
+        if !isfinite(sum(method.df_Momentum))
+            println("non-finite value in momentum df calculation")
+        end
+
+        if method.PhaseSpace.Time.t_grid != "u" 
+            # non-uniform time stepping so need to scale df's
+            @. method.f_tmp = method.f + method.df_Momentum * dt / dt0
+        else
+            @. method.f_tmp = method.f + method.df_Momentum
+        end
+
+    # update physical space using f_tmp (f after momentum update)
+
+        # create df_XFlux due to space flux terms
+        mul!(method.df_XFlux,method.X_Flux,method.f_tmp)
+        @. method.df_Space = -method.df_XFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
+        if !isfinite(sum(method.df_XFlux))
+            println("non-finite value in df_XFlux calculation, $(sum(method.df_XFlux))")
+        end
+
+        @. method.df_Space *= method.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
+
+        if !isfinite(sum(method.df_Space))
+            println("non-finite value in space df calculation")
+        end
+
+    # CFL condition check TODO: add adaptive time stepping based on CFL condition 
+
+        if Verbose == 1 || Verbose == 2 || Verbose == 3
+
+            Cr = 0.0
+            Cr_Bin = 0.0
+            Cr_Emi = 0.0
+            Cr_XFlux = 0.0
+            Cr_PFlux = 0.0
+
+            # Cr (CFL) condition check
+            if sum(method.f) != 0.0
+
+                if Verbose == 3
+            
+                    # Binary CFL
+                    if method.Binary_Interactions
+                        @. method.df_tmp = method.df_Bin * method.invAp_Flux / method.f * dt / dt0
+                        Cr_Bin = -minimum(filter(isfinite,method.df_tmp))
+                    end
+
+                    # Emission CFL
+                    if method.Emission_Interactions
+                        @. method.df_tmp = method.df_Emi * method.invAp_Flux / method.f * dt / dt0
+                        Cr_Emi = -minimum(filter(isfinite,method.df_tmp))
+                    end
+
+                    # P Flux CFL
+                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux / method.f * dt / dt0
+                    Cr_PFlux = -minimum(filter(isfinite,method.df_tmp))
+
+                    # X Flux CFL
+                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_tmp * dt / dt0
+                    Cr_XFlux = -minimum(filter(isfinite,method.df_tmp))
+
+                end
+
+                # Cr is calculated for the entire time step (momentum and space updates)
+                # f_tmp - f = df of the momentum step
+                @. method.df_tmp = (method.df_Momentum + method.df_Space) / method.f * dt / dt0
+                Cr = -minimum(filter(isfinite,method.df_tmp)) 
+
+            end   
+
+            if Verbose == 1 && Cr > 1.0
+                println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+            elseif Verbose == 2
+                println("\rCr = $Cr, t=$t, dt=$dt")
+            elseif Verbose == 3
+                println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_PFlux = $Cr_PFlux, Cr_XFlux = $Cr_XFlux,  t=$t, dt=$dt")
+            end
+        end
+
+    # update state vector f with momentum, space and injection updates
+    
+        if method.PhaseSpace.Time.t_grid != "u" 
+            # non-uniform time stepping so need to scale df's
+            @. method.f += (method.df_Momentum + method.df_Space + method.df_Inj) * dt / dt0
+        else
+            @. method.f += method.df_Momentum + method.df_Space + method.df_Inj
+        end
+        
+        # removing negative values (values less than 1f-28 for better stability)
+        @. method.f = method.f*(method.f>=1f-28)
+        # hacky fix for inf values
+        @. method.f = method.f*(method.f!=Inf)
+
+end
+
+"""
     BackwardsEuler(dg,g,t,dt)
 
-Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolean `Implicit` flag when defining the EulerStruct.
-
-# Implicit method:
-
+Backwards (Implicit) Euler time-stepping method for the Boltzmann equation. 
 
 """
 function (BackwardEuler::BackwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)

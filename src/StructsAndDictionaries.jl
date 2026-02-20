@@ -341,21 +341,21 @@ A struct for storing the flux matrices associated with the simulation.
 """
 struct FluxMatricesStruct{T<:Union{Float32,Float64}}
 
-    # time fluxes
-    Ap_Flux::Vector{T}
-    Am_Flux::Vector{T}
-    # sum of space and momentum fluxes for speed 
-    F_Flux::SparseMatrixCSC{T,Int64}
-    # space time volume element vector
-    Vol::Vector{T}
-    # space fluxes
-    B_Flux::SparseMatrixCSC{T,Int64}
-    C_Flux::SparseMatrixCSC{T,Int64}
-    D_Flux::SparseMatrixCSC{T,Int64} 
-    # momentum fluxes
-    I_Flux::SparseMatrixCSC{T,Int64}
-    J_Flux::SparseMatrixCSC{T,Int64}
-    K_Flux::SparseMatrixCSC{T,Int64}
+    Ap_Flux::Vector{T}                  # Forward Boundary time flux 
+    Am_Flux::Vector{T}                  # Backward Boundary time flux
+    
+    X_Flux::SparseMatrixCSC{T,Int64}    # sum of space fluxes 
+    P_Flux::SparseMatrixCSC{T,Int64}    # sum of momentum fluxes 
+
+    Vol::Vector{T}                      # SpaceTime volume element
+
+    B_Flux::SparseMatrixCSC{T,Int64}    # B Flux through x boundaries
+    C_Flux::SparseMatrixCSC{T,Int64}    # C Flux through y boundaries
+    D_Flux::SparseMatrixCSC{T,Int64}    # D Flux through z boundaries
+
+    I_Flux::SparseMatrixCSC{T,Int64}    # I Flux through px boundaries
+    J_Flux::SparseMatrixCSC{T,Int64}    # J Flux through py boundaries
+    K_Flux::SparseMatrixCSC{T,Int64}    # K Flux through pz boundaries
 
 end
 

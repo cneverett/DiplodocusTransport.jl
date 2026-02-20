@@ -51,7 +51,10 @@
         L = Characteristic.CHAR_length
         c = CONST_c
 
-        flux::Float64 = c * T / L
+        #invTc =  c * (log(z0) - log(z1)) / (z0-z1) / L  # c removed by normalising mF by mEle^2*c in the definition of the force
+
+        #flux::Float64 = T*invTc
+        flux::Float64 = L0 * c * T / L # L0 is the characteristic length in terms of L 
 
         if m == 0 || Z == 0
             flux *= 0e0
@@ -64,11 +67,12 @@
                 error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
 
-            # momentum part (independent of space)
-            flux *= -(1/(16(m^2 + p^2)^(3/2))) * c^2 * m^2 * p^2 * (2(u0 - u1)*(u0 + u1)*(-2 + u0^2 + u1^2)*(h0 - h1)*cospi(β) + 2(u0*sqrt(1 - u0^2)*(-5 + 2u0^2) + u1*(5 - 2u1^2)*sqrt(1 - u1^2) - 3asin(u0) + 3asin(u1))*sinpi(β)*sinpi((h0 - h1)/(2pi))*sinpi(γ - h0/(2pi) - h1/(2pi)))
+            flux *= -(1/(32(m^2 + p^2)^(1/2))) * p^2 * (2(u0 - u1)*(u0 + u1)*(-2 + u0^2 + u1^2)*(h0 - h1)*cospi(β) + 2(u0*sqrt(1 - u0^2)*(-5 + 2u0^2) + u1*(5 - 2u1^2)*sqrt(1 - u1^2) - 3asin(u0) + 3asin(u1))*sinpi(β)*sinpi((h0 - h1)/(2pi))*sinpi(γ - h0/(2pi) - h1/(2pi))) 
 
             # space part (independent of momentum)
-            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1) * (log(z0) - log(z1))
+            flux *= (log(z0) - log(z1))
+            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1)
+
         end
 
         return flux
@@ -119,7 +123,10 @@
         L = Characteristic.CHAR_length
         c = CONST_c
 
-        flux::Float64 = c * T / L
+        #invTc =  c * (log(z0) - log(z1)) / (z0-z1) / L  # c removed by normalising mF by mEle^2*c in the definition of the force
+
+        flux::Float64 = L0 * c * T / L # L0 is the characteristic length in terms of L 
+        #flux::Float64 = T*invTc
 
         if m == 0 || Z == 0
             flux *= 0e0
@@ -133,10 +140,14 @@
             end
 
             # momentum part (independent of space)
-            flux *= (c^2 * m^2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-1 + u^2) * ((-1 + u^2) * (h0 - h1) * cospi(β) + u * sqrt(1 - u^2) * (cospi(γ - h0/pi) - cospi(γ - h1/pi)) * sinpi(β)))/(2 * sqrt((m^2 + p0^2) * (m^2 + p1^2)))
+            #flux *= m^2 * ((sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-1 + u^2) * ((-1 + u^2) * (h0 - h1) * cospi(β) + u * sqrt(1 - u^2) * (cospi(γ - h0/pi) - cospi(γ - h1/pi)) * sinpi(β)))/(2 * sqrt((m^2 + p0^2) * (m^2 + p1^2))) 
+
+            flux *= ((sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-1 + u^2) * ((-1 + u^2) * (h0 - h1) * cospi(β) + u * sqrt(1 - u^2) * (cospi(γ - h0/pi) - cospi(γ - h1/pi)) * sinpi(β)))/(4) 
+
 
             # space part (independent of momentum)
-            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1) * (log(z0) - log(z1))
+            flux *= (log(z0) - log(z1)) 
+            flux *= (t0 - t1) * (x0 - x1) * (x0 + x1) * (y0 - y1)
 
         end
 
@@ -188,7 +199,10 @@
         L = Characteristic.CHAR_length
         c = CONST_c
 
-        flux::Float64 = c * T / L
+        #invTc =  c * (log(z0) - log(z1)) / (z0-z1) / L  # c removed by normalising mF by mEle^2*c in the definition of the force
+
+        #flux::Float64 = T*invTc
+        flux::Float64 = L0 * c * T / L # L0 is the characteristic length in terms of L 
 
         if m == 0 || Z == 0
             flux *= 0e0
@@ -202,10 +216,13 @@
             end
 
             # momentum part (independent of space)
-            flux *= -((c^2*m^2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))  * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cospi(γ - h/pi) * sinpi(β))/(4 * sqrt((m^2 + p0^2) * (m^2 + p1^2))))
+            #flux *= -(m^2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))  * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cospi(γ - h/pi) * sinpi(β))/(4 * sqrt((m^2 + p0^2) * (m^2 + p1^2)))
+
+            flux *= -((sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))  * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cospi(γ - h/pi) * sinpi(β))/(8)
 
             # space part (independent of momentum)
-            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (log(z0) - log(z1))
+            flux *= (log(z0) - log(z1))
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1)
         end
 
         return flux
