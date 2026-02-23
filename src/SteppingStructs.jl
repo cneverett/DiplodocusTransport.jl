@@ -125,11 +125,13 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
     df_Space::AbstractVector{T}                     # change in distribution function due to spatial fluxes
     df_Bin::AbstractVector{T}                       # change in distribution function due to binary interactions
     df_Emi::AbstractVector{T}                       # change in distribution function due to emission interactions
-    df_XFlux::AbstractVector{T}                      # change in distribution function due to spatial fluxes
-    df_PFlux::AbstractVector{T}                      # change in distribution function due to momentum fluxes
+    df_XFlux::AbstractVector{T}                     # change in distribution function due to spatial fluxes
+    f_Space::AbstractVector{T}                      # temporary array for f after spatial fluxes
+    df_PFlux::AbstractVector{T}                     # change in distribution function due to momentum fluxes
+    f_Momentum::AbstractVector{T}                      # temporary array for f after momentum fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
     df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations 
-    f_tmp::AbstractVector{T}                       # temporary array the size of f for symplectic Euler calculations  
+    f_tmp::AbstractVector{T}                        # temporary array the size of f for symplectic Euler calculations  
 
     function ForwardSymplecticEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct)
 
@@ -198,6 +200,8 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
         self.df_Emi = zeros(Backend,Precision,length(Initial))
         self.df_XFlux = zeros(Backend,Precision,length(Initial))
         self.df_PFlux = zeros(Backend,Precision,length(Initial))
+        self.f_Space = zeros(Backend,Precision,length(Initial))
+        self.f_Momentum = zeros(Backend,Precision,length(Initial))
         self.df_tmp = zeros(Backend,Precision,length(Initial))
         self.f_tmp = zeros(Backend,Precision,length(Initial))
 

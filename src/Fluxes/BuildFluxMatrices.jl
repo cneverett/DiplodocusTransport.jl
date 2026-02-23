@@ -92,6 +92,7 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
 
         println("Building I flux matrix...")
         Fill_I_Flux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V)
+        I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building J flux matrix...")
         Fill_J_Flux!(PhaseSpace,Forces,J_Flux_I,J_Flux_J,J_Flux_V)
@@ -105,8 +106,8 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
         Fill_Vol!(Vol,PhaseSpace)
 
         println("Building X and P flux matrix...")
-        @. P_Flux = I_Flux + J_Flux + K_Flux
-        @. X_Flux = B_Flux + C_Flux + D_Flux 
+        P_Flux = I_Flux + J_Flux + K_Flux
+        X_Flux = B_Flux + C_Flux + D_Flux 
         
     else
 

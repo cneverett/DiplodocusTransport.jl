@@ -36,10 +36,12 @@ function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vecto
             M_Emi_J::Vector{Int64} = Int64[]
             M_Emi_V::Vector{Precision} = Precision[]
             LoadMatrices_Emi(Emission_list,DataDirectory,PhaseSpace,Emi_corrected;M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
-            M_Emi = sparse(M_Emi_I,M_Emi_J,M_Emi_V)::SparseMatrixCSC{Precision,Int64}
+            M_Emi = sparse(M_Emi_I,M_Emi_J,M_Emi_V,n,n)::SparseMatrixCSC{Precision,Int64}
+ 
+            GC.gc()
         else
             M_Emi = zeros(Precision,n,n)
-            LoadMatrices_Emi(M_Emi,Emission_list,DataDirectory,PhaseSpace,Emi_corrected;M_Emi=M_Emi)
+            LoadMatrices_Emi(Emission_list,DataDirectory,PhaseSpace,Emi_corrected;M_Emi=M_Emi)
         end  
     end
 

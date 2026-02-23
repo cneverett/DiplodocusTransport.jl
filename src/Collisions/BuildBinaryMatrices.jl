@@ -48,6 +48,8 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
             LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
             println("Building sparse M_Bin")
             M_Bin = sparse(M_Bin_I,M_Bin_J,M_Bin_V,m,n)::SparseMatrixCSC{Precision,Int64}
+   
+            GC.gc()
         else
             M_Bin = zeros(Precision,m,n)::Matrix{Precision}
             LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;M_Bin=M_Bin)

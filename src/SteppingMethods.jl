@@ -162,15 +162,18 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
 
         if method.PhaseSpace.Time.t_grid != "u" 
             # non-uniform time stepping so need to scale df's
-            @. method.f_tmp = method.f + method.df_Momentum * dt / dt0
+            @. method.f_Momentum = method.f + method.df_Momentum * dt / dt0
         else
-            @. method.f_tmp = method.f + method.df_Momentum
+            @. method.f_Momentum = method.f + method.df_Momentum
         end
 
-    # update physical space using f_tmp (f after momentum update)
+        # removing negative values (values less than 0f0 for better stability)
+        @. method.f_Momentum = method.f_Momentum*(method.f_Momentum>=0f0)
+
+    # update physical space using f_Momentum (f after momentum update)
 
         # create df_XFlux due to space flux terms
-        mul!(method.df_XFlux,method.X_Flux,method.f_tmp)
+        mul!(method.df_XFlux,method.X_Flux,method.f_Momentum)
         @. method.df_Space = -method.df_XFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
         if !isfinite(sum(method.df_XFlux))
             println("non-finite value in df_XFlux calculation, $(sum(method.df_XFlux))")
@@ -182,6 +185,17 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             println("non-finite value in space df calculation")
         end
 
+        if method.PhaseSpace.Time.t_grid != "u" 
+            # non-uniform time stepping so need to scale df's
+            @. method.f_Space = method.f_Momentum + method.df_Space * dt / dt0
+        else
+            @. method.f_Space = method.f_Momentum + method.df_Space
+        end
+
+        # removing negative values (values less than 0f0 for better stability)
+        @. method.f_Space = method.f_Space*(method.f_Space>=1f-28)
+
+
     # CFL condition check TODO: add adaptive time stepping based on CFL condition 
 
         if Verbose == 1 || Verbose == 2 || Verbose == 3
@@ -189,8 +203,10 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             Cr = 0.0
             Cr_Bin = 0.0
             Cr_Emi = 0.0
-            Cr_XFlux = 0.0
             Cr_PFlux = 0.0
+            Cr_Momentum = 0.0
+            Cr_XFlux = 0.0
+
 
             # Cr (CFL) condition check
             if sum(method.f) != 0.0
@@ -213,15 +229,19 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
                     @. method.df_tmp = -method.df_PFlux * method.invAp_Flux / method.f * dt / dt0
                     Cr_PFlux = -minimum(filter(isfinite,method.df_tmp))
 
+                    # Momentum CFL
+                    @. method.df_tmp = (method.f_Momentum - method.f) / method.f
+                    Cr_Momentum = -minimum(filter(isfinite,method.df_tmp))
+
                     # X Flux CFL
-                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_tmp * dt / dt0
+                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_Momentum * dt / dt0
                     Cr_XFlux = -minimum(filter(isfinite,method.df_tmp))
 
                 end
 
                 # Cr is calculated for the entire time step (momentum and space updates)
                 # f_tmp - f = df of the momentum step
-                @. method.df_tmp = (method.df_Momentum + method.df_Space) / method.f * dt / dt0
+                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f * dt / dt0 
                 Cr = -minimum(filter(isfinite,method.df_tmp)) 
 
             end   
@@ -231,7 +251,7 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             elseif Verbose == 2
                 println("\rCr = $Cr, t=$t, dt=$dt")
             elseif Verbose == 3
-                println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_PFlux = $Cr_PFlux, Cr_XFlux = $Cr_XFlux,  t=$t, dt=$dt")
+                println("Cr = $Cr, Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_PFlux = $Cr_PFlux, Cr_Momentum = $Cr_Momentum, Cr_X_Flux = $Cr_XFlux,  t=$t, dt=$dt")
             end
         end
 
@@ -239,15 +259,15 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
     
         if method.PhaseSpace.Time.t_grid != "u" 
             # non-uniform time stepping so need to scale df's
-            @. method.f += (method.df_Momentum + method.df_Space + method.df_Inj) * dt / dt0
+            @. method.f = method.f_Space + method.df_Inj * dt / dt0
         else
-            @. method.f += method.df_Momentum + method.df_Space + method.df_Inj
+            @. method.f = method.f_Space + method.df_Inj
         end
         
         # removing negative values (values less than 1f-28 for better stability)
-        @. method.f = method.f*(method.f>=1f-28)
+        #@. method.f = method.f*(method.f>=1f-28)
         # hacky fix for inf values
-        @. method.f = method.f*(method.f!=Inf)
+        #@. method.f = method.f*(method.f!=Inf)
 
 end
 
@@ -368,14 +388,17 @@ function update_Big_Bin!(method::SteppingMethodType)
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-        if isnothing(Domain) || in(off_space,Domain)
+        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
+        if isnothing(Domain) || in(off_space,Domain)
 
             start_idx = n_momentum*off_space+1
             end_idx = n_momentum*(off_space+1)
 
             fView = @view f[start_idx:end_idx]
+
+            isnothing(findfirst(!iszero,fView)) && continue # skip if no particles in this spatial cell
+
             df_BinView = @view method.df_Bin[start_idx:end_idx]
             mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
             mul!(df_BinView,method.M_Bin_Mul_Step,fView)
