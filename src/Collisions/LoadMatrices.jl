@@ -145,7 +145,7 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::St
 end
 
 
-function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true,Emi_sparse::Bool=false) where F<:AbstractFloat
+function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Emi_Norm = PhaseSpace.Characteristic.Emi_Norm
     
@@ -276,16 +276,16 @@ function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStru
                 if type=="Sync" && Force 
                     
                     force = SyncRadReact(mode,Ext_sampled[Ext_idx])
-                    Fill_I_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
-                    Fill_J_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
-                    Fill_K_Emi!(M_Emi,PhaseSpace,force,x,y,z,name1_loc)
+                    Fill_I_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                    Fill_J_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                    Fill_K_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
 
                 end
 
                 GainMatrix3 = @view(GainMatrix3_All[:,:,:,:,:,:,Ext_idx])
 
                 # Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields
-                Fill_M_Emi!(M_Emi,PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode)
+                Fill_M_Emi!(PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode,M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
 
             else
                 continue
