@@ -50,7 +50,7 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},Binary_list::Vector{Binary
             end
         else
             GainScale = 1.0
-            LossMatrix1 = 1.0
+            LossScale = 1.0
             name1_loc = findfirst(==(name1),name_list)
             name2_loc = findfirst(==(name2),name_list)
             name3_loc = findfirst(==(name3),name_list)
