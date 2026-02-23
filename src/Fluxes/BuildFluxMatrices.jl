@@ -28,63 +28,80 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
 
     n = n_momentum*n_space
 
+    Ap_Flux_I::Vector{Int64} = Int64[]
+    Ap_Flux_J::Vector{Int64} = Int64[]
+    Ap_Flux_V::Vector{Precision} = Precision[]
+    Am_Flux_I::Vector{Int64} = Int64[]
+    Am_Flux_J::Vector{Int64} = Int64[]
+    Am_Flux_V::Vector{Precision} = Precision[]
+
+    B_Flux_I::Vector{Int64} = Int64[]
+    B_Flux_J::Vector{Int64} = Int64[]
+    B_Flux_V::Vector{Precision} = Precision[]
+
+    C_Flux_I::Vector{Int64} = Int64[]
+    C_Flux_J::Vector{Int64} = Int64[]
+    C_Flux_V::Vector{Precision} = Precision[]
+
+    D_Flux_I::Vector{Int64} = Int64[]
+    D_Flux_J::Vector{Int64} = Int64[]
+    D_Flux_V::Vector{Precision} = Precision[]
+
+    I_Flux_I::Vector{Int64} = Int64[]
+    I_Flux_J::Vector{Int64} = Int64[]
+    I_Flux_V::Vector{Precision} = Precision[]
+
+    J_Flux_I::Vector{Int64} = Int64[]
+    J_Flux_J::Vector{Int64} = Int64[]
+    J_Flux_V::Vector{Precision} = Precision[]
+
+    K_Flux_I::Vector{Int64} = Int64[]
+    K_Flux_J::Vector{Int64} = Int64[]
+    K_Flux_V::Vector{Precision} = Precision[]
+
+    Vol::Vector{Precision} = zeros(Precision,n_space)
+
+    X_Flux_I::Vector{Int64} = Int64[]
+    X_Flux_J::Vector{Int64} = Int64[]
+    X_Flux_V::Vector{Precision} = Precision[]
+
+    P_Flux_I::Vector{Int64} = Int64[]
+    P_Flux_J::Vector{Int64} = Int64[]
+    P_Flux_V::Vector{Precision} = Precision[]
+
     if debug_mode
 
         println("Building A flux matrices...")
-        Ap_Flux_I = Int64[]::Vector{Int64}
-        Ap_Flux_J = Int64[]::Vector{Int64}
-        Ap_Flux_V = Precision[]::Vector{Precision}
-        Am_Flux_I = Int64[]::Vector{Int64}
-        Am_Flux_J = Int64[]::Vector{Int64}
-        Am_Flux_V = Precision[]::Vector{Precision}
+        
         Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
         Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
 
         # Fill flux matrices
         println("Building B flux matrix...")
-        B_Flux_I = Int64[]::Vector{Int64}
-        B_Flux_J = Int64[]::Vector{Int64}
-        B_Flux_V = Precision[]::Vector{Precision}
         Fill_B_Flux!(PhaseSpace,B_Flux_I,B_Flux_J,B_Flux_V)
         B_Flux = sparse(B_Flux_I,B_Flux_J,B_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building C flux matrix...")
-        C_Flux_I = Int64[]::Vector{Int64}
-        C_Flux_J = Int64[]::Vector{Int64}
-        C_Flux_V = Precision[]::Vector{Precision}
         Fill_C_Flux!(PhaseSpace,C_Flux_I,C_Flux_J,C_Flux_V)
         C_Flux = sparse(C_Flux_I,C_Flux_J,C_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building D flux matrix...")
-        D_Flux_I = Int64[]::Vector{Int64}
-        D_Flux_J = Int64[]::Vector{Int64}
-        D_Flux_V = Precision[]::Vector{Precision}
         Fill_D_Flux!(PhaseSpace,D_Flux_I,D_Flux_J,D_Flux_V)
         D_Flux = sparse(D_Flux_I,D_Flux_J,D_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building I flux matrix...")
-        I_Flux_I = Int64[]::Vector{Int64}
-        I_Flux_J = Int64[]::Vector{Int64}
-        I_Flux_V = Precision[]::Vector{Precision}
         Fill_I_Flux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V)
 
         println("Building J flux matrix...")
-        J_Flux_I = Int64[]::Vector{Int64}
-        J_Flux_J = Int64[]::Vector{Int64}
-        J_Flux_V = Precision[]::Vector{Precision}
         Fill_J_Flux!(PhaseSpace,Forces,J_Flux_I,J_Flux_J,J_Flux_V)
         J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building K flux matrix...")
-        K_Flux_I = Int64[]::Vector{Int64}
-        K_Flux_J = Int64[]::Vector{Int64}
-        K_Flux_V = Precision[]::Vector{Precision}
         Fill_K_Flux!(PhaseSpace,Forces,K_Flux_I,K_Flux_J,K_Flux_V)
         K_Flux = sparse(K_Flux_I,K_Flux_J,K_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         
         println("Calculating volume elements...")
-        Vol::Vector{Precision} = zeros(Precision,n_space)
         Fill_Vol!(Vol,PhaseSpace)
 
         println("Building X and P flux matrix...")
@@ -94,37 +111,23 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType
     else
 
         println("Building time flux matrices...")
-        Ap_Flux_I = Int64[]::Vector{Int64}
-        Ap_Flux_J = Int64[]::Vector{Int64}
-        Ap_Flux_V = Precision[]::Vector{Precision}
-        Am_Flux_I = Int64[]::Vector{Int64}
-        Am_Flux_J = Int64[]::Vector{Int64}
-        Am_Flux_V = Precision[]::Vector{Precision}
-
         Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
         Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         Am_Flux = sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building space flux matrices...")
-        X_Flux_I = Int64[]::Vector{Int64}
-        X_Flux_J = Int64[]::Vector{Int64}
-        X_Flux_V = Precision[]::Vector{Precision}
         Fill_B_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
         Fill_C_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
         Fill_D_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
         X_Flux = sparse(X_Flux_I,X_Flux_J,X_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Building momentum flux matrices...")
-        P_Flux_I = Int64[]::Vector{Int64}
-        P_Flux_J = Int64[]::Vector{Int64}
-        P_Flux_V = Precision[]::Vector{Precision}
         Fill_I_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
         Fill_J_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
         Fill_K_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
         P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         println("Calculating volume elements...")
-        Vol::Vector{Precision} = zeros(Precision,n_space)
         Fill_Vol!(Vol,PhaseSpace)
 
         # space fluxes
@@ -1208,7 +1211,7 @@ end
         return (Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
     end
-    
+
     """
         Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
 

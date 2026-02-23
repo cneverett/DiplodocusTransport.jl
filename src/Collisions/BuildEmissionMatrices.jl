@@ -138,14 +138,12 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
         if mode isa Iso
             
             val = 0.0
-            w = 1.0
+            w = 1.0/(sum(dpy1) * sum(dpz1)) * (sum(dpy2) * sum(dpz2))
 
             # average over incoming and outgoing u and phi angles (py,pz)
             for py1 in axes(GainMatrix,5), pz1 in axes(GainMatrix,6), py2 in axes(GainMatrix,2), pz2 in axes(GainMatrix,3)
                 val += GainMatrix[px2,py2,pz2,px1,py1,pz1] * dpy2[py2] * dpz2[pz2] * dpy1[py1] * dpz1[pz1]
             end
-
-            w /= (sum(dpy1) * sum(dpz1)) * (sum(dpy2) * sum(dpz2))
 
         end
 
@@ -154,14 +152,12 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
             if mode isa Axi
                 
                 val = 0.0
-                w = 1.0
+                w = 1.0/sum(dpz1) * sum(dpz2)
 
                 # average over incoming and outgoing phi angles (pz)
                 for pz1 in axes(GainMatrix,6), pz2 in axes(GainMatrix,3)
                     val += GainMatrix[px2,py2,pz2,px1,py1,pz1] * dpz2[pz2] * dpz1[pz1]
                 end
-
-                w /= sum(dpz1) * sum(dpz2)
 
             end
 
@@ -169,10 +165,8 @@ function GainMatrix_to_M_Emi!(M_Emi::AbstractMatrix{F},PhaseSpace::PhaseSpaceStr
 
                 if mode isa Ani 
 
-                    val = 0.0
+                    val = GainMatrix[px2,py2,pz2,px1,py1,pz1]
                     w = 1.0
-
-                    val += GainMatrix[px2,py2,pz2,px1,py1,pz1]
 
                 end
 

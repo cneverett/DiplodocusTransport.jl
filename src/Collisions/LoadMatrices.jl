@@ -1,4 +1,9 @@
-function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},Binary_list::Vector{BinaryStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true,Bin_sparse::Bool=false) where F<:AbstractFloat
+"""
+    LoadMatrices_Binary(...,Binary_list,DataDirectory,PhaseSpace,mode,Ani(),corrected=true)
+
+Loads the binary interaction matrices from the specified `DataDirectory` for each interaction in `Binary_list` and fills the big matrix `M_Bin` either directly if `M_Bin` is dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for binary interactions between all particles in the simulation. The `corrected` argument specifies whether to load the number and energy corrected matrices. The `mode` argument specifies whether to assume these arrays are anisotropic, axisymmetric or isotropic.
+"""
+function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
     
@@ -19,6 +24,12 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},Binary_list::Vector{Binary
     pz_low_list = Momentum.pz_low_list
     pz_grid_list = Momentum.pz_grid_list
     pz_num_list = Momentum.pz_num_list
+
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
 
     for i in eachindex(Binary_list)
 
@@ -125,11 +136,14 @@ function LoadMatrices_Binary(M_Bin::AbstractMatrix{F},Binary_list::Vector{Binary
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
         DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(M_Bin,name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,mode=mode,Bin_sparse=Bin_sparse)
+        println("Filling M_Bin for binary interaction: $(name1) + $(name2) -> $(name3) + $(name4)")
+        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,n_momentum;mode=mode,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+
 
     end # for
 
 end
+
 
 function LoadMatrices_Emi(M_Emi::AbstractMatrix{F},Emission_list::Vector{EmiStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true,Emi_sparse::Bool=false) where F<:AbstractFloat
 
