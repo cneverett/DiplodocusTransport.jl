@@ -11,6 +11,7 @@ const CONST_ħ::Float64 = 1.0545718e-34;          # Reduced Planck constant [J s
 const CONST_μ0::Float64 = 4*π*1e-7;              # Permeability of free space [kg m s-2 A-2]
 const CONST_RSph::Float64 = 4.601677272e-15;     # Sphere radius used for hard sphere collisions [m]
 const CONST_q::Float64 = 1.60217662e-19;         # Elementary charge [C]
+const CONST_kb::Float64 = 1.38064852e-23;        # Boltzmann constant [J K-1]
 
 # Particle Masses
 const CONST_mEle::Float64 = 9.10938356e-31;      # Mass of Electron [kg]
