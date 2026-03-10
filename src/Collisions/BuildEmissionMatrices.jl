@@ -363,20 +363,20 @@ function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
         bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
         bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
 
-        # integration sign introduced here
-        I_plus = IFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
-        I_minus = -IFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        # integration sign introduced here, opposite sign compared to IFluxFunction as I_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
+        I_plus = -IFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+        I_minus = IFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
         # scheme
         if scheme == "upwind"
-            if sign(I_plus) == 1
+            if sign(I_plus) == -1 # sign change as above
                 h_plus_right = 0
                 h_plus_left = 1
             else
                 h_plus_right = 1
                 h_plus_left = 0
             end
-            if sign(I_minus) == 1
+            if sign(I_minus) == -1 # sign change as above
                 h_minus_right = 1
                 h_minus_left = 0
             else
@@ -522,20 +522,20 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
         bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
         bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
 
-        # integration sign introduced here
-        J_plus = JFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
-        J_minus = -JFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        # integration sign introduced here, opposite sign compared to JFluxFunction as J_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
+        J_plus = -JFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+        J_minus = JFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
         # scheme
         if scheme == "upwind"
-            if sign(J_plus) == 1
+            if sign(J_plus) == -1 # sign change as above
                 h_plus_right = 0
                 h_plus_left = 1
             else
                 h_plus_right = 1
                 h_plus_left = 0
             end
-            if sign(J_minus) == 1
+            if sign(J_minus) == -1 # sign change as above
                 h_minus_right = 1
                 h_minus_left = 0
             else
@@ -585,7 +585,7 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(J_plus * h_plus_left) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm) 
+                M_Emi[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm) 
             end
         end
         if b != bm
@@ -597,8 +597,8 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm) 
-                 M_Emi[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm) 
+                M_Emi[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm) 
+                M_Emi[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm) 
             end
         elseif BCm isa Open # b=bm
             if is_sparse
@@ -606,7 +606,7 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm) 
+                M_Emi[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm) 
             end
         end
 
@@ -680,20 +680,20 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
         bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
         bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
 
-        # integration sign introduced here
-        K_plus = KFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
-        K_minus = -KFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        # integration sign introduced here, opposite sign compared to KFluxFunction as K_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
+        K_plus = -KFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+        K_minus = KFluxFunction(Force,PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
         # scheme
         if scheme == "upwind"
-            if sign(K_plus) == 1
+            if sign(K_plus) == -1 # sign change as above
                 h_plus_right = 0
                 h_plus_left = 1
             else
                 h_plus_right = 1
                 h_plus_left = 0
             end
-            if sign(K_minus) == 1
+            if sign(K_minus) == -1 # sign change as above
                 h_minus_right = 1
                 h_minus_left = 0
             else
@@ -733,8 +733,8 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
             else
-                 M_Emi[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp) 
-                 M_Emi[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm) 
+                M_Emi[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp) 
+                M_Emi[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm) 
             end
         elseif BCp isa Open # b=bp
             if is_sparse
@@ -742,7 +742,7 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm) 
+                M_Emi[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm) 
             end
         end
         if b != bm
@@ -754,8 +754,8 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm) 
-                 M_Emi[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm) 
+                M_Emi[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm) 
+                M_Emi[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm) 
             end
         elseif BCm isa Open # b=bm
             if is_sparse
@@ -763,7 +763,7 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,
                 push!(M_Emi_J,b)
                 push!(M_Emi_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
             else
-                 M_Emi[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm) 
+                M_Emi[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm) 
             end
         end
                 

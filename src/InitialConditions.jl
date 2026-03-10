@@ -31,6 +31,9 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     name_list = PhaseSpace.name_list
 
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
     species_index = findfirst(==(species),name_list)
     pr = Grids.pxr_list[species_index]
     ur = Grids.pyr_list[species_index]
@@ -77,6 +80,9 @@ function Initial_BoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruc
     h_grid_list = Momentum.pz_grid_list
 
     Grids = PhaseSpace.Grids
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
     species_index = findfirst(==(species),name_list)
     mass = Grids.mass_list[species_index]
     pu = Float64(p_up_list[species_index])
@@ -159,6 +165,9 @@ function Initial_Constant!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
     #dp_list = Grids.dpx_list
     #du_list = Grids.dpy_list
 
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
     species_index = findfirst(==(species),name_list)
     #dp = dp_list[species_index]
     #du = du_list[species_index]
@@ -212,13 +221,16 @@ end
 
 Modeifies the initial state vector `Initial` with a Maxwell-Juttner distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function Initial_MaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+function Initial_MaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
 
     name_list = PhaseSpace.name_list
 
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
     species_index = findfirst(==(species),name_list)
     pr = Grids.pxr_list[species_index]
     ur = Grids.pyr_list[species_index]
@@ -251,7 +263,7 @@ end
 
 Modeifies the initial state vector `Initial` with a Black-Body distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function Initial_BlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;T::Float64,umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function Initial_BlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::S,umax::S,hmin::S,hmax::S,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
 
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -266,6 +278,9 @@ function Initial_BlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,spec
     h_num_list = Momentum.pz_num_list
     h_grid_list = Momentum.pz_grid_list
 
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
     species_index = findfirst(==(species),name_list)
 
     u_grid = u_grid_list[species_index]

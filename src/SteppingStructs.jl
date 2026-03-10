@@ -156,6 +156,7 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
         invAp_Flux = 1 ./ FluxM.Ap_Flux # invert Ap Flux
 
         if Backend isa CPUBackend
+            self.f_init = convert(Vector{Precision},Initial)
             self.M_Bin = BinM.M_Bin
             self.M_Emi = EmiM.M_Emi
             self.X_Flux = FluxM.X_Flux
@@ -165,8 +166,17 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
             self.f = convert(Vector{Precision},Initial)
             self.df_Inj = convert(Vector{Precision},Injection)
         elseif Backend isa CUDABackend
-            self.M_Bin = CuArray(BinM.M_Bin)
-            self.M_Emi = CuArray(EmiM.M_Emi)
+            self.f_init = CuArray(Initial)
+            if BinM.M_Bin isa AbstractSparseMatrix
+                self.M_Bin = CuSparseMatrixCSC(BinM.M_Bin)
+            else
+                self.M_Bin = CuArray(BinM.M_Bin)
+            end
+            if EmiM.M_Emi isa AbstractSparseMatrix
+                self.M_Emi = CuSparseMatrixCSC(EmiM.M_Emi)
+            else
+                self.M_Emi = CuArray(EmiM.M_Emi)
+            end
             self.X_Flux = CuSparseMatrixCSC(FluxM.X_Flux)
             self.P_Flux = CuSparseMatrixCSC(FluxM.P_Flux)
             self.invAp_Flux = CuArray(invAp_Flux)

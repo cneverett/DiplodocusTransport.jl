@@ -107,7 +107,7 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
     # update state vector f
     @. ForwardEuler.f += ForwardEuler.df
     # removing negative values (values less than 1f-28 for better stability)
-    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f>=1f-28)
+    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f>=1f-30)
     # hacky fix for inf values
     @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f!=Inf)
 
@@ -127,13 +127,30 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 """
 function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
 
+    # scaling of timestepping
+
+        dt_scale = dt / dt0
+
+    # Add injection term
+
+        @. method.f_tmp = method.f + method.df_Inj * dt_scale
+
     # update momentum space using f at time t
 
         # create df_PFlux due to momentum flux terms
-        mul!(method.df_PFlux,method.P_Flux,method.f)
+        mul!(method.df_PFlux,method.P_Flux,method.f_tmp)
         @. method.df_Momentum = -method.df_PFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Momentum
-        if !isfinite(sum(method.df_PFlux))
+        if !isfinite(sum(method.df_PFlux)) #TODO: speed up using find first non-finite value instead of summing entire array
             println("non-finite value in df_PFlux calculation, $(sum(method.df_PFlux))")
+        end
+
+        # create df_Emi due to emission terms
+        if method.Emission_Interactions
+            mul!(method.df_Emi,method.M_Emi,method.f_tmp)
+            @. method.df_Momentum += method.df_Emi
+            if !isfinite(sum(method.df_Emi))
+                println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
+            end
         end
             
         # create df_Bin due to binary interactions
@@ -145,28 +162,14 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             end
         end
 
-        # create df_Emi due to emission terms
-        if method.Emission_Interactions
-            mul!(method.df_Emi,method.M_Emi,method.f)
-            @. method.df_Momentum += method.df_Emi
-            if !isfinite(sum(method.df_Emi))
-                println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
-            end
-        end
-
         @. method.df_Momentum *= method.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
         if !isfinite(sum(method.df_Momentum))
             println("non-finite value in momentum df calculation")
         end
 
-        if method.PhaseSpace.Time.t_grid != "u" 
-            # non-uniform time stepping so need to scale df's
-            @. method.f_Momentum = method.f + method.df_Momentum * dt / dt0
-        else
-            @. method.f_Momentum = method.f + method.df_Momentum
-        end
-
+        # update f_momentum (f after momentum update)
+        @. method.f_Momentum = method.f_tmp + method.df_Momentum * dt_scale
         # removing negative values (values less than 0f0 for better stability)
         @. method.f_Momentum = method.f_Momentum*(method.f_Momentum>=0f0)
 
@@ -185,13 +188,8 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             println("non-finite value in space df calculation")
         end
 
-        if method.PhaseSpace.Time.t_grid != "u" 
-            # non-uniform time stepping so need to scale df's
-            @. method.f_Space = method.f_Momentum + method.df_Space * dt / dt0
-        else
-            @. method.f_Space = method.f_Momentum + method.df_Space
-        end
-
+        # update f_Space (f after momentum and space updates)
+        @. method.f_Space = method.f_Momentum + method.df_Space * dt_scale
         # removing negative values (values less than 0f0 for better stability)
         @. method.f_Space = method.f_Space*(method.f_Space>=1f-28)
 
@@ -215,59 +213,53 @@ function (method::ForwardSymplecticEulerStruct)(dt0,dt,t,Verbose::Int64)
             
                     # Binary CFL
                     if method.Binary_Interactions
-                        @. method.df_tmp = method.df_Bin * method.invAp_Flux / method.f * dt / dt0
+                        @. method.df_tmp = method.df_Bin * method.invAp_Flux / method.f_tmp * dt_scale
                         Cr_Bin = -minimum(filter(isfinite,method.df_tmp))
                     end
 
                     # Emission CFL
                     if method.Emission_Interactions
-                        @. method.df_tmp = method.df_Emi * method.invAp_Flux / method.f * dt / dt0
+                        @. method.df_tmp = method.df_Emi * method.invAp_Flux / method.f_tmp * dt_scale
                         Cr_Emi = -minimum(filter(isfinite,method.df_tmp))
                     end
 
                     # P Flux CFL
-                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux / method.f * dt / dt0
+                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux / method.f_tmp * dt_scale
                     Cr_PFlux = -minimum(filter(isfinite,method.df_tmp))
 
                     # Momentum CFL
-                    @. method.df_tmp = (method.f_Momentum - method.f) / method.f
+                    @. method.df_tmp = (method.df_Bin + method.df_Emi - method.df_PFlux) * method.invAp_Flux / method.f_tmp * dt_scale
                     Cr_Momentum = -minimum(filter(isfinite,method.df_tmp))
 
                     # X Flux CFL
-                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_Momentum * dt / dt0
+                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_Momentum * dt_scale
                     Cr_XFlux = -minimum(filter(isfinite,method.df_tmp))
 
                 end
 
                 # Cr is calculated for the entire time step (momentum and space updates)
                 # f_tmp - f = df of the momentum step
-                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f * dt / dt0 
+                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f_tmp * dt / dt0 
                 Cr = -minimum(filter(isfinite,method.df_tmp)) 
 
             end   
 
             if Verbose == 1 && Cr > 1.0
-                println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+                println("Cr = $(round(Cr, sigdigits=3)), t=$t, dt=$dt, system may be unstable")
             elseif Verbose == 2
-                println("\rCr = $Cr, t=$t, dt=$dt")
+                println("\rCr = $(round(Cr, sigdigits=3)), t=$t, dt=$dt")
             elseif Verbose == 3
-                println("Cr = $Cr, Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_PFlux = $Cr_PFlux, Cr_Momentum = $Cr_Momentum, Cr_X_Flux = $Cr_XFlux,  t=$t, dt=$dt")
+                println("Cr = $(round(Cr, sigdigits=3)), Cr_Bin = $(round(Cr_Bin, sigdigits=3)), Cr_Emi = $(round(Cr_Emi, sigdigits=3)), Cr_PFlux = $(round(Cr_PFlux, sigdigits=3)), Cr_Momentum = $(round(Cr_Momentum, sigdigits=3)), Cr_X_Flux = $(round(Cr_XFlux, sigdigits=3)),  t=$t, dt=$dt")
             end
         end
 
     # update state vector f with momentum, space and injection updates
     
-        if method.PhaseSpace.Time.t_grid != "u" 
-            # non-uniform time stepping so need to scale df's
-            @. method.f = method.f_Space + method.df_Inj * dt / dt0
-        else
-            @. method.f = method.f_Space + method.df_Inj
-        end
-        
+        @. method.f = method.f_Space
         # removing negative values (values less than 1f-28 for better stability)
-        #@. method.f = method.f*(method.f>=1f-28)
+        @. method.f = method.f*(method.f>=1f-10)
         # hacky fix for inf values
-        #@. method.f = method.f*(method.f!=Inf)
+        @. method.f = method.f*(method.f!=Inf)
 
 end
 
@@ -390,14 +382,12 @@ function update_Big_Bin!(method::SteppingMethodType)
 
         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
 
-        if isnothing(Domain) || in(off_space,Domain)
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
 
-            start_idx = n_momentum*off_space+1
-            end_idx = n_momentum*(off_space+1)
+        fView = @view f[start_idx:end_idx]
 
-            fView = @view f[start_idx:end_idx]
-
-            isnothing(findfirst(!iszero,fView)) && continue # skip if no particles in this spatial cell
+        if isnothing(Domain) || in(off_space,Domain) || isnothing(findfirst(!iszero,fView))
 
             df_BinView = @view method.df_Bin[start_idx:end_idx]
             mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape

@@ -40,8 +40,10 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::St
         name3 = interaction.name3
         name4 = interaction.name4
 
+        println("Filling M_Bin for binary interaction: $(name1) + $(name2) -> $(name3) + $(name4)")
+
         # Memory optimisation by allowing Ele and Pos populations to be modelled as identical thus only requiring one to be defined
-        if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
+        if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pos"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
             if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho") # "Pos" compton scattering
                 return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
@@ -136,7 +138,6 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::St
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
         DoesConserve(Output) # print conversion statistic
-        println("Filling M_Bin for binary interaction: $(name1) + $(name2) -> $(name3) + $(name4)")
         Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,n_momentum;mode=mode,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
 
