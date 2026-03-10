@@ -24,7 +24,6 @@ module DiplodocusTransport
     using Bessels
     using Statistics
     using SparseArrays
-    using MKLSparse
     using CUDA
     using CUDA.CUSPARSE
 
