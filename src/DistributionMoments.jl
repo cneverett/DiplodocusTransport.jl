@@ -93,14 +93,14 @@ Returns the contravariant (upper indices) stress-energy tensor Tab `Matrix{Float
 """
 function StressEnergyTensor(state::Vector{T},PhaseSpace::PhaseSpaceStruct,species::S;x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where T<:AbstractFloat where S<:Union{String,Int64}
 
-    f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
-
     if typeof(species) == Int64
         species_index = species
     else
         name_list = PhaseSpace.name_list
         species_index = findfirst(==(species),PhaseSpace.name_list)
     end
+
+    f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
 
     m = PhaseSpace.Grids.mass_list[species_index]
     p_num = PhaseSpace.Momentum.px_num_list[species_index]
