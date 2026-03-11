@@ -36,6 +36,11 @@ function ElectroMagneticFieldFunction_Constant(Space::SpaceStruct,Momentum::Mome
             B_field[ix,iy,iz] = B0
             E_field[ix,iy,iz] = E0
         end
+    elseif space_coords isa Spherical # B along z, # E along y
+        for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
+            B_field[ix,iy,iz] = B0
+            E_field[ix,iy,iz] = E0
+        end
     end
 
     return B_field, E_field
