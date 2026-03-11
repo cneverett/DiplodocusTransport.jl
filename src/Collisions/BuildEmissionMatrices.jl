@@ -152,6 +152,7 @@ end
 function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractArray{Float64,6},name2::Int64,name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     vol = VolFunction(PhaseSpace,1,x,y,z)
+    #vol0 = VolFunction(PhaseSpace,1,1,1,1) # vol0 used to correct GainMatrix so need to scale by vol/vol0
 
     dpy1 = PhaseSpace.Grids.dpy_list[name1]
     dpy2 = PhaseSpace.Grids.dpy_list[name2]

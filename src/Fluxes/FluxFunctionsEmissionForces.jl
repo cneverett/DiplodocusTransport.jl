@@ -71,7 +71,7 @@
             elseif space_coords isa Cylindrical
                 flux *= (1/2) * (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             elseif space_coords isa Spherical
-                flux *= (1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
+                flux *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
             else
                 error("Space co-ordinate system not recognised.")
             end
@@ -139,7 +139,7 @@
             elseif space_coords isa Cylindrical
                 flux *= (1/2) * (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             elseif space_coords isa Spherical
-                flux *= (1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
+                flux *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
             else
                 error("Space co-ordinate system not recognised.")
             end
@@ -207,7 +207,7 @@
             elseif space_coords isa Cylindrical
                 flux *= (1/2) * (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) * (z0 - z1)
             elseif space_coords isa Spherical
-                flux *= (1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
+                flux *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (cospi(y0/pi) - cospi(y1/pi)) * (z0 - z1)
             else
                 error("Space co-ordinate system not recognised.")
             end
