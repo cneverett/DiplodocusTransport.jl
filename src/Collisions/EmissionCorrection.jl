@@ -30,12 +30,14 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
         for px in axes(GainMatrix3, 4), py in axes(GainMatrix3,5), pz in axes(GainMatrix3,6) # loop over p1 states
 
             # critical frequency
-            ω0 = abs((z1*1.6e-19*Ext[Ext_idx]))/(p1m[pz]*9.11e-31)
-            pc = log10(1.054e-34*ω0/(9.11e-31*3e8^2)*(p1m[pz])^3)
+            ω0 = abs((z1*1.6e-19*Ext[Ext_idx]))/(p1m[px]*9.11e-31)
+            pc = 1.054e-34*ω0/(9.11e-31*3e8^2)*(p1m[px])^3
             pmin = p3r[1]
 
             if pc < pmin
+                println("pmin = $(pmin), pc = $(pc)")
                 println("Critical frequency below minimum momentum, no correction applied")
+                println(Ext[Ext_idx])
                 continue
             end
         

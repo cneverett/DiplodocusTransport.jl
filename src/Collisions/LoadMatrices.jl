@@ -255,7 +255,7 @@ function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String
         # apply energy correction
         if Emi_corrected
             for Ext_idx in eachindex(Ext_sampled)
-                EmissionCorrection!(PhaseSpace,view(GainMatrix3_All,:,:,:,:,:,:,Ext_idx),Parameters,Ext_idx)
+                EmissionCorrection!(PhaseSpace,@view(GainMatrix3_All[:,:,:,:,:,:,Ext_idx]),Parameters,Ext_idx)
             end
         end
 
