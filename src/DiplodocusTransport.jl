@@ -26,6 +26,8 @@ module DiplodocusTransport
     using SparseArrays
     using CUDA
     using CUDA.CUSPARSE
+    using MKL
+    using MKLSparse
 
     include("Constants.jl")
     include("Types.jl")

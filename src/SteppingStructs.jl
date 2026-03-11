@@ -15,7 +15,9 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
     invAp_Flux::AbstractVector{T}                   # inv Ap flux for time stepping
     Vol::AbstractVector{T}
 
+    Adaptive::Bool
     Implicit::Bool
+    dt_initial::T
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
@@ -28,7 +30,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
     df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations   
 
-    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct)
+    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false)
 
         Backend = getfield(Main,Symbol("Backend"))
         Precision = getfield(Main,Symbol("Precision"))
@@ -38,6 +40,8 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
         self = new{Precision}()
 
         self.Implicit = false
+        self.Adaptive = Adaptive
+        self.dt_initial = convert(Precision,PhaseSpace.Time.dt_initial)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
         self.Emission_Interactions = !isempty(EmiM.Emission_list)
@@ -114,7 +118,9 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
     invAp_Flux::AbstractVector{T}                   # inv Ap flux for time stepping
     Vol::AbstractVector{T}
 
+    Adaptive::Bool
     Implicit::Bool
+    dt_initial::T
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
@@ -133,7 +139,7 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
     df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations 
     f_tmp::AbstractVector{T}                        # temporary array the size of f for symplectic Euler calculations  
 
-    function ForwardSymplecticEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct)
+    function ForwardSymplecticEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false)
 
         Backend = getfield(Main,Symbol("Backend"))
         Precision = getfield(Main,Symbol("Precision"))
@@ -142,7 +148,9 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
 
         self = new{Precision}()
 
+        self.Adaptive = Adaptive
         self.Implicit = false
+        self.dt_initial = convert(Precision,PhaseSpace.Time.dt_initial)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
         self.Emission_Interactions = !isempty(EmiM.Emission_list)

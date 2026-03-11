@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.1"
+julia_version = "1.12.0"
 manifest_format = "2.0"
-project_hash = "b656cddb6eb78ba4d0bd49ac80f06792283366c1"
+project_hash = "d0c6e7f7ff9574efcc808802e01e7ca203a655c3"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -195,7 +195,7 @@ uuid = "32d0d58a-4da0-4f8e-8b7e-c2816ac6e5cb"
 version = "0.2.0"
 
 [[deps.DiplodocusTransport]]
-deps = ["Bessels", "CUDA", "DiplodocusCollisions", "JLD2", "LinearAlgebra", "ProgressMeter", "Revise", "SparseArrays", "Statistics"]
+deps = ["BenchmarkTools", "Bessels", "CUDA", "DiplodocusCollisions", "JLD2", "LinearAlgebra", "MKL", "ProgressMeter", "Revise", "SparseArrays", "Statistics"]
 path = "."
 uuid = "f63b9913-7a9a-464d-82b9-3e1e536d6db0"
 version = "0.2.0"
@@ -263,6 +263,12 @@ version = "1.0.0"
 git-tree-sha1 = "2eaa69a7cab70a52b9687c8bf950a5a93ec895ae"
 uuid = "076d061b-32b6-4027-95e0-9a2c6f6d7e74"
 version = "0.2.0"
+
+[[deps.IntelOpenMP_jll]]
+deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
+git-tree-sha1 = "ec1debd61c300961f98064cfb21287613ad7f303"
+uuid = "1d5cc7b8-4909-519e-a0f8-d0f5ad9712d0"
+version = "2025.2.0+0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -417,6 +423,24 @@ deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
 git-tree-sha1 = "5d4278f755440f70648d80cc6225f51e78e94094"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
 version = "3.5.1"
+
+[[deps.MKL]]
+deps = ["Artifacts", "Libdl", "LinearAlgebra", "Logging", "MKL_jll"]
+git-tree-sha1 = "7babad0b8cb353d15ed85090342d3c63af5f6819"
+uuid = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
+version = "0.9.1"
+
+[[deps.MKLSparse]]
+deps = ["LinearAlgebra", "MKL_jll", "SparseArrays"]
+git-tree-sha1 = "7c530bb990da20417879d5e2e2e5ea684f1b60ba"
+uuid = "0c723cd3-b8cd-5d40-b370-ba682dde9aae"
+version = "3.0.0"
+
+[[deps.MKL_jll]]
+deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
+git-tree-sha1 = "282cadc186e7b2ae0eeadbd7a4dffed4196ae2aa"
+uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
+version = "2025.2.0+0"
 
 [[deps.MacroTools]]
 git-tree-sha1 = "1e0228a030642014fe5cfe68c2c0a818f9e3f522"
@@ -730,12 +754,18 @@ version = "1.3.0+0"
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-version = "5.15.0+0"
+version = "5.13.1+1"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
 version = "1.64.0+1"
+
+[[deps.oneTBB_jll]]
+deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
+git-tree-sha1 = "1350188a69a6e46f799d3945beef36435ed7262f"
+uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
+version = "2022.0.0+1"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]

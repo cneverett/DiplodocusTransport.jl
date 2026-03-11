@@ -47,10 +47,11 @@ A struct for storing the time domain of the simulation.
 """
 @kwdef struct TimeStruct
 
-    t_up::Float64    = getfield(Main,Symbol("t_up"))
-    t_low::Float64   = getfield(Main,Symbol("t_low"))
-    t_num::Int64     = getfield(Main,Symbol("t_num"))
-    t_grid::String   = getfield(Main,Symbol("t_grid"))
+    dt_initial::Float64 = getfield(Main,Symbol("dt_initial"))
+
+    #t_low::Float64   = getfield(Main,Symbol("t_low"))
+    #t_num::Int64     = getfield(Main,Symbol("t_num"))
+    #t_grid::String   = getfield(Main,Symbol("t_grid"))
 
 end
 
@@ -127,7 +128,6 @@ A struct for storing the grid values for each particle in the simulation.
     charge_list::Vector{Float64}
 
     tr::Vector{Float64}
-    dt::Vector{Float64}
 
     xr::Vector{Float64}
     yr::Vector{Float64}
@@ -164,15 +164,9 @@ A struct for storing the grid values for each particle in the simulation.
 
         self = new()
 
-        # time domain grids
+        # time domain (only first timestep)
 
-            t_up    = time.t_up
-            t_low   = time.t_low
-            t_num   = time.t_num
-            t_grid  = time.t_grid
-
-            self.tr = bounds(t_low,t_up,t_num,t_grid)
-            self.dt = deltaVector(self.tr)
+            self.tr = [0.0,time.dt_initial]
 
         # space domain grids
 
@@ -362,15 +356,13 @@ end
 
 mutable struct OutputStruct
     
-    f::AbstractVector
-    f_ext::AbstractVector
+    f::Vector{Vector{AbstractFloat}}
     t::Vector{Float64}
 
-    function OutputStruct(f0::AbstractVector,n_save::Int64)
+    function OutputStruct(f0::Vector{T},n_save::Int64) where T<:Union{Float32,Float64}
 
         self = new()
-        self.f = Vector{typeof(f0)}(undef,n_save)
-        self.f_ext = Vector{typeof(f0)}(undef,n_save)
+        self.f = [similar(f0) for _ in 1:n_save]
         self.t = Vector{Float64}(undef,n_save)
 
         return self
