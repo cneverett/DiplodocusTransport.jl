@@ -1,5 +1,5 @@
 """
-    ForwardEuler(dt0,dt,t,Verbose)
+    ForwardEuler(t_start,t_stop,dt,Verbose)
 
 Forward (Explicit) Euler time-stepping method for the Boltzmann equation.
 
@@ -9,54 +9,49 @@ Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
 dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+\\mathcal{D}+\\mathcal{I}+\\mathcal{J}+\\mathcal{K}+\\right)g^{t}+M_\\text{Emi}g^{t}+M_\\text{Bin}g^{t}g^{t}\\right]/ \\mathcal{A}^+
 ````
 """
-function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
+function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
-    # limit u to be positive, now done in solver
-    #@. f = f*(f>=0f0)
+    dt0 = method.dt0
 
-    #println(ForwardEuler.f)
-    #println("t = $t")
+    # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
 
-    # reset arrays
-    fill!(ForwardEuler.df,zero(eltype(ForwardEuler.df)))
-    #fill!(Euler.temp,zero(eltype(Euler.temp)))
-        
-    # create df_Bin due to binary interactions
-    if ForwardEuler.Binary_Interactions
-        update_Big_Bin!(ForwardEuler)
-        @. ForwardEuler.df += ForwardEuler.df_Bin
-        if !isfinite(sum(ForwardEuler.df_Bin))
-            println("non-finite value in df_Bin calculation, $(sum(ForwardEuler.df_Bin))")
+        if t_start + dt >= t_stop
+            dt = t_stop - t_start
+            save = true
+        else
+            save = false
         end
-    end
+
+    # scaling of time stepping
+
+        dt_scale = dt / dt0
+
+    # update momentum and space space using f at time t
+
+    mul!(method.df_Flux,method.F_Flux,method.f)
+    @. method.df = -method.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Flux
 
     # create df_Emi due to emission terms
-    if ForwardEuler.Emission_Interactions
-        mul!(ForwardEuler.df_Emi,ForwardEuler.M_Emi,ForwardEuler.f)
-        @. ForwardEuler.df += ForwardEuler.df_Emi
-        if !isfinite(sum(ForwardEuler.df_Emi))
-            println("non-finite value in df_Emi calculation, $(sum(ForwardEuler.df_Emi))")
-        end
+    if method.Emission_Interactions
+        mul!(method.df_Emi,method.M_Emi,method.f)
+        @. method.df += method.df_Emi
+        #if !isfinite(sum(method.df_Emi))
+        #    println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
+        #end
+    end
+        
+    # create df_Bin due to binary interactions
+    if method.Binary_Interactions
+        update_Big_Bin!(method)
+        @. method.df += method.df_Bin
+        #if !isfinite(sum(method.df_Bin))
+        #    println("non-finite value in df_Bin calculation, $(sum(method.df_Bin))")
+        #end
     end
 
-    # create df_Flux due to space and momentum flux terms
-    mul!(ForwardEuler.df_Flux,ForwardEuler.F_Flux,ForwardEuler.f)
-    @. ForwardEuler.df -= ForwardEuler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
-    if !isfinite(sum(ForwardEuler.df_Flux))
-        println("non-finite value in df_Flux calculation, $(sum(ForwardEuler.df_Flux))")
-    end
+    @. method.df *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
 
-    @. ForwardEuler.df *= ForwardEuler.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
-
-    # Add injection term 
-    @. ForwardEuler.df += ForwardEuler.df_Inj
-
-    # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
-    if ForwardEuler.PhaseSpace.Time.t_grid != "u" 
-        ForwardEuler.df .*= dt / dt0
-    end
-
-    if !isfinite(sum(ForwardEuler.df))
+    if !isfinite(sum(method.df))
         println("non-finite value in df calculation")
     end
 
@@ -68,54 +63,61 @@ function (ForwardEuler::ForwardEulerStruct)(dt0,dt,t,Verbose::Int64)
         Cr_Flux = 0.0
 
         # Cr (CFL) condition check
-        if sum(ForwardEuler.f) != 0.0
+        if sum(method.f) != 0.0
 
             if Verbose == 3
         
                 # Binary CFL
-                if ForwardEuler.Binary_Interactions
-                    @. ForwardEuler.df_tmp = ForwardEuler.df_Bin / ForwardEuler.f 
-                    Cr_Bin = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+                if method.Binary_Interactions
+                    @. method.df_tmp = method.df_Bin / method.f 
+                    replace!(method.df_tmp,NaN=>0.0)
+                    Cr_Bin = -minimum(method.df_tmp)
                 end
 
                 # Emission CFL
-                if ForwardEuler.Emission_Interactions
-                    @. ForwardEuler.df_tmp = ForwardEuler.df_Emi / ForwardEuler.f 
-                    Cr_Emi = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+                if method.Emission_Interactions
+                    @. method.df_tmp = method.df_Emi / method.f 
+                    replace!(method.df_tmp,NaN=>0.0)
+                    Cr_Emi = -minimum(method.df_tmp)
                 end
 
                 # Flux CFL
-                @. ForwardEuler.df_tmp = -ForwardEuler.df_Flux / ForwardEuler.f 
-                Cr_Flux = -minimum(filter(isfinite,ForwardEuler.df_tmp))
+                @. method.df_tmp = -method.df_Flux / method.f 
+                replace!(method.df_tmp,NaN=>0.0)
+                Cr_Flux = -minimum(method.df_tmp)
 
             end
 
-            @. ForwardEuler.df_tmp = ForwardEuler.df / ForwardEuler.f
-            Cr = -minimum(filter(isfinite,ForwardEuler.df_tmp)) 
+            @. method.df_tmp = method.df / method.f
+            replace!(method.df_tmp,NaN=>0.0)
+            Cr = -minimum(method.df_tmp) 
 
         end   
 
         if Verbose == 1 && Cr > 1.0
-            println("Cr = $Cr, t=$t, dt=$dt, system may be unstable")
+            println("Cr = $Cr, t=$t_start, dt=$dt, system may be unstable")
         elseif Verbose == 2
-            println("\rCr = $Cr, t=$t, dt=$dt")
+            println("\rCr = $Cr, t=$t_start, dt=$dt")
         elseif Verbose == 3
-            println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t, dt=$dt")
+            println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t_start, t_save =$t_stop, dt=$dt")
         end
     end
     
-    # update state vector f
-    @. ForwardEuler.f += ForwardEuler.df
+    # update state vector f with injection term
+    @. method.f += method.df + method.df_Inj * dt_scale 
     # removing negative values (values less than 1f-28 for better stability)
-    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f>=1f-30)
+    @. method.f = method.f*(method.f>=1f-10)
     # hacky fix for inf values
-    @. ForwardEuler.f = ForwardEuler.f*(ForwardEuler.f!=Inf)
+    @. method.f = method.f*(method.f!=Inf)
 
+    # return dt and save
+
+    return dt,save
 
 end
 
 """
-    ForwardSymplecticEuler(dt0,dt,t,Verbose)
+    ForwardSymplecticEuler(t_start,t_stop,dt,Verbose)
 
 Forward Symplectic (Semi-Implicit) Euler time-stepping method for the Boltzmann equation. Symplectic integrator updates momentum space first then physical space.
 
@@ -127,7 +129,7 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 """
 function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
-    dt0 = method.dt_initial
+    dt0 = method.dt0
 
     # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
 
@@ -138,18 +140,14 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             save = false
         end
 
-    # scaling of timestepping
+    # scaling of time stepping
 
         dt_scale = dt / dt0
-
-    # Add injection term
-
-        @. method.f_tmp = method.f + method.df_Inj * dt_scale
 
     # update momentum space using f at time t
 
         # create df_PFlux due to momentum flux terms
-        mul!(method.df_PFlux,method.P_Flux,method.f_tmp)
+        mul!(method.df_PFlux,method.P_Flux,method.f)
         @. method.df_Momentum = -method.df_PFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Momentum
         #if !isfinite(sum(method.df_PFlux)) #TODO: speed up using find first non-finite value instead of summing entire array
         #    println("non-finite value in df_PFlux calculation, $(sum(method.df_PFlux))")
@@ -157,7 +155,7 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
 
         # create df_Emi due to emission terms
         if method.Emission_Interactions
-            mul!(method.df_Emi,method.M_Emi,method.f_tmp)
+            mul!(method.df_Emi,method.M_Emi,method.f)
             @. method.df_Momentum += method.df_Emi
             #if !isfinite(sum(method.df_Emi))
             #    println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
@@ -173,34 +171,32 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             #end
         end
 
-        @. method.df_Momentum *= method.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
+        @. method.df_Momentum *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
 
         #if !isfinite(sum(method.df_Momentum))
         #    println("non-finite value in momentum df calculation, $(sum(method.df_Momentum))")
         #end
 
         # update f_momentum (f after momentum update)
-        @. method.f_Momentum = method.f_tmp + method.df_Momentum * dt_scale
+        @. method.f_Momentum = method.f + method.df_Momentum
         # removing negative values (values less than 0f0 for better stability)
-        @. method.f_Momentum = method.f_Momentum*(method.f_Momentum>=1f-20)
+        @. method.f_Momentum = method.f_Momentum*(method.f_Momentum>=1f-10)
 
     # update physical space using f_Momentum (f after momentum update)
 
         # create df_XFlux due to space flux terms
         mul!(method.df_XFlux,method.X_Flux,method.f_Momentum)
-        @. method.df_Space = -method.df_XFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
+        @. method.df_Space = -method.df_XFlux * method.invAp_Flux * dt_scale # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
         #if !isfinite(sum(method.df_XFlux))
         #    println("non-finite value in df_XFlux calculation, $(sum(method.df_XFlux))")
         #end
-
-        @. method.df_Space *= method.invAp_Flux # Assumes Ap_flux is diagonal and stored as a vector
 
         #if !isfinite(sum(method.df_Space))
         #    println("non-finite value in space df calculation, $(sum(method.df_Space))")
         #end
 
         # update f_Space (f after momentum and space updates)
-        @. method.f_Space = method.f_Momentum + method.df_Space * dt_scale
+        @. method.f_Space = method.f_Momentum + method.df_Space
         # removing negative values (values less than 0f0 for better stability)
         @. method.f_Space = method.f_Space*(method.f_Space>=1f-20)
 
@@ -214,7 +210,7 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             Cr_Emi = 0.0
             Cr_PFlux = 0.0
             Cr_Momentum = 0.0
-            Cr_XFlux = 0.0
+            Cr_Space = 0.0
 
 
             # Cr (CFL) condition check
@@ -224,37 +220,37 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             
                     # Binary CFL
                     if method.Binary_Interactions
-                        @. method.df_tmp = method.df_Bin * method.invAp_Flux / method.f_tmp * dt_scale
+                        @. method.df_tmp = method.df_Bin * method.invAp_Flux * dt_scale / method.f
                         replace!(method.df_tmp,NaN=>0.0)
                         Cr_Bin = -minimum(method.df_tmp)
                     end
 
                     # Emission CFL
                     if method.Emission_Interactions
-                        @. method.df_tmp = method.df_Emi * method.invAp_Flux / method.f_tmp * dt_scale
+                        @. method.df_tmp = method.df_Emi * method.invAp_Flux * dt_scale / method.f
                         replace!(method.df_tmp,NaN=>0.0)
                         Cr_Emi = -minimum(method.df_tmp)
                     end
 
                     # P Flux CFL
-                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux / method.f_tmp * dt_scale
+                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux * dt_scale / method.f
                     replace!(method.df_tmp,NaN=>0.0)
                     Cr_PFlux = -minimum(method.df_tmp)
 
                     # Momentum CFL
-                    @. method.df_tmp = (method.df_Bin + method.df_Emi - method.df_PFlux) * method.invAp_Flux / method.f_tmp * dt_scale
+                    @. method.df_tmp = method.df_Momentum /  method.f
                     replace!(method.df_tmp,NaN=>0.0)
                     Cr_Momentum = -minimum(method.df_tmp)
 
-                    # X Flux CFL
-                    @. method.df_tmp = -method.df_XFlux * method.invAp_Flux / method.f_Momentum * dt_scale
+                    # Space CFL
+                    @. method.df_tmp = method.df_Space / method.f_Momentum
                     replace!(method.df_tmp,NaN=>0.0)
-                    Cr_XFlux = -minimum(method.df_tmp)
+                    Cr_Space = -minimum(method.df_tmp)
                 end
 
                 # Cr is calculated for the entire time step (momentum and space updates)
                 # f_tmp - f = df of the momentum step
-                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f_tmp * dt / dt0 
+                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f 
                 replace!(method.df_tmp,NaN=>0.0)
                 Cr = -minimum(method.df_tmp) 
 
@@ -265,13 +261,13 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             elseif Verbose == 2
                 println("Cr = $(round(Cr, sigdigits=3)), t=$t_start, dt=$dt")
             elseif Verbose == 3
-                println("Cr = $(round(Cr, sigdigits=3)), Cr_Bin = $(round(Cr_Bin, sigdigits=3)), Cr_Emi = $(round(Cr_Emi, sigdigits=3)), Cr_PFlux = $(round(Cr_PFlux, sigdigits=3)), Cr_Momentum = $(round(Cr_Momentum, sigdigits=3)), Cr_XFlux = $(round(Cr_XFlux, sigdigits=3)),  t=$t_start, dt=$dt")
+                println("Cr = $(round(Cr, sigdigits=3)), Cr_Bin = $(round(Cr_Bin, sigdigits=3)), Cr_Emi = $(round(Cr_Emi, sigdigits=3)), Cr_PFlux = $(round(Cr_PFlux, sigdigits=3)), Cr_Momentum = $(round(Cr_Momentum, sigdigits=3)), Cr_Space = $(round(Cr_Space, sigdigits=3)),  t=$t_start, t_save=$t_stop , dt=$dt")
             end
         end
 
     # update state vector f with momentum, space and injection updates
     
-        @. method.f = method.f_Space
+        @. method.f = method.f_Space + method.df_Inj * dt_scale
         # removing negative values (values less than 1f-28 for better stability) and ensure positivity for CFL calculations
         @. method.f = method.f*(method.f>=1f-20)*sign(method.f)
         # hacky fix for inf values
@@ -279,7 +275,7 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
 
     # return dt and save
 
-        return dt,save
+    return dt,save
 
 end
 

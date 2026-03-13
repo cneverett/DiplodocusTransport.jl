@@ -1,18 +1,13 @@
-function Solve(method::SteppingMethodType,t_save::Vector{<:AbstractFloat};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
+function Solve(method::SteppingMethodType,dt_initial::AbstractFloat,t_save::Vector{<:AbstractFloat};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
 
     if isdir(fileLocation) == false
         mkpath(fileLocation)
     end
 
     PhaseSpace = method.PhaseSpace
-    Time = PhaseSpace.Time
-    Grids = PhaseSpace.Grids
 
     f = copy(method.f_init)
-    dt_initial = Time.dt_initial
-
     n_save = length(t_save)
-
     output = OutputStruct(f,n_save)
 
     # save initial state (step 1)
@@ -23,8 +18,6 @@ function Solve(method::SteppingMethodType,t_save::Vector{<:AbstractFloat};progre
     if progress
         p = Progress(n_save)
     end
-
-    #filter_vector = zeros(Bool, length(tmp))
 
     @. method.f = method.f_init # reset f to initial condition at start of each solve (important for multiple solves in same session)
     #println(sum(method.f))

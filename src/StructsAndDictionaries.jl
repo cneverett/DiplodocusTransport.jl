@@ -12,19 +12,24 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
     CHAR_magnetic_field::Float64 = 1.0 # 1 Tesla
 
     # user defined scales (SI units)
-    CHAR_length::Float64 = try 
-            getfield(Main,Symbol("CHAR_length"))
-        catch
-            CONST_pcs
-        end
-    CHAR_number_density::Float64 = try 
-            getfield(Main,Symbol("CHAR_number_density"))
-        catch
-            1.0e6 # 1 particle per cm^3
-        end
+    #if isdefined(Main,Symbol("CHAR_time")) && isdefined(Main,Symbol("CHAR_length")) 
+    #    error("Both CHAR_time and CHAR_length are defined. Only one of these should be defined as the other is derived from it using CHAR_speed.")
+    #end
+
+    CHAR_length::Float64 = isdefined(Main,Symbol("CHAR_length")) ? getfield(Main,Symbol("CHAR_length")) : isdefined(Main,Symbol("CHAR_time")) ? getfield(Main,Symbol("CHAR_time")) * CHAR_speed : CONST_pcs
+    #    catch
+    #        if isdefined(Main,Symbol("CHAR_time"))
+    #            getfield(Main,Symbol("CHAR_time")) * CHAR_speed
+    #        else
+    #            CONST_pcs
+    #        end
+    #    end
+
+    CHAR_time::Float64 = isdefined(Main,Symbol("CHAR_time")) ? getfield(Main,Symbol("CHAR_time")) : CHAR_length / CHAR_speed 
+
+    CHAR_number_density::Float64 = isdefined(Main,Symbol("CHAR_number_density")) ? getfield(Main,Symbol("CHAR_number_density")) : 1.0e6 # 1 particle per cm^3    
 
     # derived scales (SI units)
-    CHAR_time::Float64 = CHAR_length/CHAR_speed
     CHAR_momentum::Float64 = CHAR_mass*CHAR_speed
     CHAR_energy::Float64 = CHAR_mass*CHAR_speed^2
     CHAR_mass_density::Float64 = CHAR_mass*CHAR_number_density
@@ -47,7 +52,7 @@ A struct for storing the time domain of the simulation.
 """
 @kwdef struct TimeStruct
 
-    dt_initial::Float64 = getfield(Main,Symbol("dt_initial"))
+    dt0::Float64 = 1.0 # dt used for building flux terms
 
     #t_low::Float64   = getfield(Main,Symbol("t_low"))
     #t_num::Int64     = getfield(Main,Symbol("t_num"))
@@ -166,7 +171,7 @@ A struct for storing the grid values for each particle in the simulation.
 
         # time domain (only first timestep)
 
-            self.tr = [0.0,time.dt_initial]
+            self.tr = [0.0,time.dt0]
 
         # space domain grids
 

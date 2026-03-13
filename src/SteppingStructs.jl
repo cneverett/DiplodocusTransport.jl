@@ -17,7 +17,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
     Adaptive::Bool
     Implicit::Bool
-    dt_initial::T
+    dt0::T
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
@@ -41,7 +41,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
         self.Implicit = false
         self.Adaptive = Adaptive
-        self.dt_initial = convert(Precision,PhaseSpace.Time.dt_initial)
+        self.dt0 = convert(Precision,PhaseSpace.Time.dt0)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
         self.Emission_Interactions = !isempty(EmiM.Emission_list)
@@ -120,7 +120,7 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
 
     Adaptive::Bool
     Implicit::Bool
-    dt_initial::T
+    dt0::T
 
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
@@ -150,7 +150,7 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
 
         self.Adaptive = Adaptive
         self.Implicit = false
-        self.dt_initial = convert(Precision,PhaseSpace.Time.dt_initial)
+        self.dt0 = convert(Precision,PhaseSpace.Time.dt0)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
         self.Emission_Interactions = !isempty(EmiM.Emission_list)
