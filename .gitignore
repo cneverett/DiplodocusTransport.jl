@@ -5,14 +5,11 @@ Setup_test.jl
 *.pdf
 *.png
 *.mp4
+*.json
 
 # mathematica files
 *.nb
 
-Plotting.jl
-
-TestingGround/
-Amsterdam/
-examples/
-figures/
-cspell.json
+/Amsterdam/
+/TestingGround/
+/figures/

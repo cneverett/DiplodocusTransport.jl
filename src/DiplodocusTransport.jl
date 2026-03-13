@@ -1,35 +1,56 @@
 module DiplodocusTransport
 
     export LoadMatrices, BigMatrices, FluxMatrices
-    export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct
+    export PhaseSpaceStruct, MomentumStruct, SpaceStruct, TimeStruct, OutputStruct, CharacteristicStruct, GridsStruct, ElectroMagneticFieldStruct
     export BinaryStruct, EmiStruct, ForceType
-    export Cylindrical, Spherical, Cartesian, Ani, Axi, Iso
-    export CoordinateForce, SyncRadReact, ExB
-    export BuildBigMatrices, BuildFluxMatrices
-    export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant, Initial_MaxwellJuttner, Initial_PowerLaw, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_BoostedPowerLaw!, Initial_BlackBody!
-    export Solve, EulerStruct
+    export BackendType
+    export CoordinateType, Cylindrical, Spherical, Cartesian
+    export ModeType, Ani, Axi, Iso
+    export BoundaryType, Periodic, Open, Closed, Reflective
+    export CoordinateForce, SyncRadReact, GradBInvZDecay
+    export BuildBinaryMatrices, BuildEmissionMatrices, BuildFluxMatrices
+    export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_BoostedPowerLaw!, Initial_BlackBody!
+    export Initialise_Injection_Condition, Injection_Constant!, Injection_MaxwellJuttner!, Injection_PowerLaw!, Injection_BoostedPowerLaw!, Injection_BlackBody!
+    export ElectroMagneticField_Constant, ElectroMagneticField_InvZDecay
+    export CollisionDomain
+    export Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
     export SolutionFileLoad
     export MaxwellJuttner_Distribution, BlackBody_Distribution, Wien_Distribution
+    export CUDABackend, CPUBackend
 
     using JLD2
-    import DiplodocusCollisions as DC
+    using DiplodocusCollisions: bounds, location, deltaVector, meanVector, deltaEVector, EmissionFileName, BinaryFileName, EmissionFileLoad_Matrix, BinaryFileLoad_Matrix, DoesConserve
     using LinearAlgebra
     using ProgressMeter
     using Bessels
     using Statistics
+    using SparseArrays
+    using CUDA
+    using CUDA.CUSPARSE
+    using MKL
+    using MKLSparse
 
+    include("Constants.jl")
     include("Types.jl")
+    include("Backends.jl")
     include("StructsAndDictionaries.jl")
     include("PhaseSpaceFactors.jl")
     include("MatrixResizing.jl")
     include("DistributionFunctions.jl")
     include("DistributionMoments.jl")
     include("InitialConditions.jl")
-    include("ValuesOnTheGrid.jl")
+    include("InjectionConditions.jl")
+    #include("ValuesOnTheGrid.jl")
     include("DataReading.jl")
+    include("GlobalToStateIndices.jl")
+
+    # Fields
+    include("ElectroMagneticFieldFunctions.jl")
 
     # Collisions
-    include("Collisions/BuildBigMatrices.jl")
+    include("Collisions/CollisionDomains.jl")
+    include("Collisions/BuildBinaryMatrices.jl")
+    include("Collisions/BuildEmissionMatrices.jl")
     include("Collisions/LoadMatrices.jl")
     include("Collisions/EmissionCorrection.jl")
 
@@ -37,6 +58,9 @@ module DiplodocusTransport
     include("Fluxes/BuildFluxMatrices.jl")
     include("Fluxes/FluxFunctionsCoordinate.jl")
     include("Fluxes/FluxFunctionsForces.jl")
+    include("Fluxes/FluxFunctionsEmissionForces.jl")
+
+    
 
     # Stepping 
     include("SteppingStructs.jl")
@@ -44,8 +68,5 @@ module DiplodocusTransport
 
     # Solver
     include("Solver.jl")
-
-    # post-processing
-    #include("Plotting.jl")
 
 end

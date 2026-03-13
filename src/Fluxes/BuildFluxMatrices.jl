@@ -1,56 +1,17 @@
 """
-    BuildFluxMatrices(PhaseSpace)
+    BuildFluxMatrices(PhaseSpace;debug_mode=false,Precision=Float32)
 
-Function that builds the flux matrices associated with coordinate forces and regular forces. First space is allocated for the arrays, then the fluxes are filled and finally the flux matrices are returned as an immutable `FluxMatricesStruct`.
+Function that builds the flux matrices associated with coordinate forces and regular forces. First the sparse arrays representing the fluxes are filled, then the flux matrices are returned as an immutable `FluxMatricesStruct`.
+
+# Optional arguments
+- `debug_mode::Bool=false`: If true, all flux matrices are built and returned. If false, only the essential flux matrices are built and returned to save memory.
+- `Precision::DataType=Float32`: The data type for the elements of the flux matrices and volume elements. Defines the machine error of the simulation. Can be either `Float32` or `Float64`.
 """
-function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct;debug_mode::Bool=false,MatrixType::DataType=Matrix{Float32},VectorType::DataType=Vector{Float32})
+function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType};debug_mode::Bool=false)
 
-    if eltype(MatrixType) != eltype(VectorType)
-        error("elements of MatrixType and VectorType must be the same type")
-    end
+    Precision::DataType = getfield(Main,Symbol("Precision"))
 
-    (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux) = Allocate_Flux(PhaseSpace,MatrixType,VectorType,debug_mode)
-
-    if debug_mode
-
-        # Fill flux matrices
-        Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
-        # to be implemented
-        #Fill_B_Flux!(B_Flux,Lists,PhaseSpace)
-        #Fill_C_Flux!(C_Flux,Lists,PhaseSpace)
-        #Fill_D_Flux!(D_Flux,Lists,PhaseSpace)
-        Fill_I_Flux!(I_Flux,PhaseSpace) 
-        Fill_J_Flux!(J_Flux,PhaseSpace)
-        Fill_K_Flux!(K_Flux,PhaseSpace) 
-        Fill_Vol!(Vol,PhaseSpace)
-        @. F_Flux = I_Flux + J_Flux + K_Flux #+ B_Flux + C_Flux + D_Flux  
-
-    else
-
-        (Ap_Flux,Am_Flux,F_Flux,Vol) = Allocate_Flux(PhaseSpace,MatrixType,VectorType,debug_mode)
-        # Fill flux matrices
-        Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
-        # to be implemented
-        #Fill_B_Flux!(F_Flux,Lists,PhaseSpace)
-        #Fill_C_Flux!(F_Flux,Lists,PhaseSpace)
-        #Fill_D_Flux!(F_Flux,Lists,PhaseSpace)
-        Fill_I_Flux!(F_Flux,PhaseSpace) 
-        Fill_J_Flux!(F_Flux,PhaseSpace)
-        Fill_K_Flux!(F_Flux,PhaseSpace) 
-        Fill_Vol!(Vol,PhaseSpace)
-
-    end
-
-    return FluxMatricesStruct{MatrixType,VectorType}(Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
-
-end
-
-"""
-    Allocate_Flux(PhaseSpace,MatrixType,VectorType)
-
-Allocates arrays for fluxes and volume elements.
-"""
-function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorType::DataType,debug_mode::Bool)
+    @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -67,55 +28,167 @@ function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,MatrixType::DataType,VectorT
 
     n = n_momentum*n_space
 
-    size = n*n*sizeof(eltype(MatrixType))
+    Ap_Flux_I::Vector{Int64} = Int64[]
+    Ap_Flux_J::Vector{Int64} = Int64[]
+    Ap_Flux_V::Vector{Precision} = Precision[]
+    Am_Flux_I::Vector{Int64} = Int64[]
+    Am_Flux_J::Vector{Int64} = Int64[]
+    Am_Flux_V::Vector{Precision} = Precision[]
 
-    println("Building flux matrices")
-        if size > 1e9
-            println("Each flux matrix is approx. $(size/1e9) GB in memory")
-        elseif size > 1e6
-            println("Each flux matrix is approx. $(size/1e6) MB in memory")
-        elseif size > 1e3
-            println("Each flux matrix is approx. $(size/1e3) KB in memory")
-        else
-            println("Each flux matrix is approx. $size bytes in memory")
-        end
+    B_Flux_I::Vector{Int64} = Int64[]
+    B_Flux_J::Vector{Int64} = Int64[]
+    B_Flux_V::Vector{Precision} = Precision[]
 
-    # boundary terms included in arrays
-    # fluxes allocated with all zeros
-    # time fluxes
-    Ap_Flux::MatrixType = zeros(eltype(MatrixType),n,n) 
-    Am_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
-    # volume element 
-    Vol::VectorType = zeros(eltype(VectorType),n_space)
-    # sum of space and momentum fluxes 
-    F_Flux::MatrixType = zeros(eltype(MatrixType),n,n)
+    C_Flux_I::Vector{Int64} = Int64[]
+    C_Flux_J::Vector{Int64} = Int64[]
+    C_Flux_V::Vector{Precision} = Precision[]
+
+    D_Flux_I::Vector{Int64} = Int64[]
+    D_Flux_J::Vector{Int64} = Int64[]
+    D_Flux_V::Vector{Precision} = Precision[]
+
+    I_Flux_I::Vector{Int64} = Int64[]
+    I_Flux_J::Vector{Int64} = Int64[]
+    I_Flux_V::Vector{Precision} = Precision[]
+
+    J_Flux_I::Vector{Int64} = Int64[]
+    J_Flux_J::Vector{Int64} = Int64[]
+    J_Flux_V::Vector{Precision} = Precision[]
+
+    K_Flux_I::Vector{Int64} = Int64[]
+    K_Flux_J::Vector{Int64} = Int64[]
+    K_Flux_V::Vector{Precision} = Precision[]
+
+    Vol::Vector{Precision} = zeros(Precision,n_space)
+
+    X_Flux_I::Vector{Int64} = Int64[]
+    X_Flux_J::Vector{Int64} = Int64[]
+    X_Flux_V::Vector{Precision} = Precision[]
+
+    P_Flux_I::Vector{Int64} = Int64[]
+    P_Flux_J::Vector{Int64} = Int64[]
+    P_Flux_V::Vector{Precision} = Precision[]
+
     if debug_mode
-        # space fluxes
-        B_Flux= zeros(eltype(MatrixType),0,0)::MatrixType  # change 0 to n when implemented
-        C_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
-        D_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
-        # momentum fluxes
-        I_Flux = zeros(eltype(MatrixType),n,n)::MatrixType 
-        J_Flux = zeros(eltype(MatrixType),n,n)::MatrixType
-        K_Flux = zeros(eltype(MatrixType),n,n)::MatrixType
+
+        println("Building A flux matrices...")
+        
+        Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
+        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
+
+        # Fill flux matrices
+        println("Building B flux matrix...")
+        Fill_B_Flux!(PhaseSpace,B_Flux_I,B_Flux_J,B_Flux_V)
+        B_Flux = sparse(B_Flux_I,B_Flux_J,B_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building C flux matrix...")
+        Fill_C_Flux!(PhaseSpace,C_Flux_I,C_Flux_J,C_Flux_V)
+        C_Flux = sparse(C_Flux_I,C_Flux_J,C_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building D flux matrix...")
+        Fill_D_Flux!(PhaseSpace,D_Flux_I,D_Flux_J,D_Flux_V)
+        D_Flux = sparse(D_Flux_I,D_Flux_J,D_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building I flux matrix...")
+        Fill_I_Flux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V)
+        I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building J flux matrix...")
+        Fill_J_Flux!(PhaseSpace,Forces,J_Flux_I,J_Flux_J,J_Flux_V)
+        J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building K flux matrix...")
+        Fill_K_Flux!(PhaseSpace,Forces,K_Flux_I,K_Flux_J,K_Flux_V)
+        K_Flux = sparse(K_Flux_I,K_Flux_J,K_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        
+        println("Calculating volume elements...")
+        Fill_Vol!(Vol,PhaseSpace)
+
+        println("Building X and P flux matrix...")
+        P_Flux = I_Flux + J_Flux + K_Flux
+        X_Flux = B_Flux + C_Flux + D_Flux 
+        
     else
+
+        println("Building time flux matrices...")
+        Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
+        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        Am_Flux = sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building space flux matrices...")
+        Fill_B_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
+        Fill_C_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
+        Fill_D_Flux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
+        X_Flux = sparse(X_Flux_I,X_Flux_J,X_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Building momentum flux matrices...")
+        Fill_I_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
+        Fill_J_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
+        Fill_K_Flux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
+        P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        println("Calculating volume elements...")
+        Fill_Vol!(Vol,PhaseSpace)
+
         # space fluxes
-        B_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
-        C_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
-        D_Flux = zeros(eltype(MatrixType),0,0)::MatrixType # change 0 to n when implemented
+        B_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        C_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        D_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
         # momentum fluxes
-        I_Flux = zeros(eltype(MatrixType),0,0)::MatrixType
-        J_Flux = zeros(eltype(MatrixType),0,0)::MatrixType
-        K_Flux = zeros(eltype(MatrixType),0,0)::MatrixType 
+        I_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        J_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        K_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} 
+
     end
 
-    return (Ap_Flux,Am_Flux,F_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
+    if isdiag(Ap_Flux)
+        Ap_Flux = convert(Vector{Precision},diag(Ap_Flux))::Vector{Precision}
+    else
+        error("Aplus flux is not diagonal, which should be the case for stationary spacetimes")
+    end
+    if isdiag(Am_Flux)
+        Am_Flux = convert(Vector{Precision},diag(Am_Flux))::Vector{Precision}
+    else
+        error("Aminus flux is not diagonal, which should be the case for stationary spacetimes")
+    end
+
+    size = Base.summarysize(X_Flux)
+
+    if size > 1e9
+        println("X_Flux is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("X_Flux is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("X_Flux is approx. $(size/1e3) KB in memory")
+    else
+        println("X_Flux is approx. $size bytes in memory")
+    end
+
+
+    size = Base.summarysize(P_Flux)
+
+    if size > 1e9
+        println("P_Flux is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("P_Flux is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("P_Flux is approx. $(size/1e3) KB in memory")
+    else
+        println("P_Flux is approx. $size bytes in memory")
+    end
+
+
+    return FluxMatricesStruct{Precision}(Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
 
 end
 
-function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseSpaceStruct)
+"""
+    Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
 
-    type = eltype(Ap_Flux)
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `Ap_Flux` and `Am_Flux` matrices.
+"""
+function Fill_A_Flux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_Flux_J::Vector{Int64},Ap_Flux_V::Vector{T},Am_Flux_I::Vector{Int64},Am_Flux_J::Vector{Int64},Am_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -131,29 +204,8 @@ function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::Abstract
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # A_flux uses only first time step!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
@@ -161,32 +213,39 @@ function Fill_A_Flux!(Ap_Flux::AbstractMatrix{<:AbstractFloat},Am_Flux::Abstract
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
                 b = a
 
                 # integration sign introduced here
-                A_plus = AFluxFunction(space_coords,momentum_coords,tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                A_minus = -AFluxFunction(space_coords,momentum_coords,tr[1],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                A_plus = AFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                A_minus = -AFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                 # normalisation
-                norm = (pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])
+                norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
                 # fill
-                Ap_Flux[a,b] += convert(type,A_plus / norm)
-                Am_Flux[a,b] += convert(type,A_minus / norm)
+                push!(Ap_Flux_I,a)
+                push!(Ap_Flux_J,b)
+                push!(Ap_Flux_V,convert(T,A_plus / norm))
+
+                push!(Am_Flux_I,a)
+                push!(Am_Flux_J,b)
+                push!(Am_Flux_V,convert(T,A_minus / norm))
 
             end
         end
     end
 end
 
-function Fill_Vol!(Vol::AbstractVector{<:AbstractFloat},PhaseSpace::PhaseSpaceStruct)
 
-    type = eltype(Vol)
+"""
+    Fill_Vol!(Vol,PhaseSpace)
+
+Generates volume elements for each space sub-domain.
+"""
+function Fill_Vol!(Vol::Vector{T},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
@@ -198,32 +257,39 @@ function Fill_Vol!(Vol::AbstractVector{<:AbstractFloat},PhaseSpace::PhaseSpaceSt
     y_num = Space.y_num
     z_num = Space.z_num
 
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
-
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
         space = (x-1)*y_num*z_num+(y-1)*z_num+z
 
-        Vol[space] = convert(type,VolFunction(space_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1]))
+        Vol[space] = convert(T,VolFunction(PhaseSpace,1,x,y,z))
 
     end
 
 end
 
-function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseSpaceStruct)
+"""
+    Fill_I_Flux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V)
 
-    type = eltype(I_Flux)
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `I_Flux` matrix.
+"""
+function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     space_coords = Space.space_coordinates
     momentum_coords = Momentum.momentum_coordinates
     scheme = Momentum.scheme
+
+    BCp = momentum_coords.xp_BC
+    BCm = momentum_coords.xm_BC 
+
+    #= Boundary Conditions:
+        Flux on I boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    @assert BCp isa Closed || BCm isa Closed "I flux boundaries incorrectly defined, i.e. not closed"
 
     name_list = PhaseSpace.name_list
     x_num = Space.x_num
@@ -232,92 +298,1061 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
-
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
-
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
     
     for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
 
         px_num = px_num_list[name]
         py_num = py_num_list[name]
         pz_num = pz_num_list[name]
 
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            pxp = px+1
+            pxm = px-1
+            if pxp > px_num # right boundary
+                if BCp isa Closed || BCp isa Open
+                    pxp = px_num
+                elseif BCp isa Periodic
+                    pxp = 1
+                end
+            end
+            if pxm < 1 # left boundary
+                if BCm isa Closed || BCm isa Open
+                    pxm = 1
+                elseif BCm isa Periodic
+                    pxm = px_num
+                end
+            end
 
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+            bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                I_plus = IFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                I_minus = -IFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        
+                # scheme
+                if scheme == "upwind"
+                    if sign(I_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(I_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 0.5
+                    h_plus_left = 0.5
+                    h_minus_right = 0.5
+                    h_minus_left = 0.5
+                else
+                    error("Unknown scheme")
+                end
+
+                
+                #=
+                ________________________________
+                a |  I_m   | I_m+I_p | I_p    |
+                __|________|_________|________|_
+                      b-1       b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,pxp,py,pz)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,pxm,py,pz)
+
+                # normalised fluxes
+                if b != bp
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,bp)
+                    push!(I_Flux_V,convert(T,(I_plus * h_plus_right) / Mom_Normp))
+                    #I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / Mom_Normp)
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,b)
+                    push!(I_Flux_V,convert(T,(I_plus * h_plus_left) / Mom_Norm))
+                    #I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
+                elseif BCp isa Open # b=bp
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,b)
+                    push!(I_Flux_V,convert(T,(I_plus * h_plus_left) / Mom_Norm))
+                   # I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
+                end
+                if b != bm
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,b)
+                    push!(I_Flux_V,convert(T,(I_minus * h_minus_right) / Mom_Norm))
+                    #I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm)
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,bm)
+                    push!(I_Flux_V,convert(T,(I_minus * h_minus_left) / Mom_Normm)) 
+                    #I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / Mom_Normm) 
+                elseif BCm isa Open # b=bm
+                    push!(I_Flux_I,a)
+                    push!(I_Flux_J,b)
+                    push!(I_Flux_V,convert(T,(I_minus * h_minus_right) / Mom_Norm))
+                    #I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
+                end
+
+            end # Forces loop
+        end # end coordinates loop
+    end
+end
+
+"""
+    Fill_J_Flux!(PhaseSpace,Forces,J_Flux_I,J_Flux_J,J_Flux_V)
+
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `J_Flux` matrix.
+"""
+function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+    scheme = Momentum.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = momentum_coords.yp_BC
+    BCm = momentum_coords.ym_BC 
+    #= Boundary Conditions:
+        Flux on J boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    @assert (BCp isa Closed) && (BCm isa Closed) "J flux boundaries incorrectly defined, i.e. not closed"
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    
+    for name in 1:length(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            pyp = py+1
+            pym = py-1
+            if pyp > py_num # right boundary
+                if BCp isa Closed || BCp isa Open
+                    pyp = py_num
+                elseif BCp isa Periodic
+                    pyp = 1
+                end
+            end
+            if pym < 1 # left boundary
+                if BCm isa Closed || BCm isa Open
+                    pym = 1
+                elseif BCm isa Periodic
+                    pym = py_num
+                end
+            end
+
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
+
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                J_plus = JFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                J_minus = -JFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+
+                # scheme
+                if scheme == "upwind"
+                    if sign(J_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(J_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 0.5
+                    h_plus_left = 0.5
+                    h_minus_right = 0.5
+                    h_minus_left = 0.5
+                else
+                    error("Unknown scheme")
+                end
+    
+                #=
+                ________________________________
+                a |  J_m   | J_m+J_p | J_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,px,pyp,pz)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,px,pym,pz)
+
+                # normalised fluxes
+                if b != bp
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,bp)
+                    push!(J_Flux_V,convert(T,(J_plus * h_plus_right) / Mom_Normp))
+                    #J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / Mom_Normp)
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,b)
+                    push!(J_Flux_V,convert(T,(J_plus * h_plus_left) / Mom_Norm))
+                    #J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
+                elseif BCp isa Open # b=bp
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,b)
+                    push!(J_Flux_V,convert(T,(J_plus * h_plus_left) / Mom_Norm))
+                    #J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
+                end
+                if b != bm
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,b)
+                    push!(J_Flux_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
+                    #J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,bm)
+                    push!(J_Flux_V,convert(T,(J_minus * h_minus_left) / Mom_Normm))
+                    #J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm)
+                elseif BCm isa Open # b=bm
+                    push!(J_Flux_I,a)
+                    push!(J_Flux_J,b)
+                    push!(J_Flux_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
+                    #J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
+                end
+
+            end # Force loop
+        end
+    end
+end
+
+"""
+    Fill_K_Flux!(PhaseSpace,Forces,K_Flux_I,K_Flux_J,K_Flux_V)
+
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `K_Flux` matrix.
+"""
+function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+    scheme = Momentum.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = momentum_coords.zp_BC
+    BCm = momentum_coords.zm_BC 
+    #= Boundary Conditions:
+        Flux on K boundaries should always be periodic
+    =#
+    @assert (BCp isa Periodic) && (BCm isa Periodic) "K flux boundaries incorrectly defined, i.e. not periodic"
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    
+    for name in 1:length(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            pzp = pz+1
+            pzm = pz-1
+            if pzp > pz_num # right boundary
+                if BCp isa Closed || BCp isa Open
+                    pzp = pz_num
+                elseif BCp isa Periodic
+                    pzp = 1
+                end
+            end
+            if pzm < 1 # left boundary
+                if BCm isa Closed || BCm isa Open
+                    pzm = 1
+                elseif BCm isa Periodic
+                    pzm = pz_num
+                end
+            end
+
+            bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
+
+            for f in 1:length(Forces)
+                # integration sign introduced here
+                K_plus = KFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                K_minus = -KFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+
+                # scheme
+                if scheme == "upwind"
+                    if sign(K_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(K_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 1/2
+                    h_plus_left = 1/2
+                    h_minus_right = 1/2
+                    h_minus_left = 1/2
+                else
+                    error("Unknown scheme")
+                end
+
+                #=
+                ________________________________
+                a |  K_m   | K_m+K_p | K_p    |
+                __|________|_________|________|_
+                    b-1        b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                Mom_Normp = MomentumSpaceNorm(Grids,name,px,py,pzp)
+                Mom_Normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
+
+                if b != bp
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,bp)
+                    push!(K_Flux_V,convert(T,(K_plus * h_plus_right) / Mom_Normp))
+                    #K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp)
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,b)
+                    push!(K_Flux_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
+                    #K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
+                elseif BCp isa Open # b=bp
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,b)
+                    push!(K_Flux_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
+                    #K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
+                end
+                if b != bm
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,b)
+                    push!(K_Flux_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
+                    #K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,bm)
+                    push!(K_Flux_V,convert(T,(K_minus * h_minus_left) / Mom_Normm))
+                    #K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm)
+                elseif BCm isa Open # b=bm
+                    push!(K_Flux_I,a)
+                    push!(K_Flux_J,b)
+                    push!(K_Flux_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
+                    #K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
+                end
+                
+            end # force loop
+        end
+    end
+end
+
+
+"""
+    Fill_B_Flux!(PhaseSpace,B_Flux_I,B_Flux_J,B_Flux_V)
+
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `B_Flux` matrix.
+"""
+function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flux_J::Vector{Int64},B_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+    scheme = Space.scheme
+
+    BCp = space_coords.xp_BC
+    BCm = space_coords.xm_BC 
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    
+    for name in 1:length(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            xp = x+1
+            xm = x-1
+            if xp > x_num # right boundary
+                if BCp isa Closed || BCp isa Open
+                    xp = x_num
+                elseif BCp isa Periodic
+                    xp = 1
+                end
+            end
+            if xm < 1 # left boundary
+                if BCm isa Closed || BCm isa Open
+                    xm = 1
+                elseif BCm isa Periodic
+                    xm = x_num
+                end
+            end
+
+            bp = GlobalIndices_To_StateIndex(xp,y,z,px,py,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
+
+            # integration sign introduced here
+            B_plus = BFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            B_minus = -BFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+    
+            # scheme
+            if scheme == "upwind"
+                if sign(B_plus) == 1
+                    h_plus_right = 0
+                    h_plus_left = 1
+                else
+                    h_plus_right = 1
+                    h_plus_left = 0
+                end
+                if sign(B_minus) == 1
+                    h_minus_right = 1
+                    h_minus_left = 0
+                else
+                    h_minus_right = 0
+                    h_minus_left = 1
+                end
+            elseif scheme == "central"
+                h_plus_right = 0.5
+                h_plus_left = 0.5
+                h_minus_right = 0.5
+                h_minus_left = 0.5
+            else
+                error("Unknown scheme")
+            end
+
+            
+            #=
+            ________________________________
+            a |  B_m   | B_m+B_p | B_p    |
+            __|________|_________|________|_
+                  b-1       b        b+1  
+            =#
+
+            ## note on boundaries:
+            # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+            # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+            Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+            # normalised fluxes
+            if b != bp
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,bp)
+                push!(B_Flux_V,convert(T,(B_plus * h_plus_right) / Mon_Norm))
+                #B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / Mon_Norm) 
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,b)
+                push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))
+                #B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
+            elseif BCp isa Open # b=bp
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,b)
+                push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))
+                #B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
+            end
+            if b != bm
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,b)
+                push!(B_Flux_V,convert(T,(B_minus * h_minus_right) / Mon_Norm))
+                #B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,bm)
+                push!(B_Flux_V,convert(T,(B_minus * h_minus_left) / Mon_Norm))
+                #B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / Mon_Norm) 
+            elseif BCm isa Open # b=bm
+                push!(B_Flux_I,a)
+                push!(B_Flux_J,b)
+                push!(B_Flux_V,convert(T,(B_minus * h_minus_right) / Mon_Norm))
+                #B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
+            end
+
+        end # end coordinates loop
+    end
+end
+
+"""
+    Fill_C_Flux!(PhaseSpace,C_Flux_I,C_Flux_J,C_Flux_V)
+
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `C_Flux` matrix.
+"""
+function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int64},C_Flux_J::Vector{Int64},C_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+    scheme = Space.scheme
+    offset = PhaseSpace.Grids.momentum_species_offset
+
+    BCp = space_coords.yp_BC
+    BCm = space_coords.ym_BC 
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    
+    for name in 1:length(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            yp = y+1
+            ym = y-1
+            if yp > y_num # right boundary
+                if BCp isa Closed || BCp isa Open
+                    yp = y_num
+                elseif BCp isa Periodic
+                    yp = 1
+                end
+            end
+            if ym < 1 # left boundary
+                if BCm isa Closed || BCm isa Open
+                    ym = 1
+                elseif BCm isa Periodic
+                    ym = y_num
+                end
+            end
+
+            bp = GlobalIndices_To_StateIndex(x,yp,z,px,py,pz,name,PhaseSpace)
+            bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
+
+            # integration sign introduced here
+            C_plus = CFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            C_minus = -CFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+    
+            # scheme
+            if scheme == "upwind"
+                if sign(C_plus) == 1
+                    h_plus_right = 0
+                    h_plus_left = 1
+                else
+                    h_plus_right = 1
+                    h_plus_left = 0
+                end
+                if sign(C_minus) == 1
+                    h_minus_right = 1
+                    h_minus_left = 0
+                else
+                    h_minus_right = 0
+                    h_minus_left = 1
+                end
+            elseif scheme == "central"
+                h_plus_right = 0.5
+                h_plus_left = 0.5
+                h_minus_right = 0.5
+                h_minus_left = 0.5
+            else
+                error("Unknown scheme")
+            end
+
+            
+            #=
+            ________________________________
+            a |  C_m   | C_m+C_p | C_p    |
+            __|________|_________|________|_
+                  b-1       b        b+1  
+            =#
+
+            ## note on boundaries:
+            # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+            # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+            Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+            # normalised fluxes
+            if b != bp
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,bp)
+                push!(C_Flux_V,convert(T,(C_plus * h_plus_right) / Mom_Norm))
+                #C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / Mom_Norm) 
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,b)
+                push!(C_Flux_V,convert(T,(C_plus * h_plus_left) / Mom_Norm))
+                #C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
+            elseif BCp isa Open # b=bp
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,b)
+                push!(C_Flux_V,convert(T,(C_plus * h_plus_left) / Mom_Norm))
+                #C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
+            end
+            if b != bm
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,b)
+                push!(C_Flux_V,convert(T,(C_minus * h_minus_right) / Mom_Norm))
+                #C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,bm)
+                push!(C_Flux_V,convert(T,(C_minus * h_minus_left) / Mom_Norm))
+                #C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / Mom_Norm) 
+            elseif BCm isa Open # b=bm
+                push!(C_Flux_I,a)
+                push!(C_Flux_J,b)
+                push!(C_Flux_V,convert(T,(C_minus * h_minus_right) / Mom_Norm))
+                #C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
+            end
+
+        end # end coordinates loop
+    end
+end
+
+"""
+    Fill_D_Flux!(PhaseSpace,D_Flux_I,D_Flux_J,D_Flux_V)
+
+Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `D_Flux` matrix.
+"""
+function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int64},D_Flux_J::Vector{Int64},D_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+
+    Space = PhaseSpace.Space
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    space_coords = Space.space_coordinates
+    momentum_coords = Momentum.momentum_coordinates
+    scheme = Space.scheme
+
+    BCp = space_coords.zp_BC
+    BCm = space_coords.zm_BC 
+
+    name_list = PhaseSpace.name_list
+    x_num = Space.x_num
+    y_num = Space.y_num
+    z_num = Space.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+    
+    for name in 1:length(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            b = a 
+            zp = z+1
+            zm = z-1
+            if zp > z_num # right boundary
+                if BCp isa Closed || BCp isa Open || BCp isa Reflective
+                    zp = z_num
+                elseif BCp isa Periodic
+                    zp = 1
+                end
+            end
+            if zm < 1 # left boundary
+                if BCm isa Closed || BCm isa Open || BCm isa Reflective
+                    zm = 1
+                elseif BCm isa Periodic
+                    zm = z_num
+                end
+            end
+
+            if BCp isa Reflective && (z+1 > z_num)
+                @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                # mirror u momentum at boundary
+                py_ref = py_num - py + 1
+                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py_ref,pz,name,PhaseSpace)
+            else
+                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
+            end
+            
+            if BCm isa Reflective && (z-1 < 1)
+                @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                # mirror u momentum at boundary
+                py_ref = py_num - py + 1
+                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py_ref,pz,name,PhaseSpace)
+            else
+                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
+            end
+
+            # integration sign introduced here
+            D_plus = DFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+            D_minus = -DFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+    
+            # scheme
+            if scheme == "upwind"
+                if sign(D_plus) == 1
+                    h_plus_right = 0
+                    h_plus_left = 1
+                else
+                    h_plus_right = 1
+                    h_plus_left = 0
+                end
+                if sign(D_minus) == 1
+                    h_minus_right = 1
+                    h_minus_left = 0
+                else
+                    h_minus_right = 0
+                    h_minus_left = 1
+                end
+            elseif scheme == "central"
+                h_plus_right = 0.5
+                h_plus_left = 0.5
+                h_minus_right = 0.5
+                h_minus_left = 0.5
+            else
+                error("Unknown scheme")
+            end
+
+            
+            #=
+            ________________________________
+            a |  D_m   | D_m+D_p | D_p    |
+            __|________|_________|________|_
+                  b-1       b        b+1  
+            =#
+
+            ## note on boundaries:
+            # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+            # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+            Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+            # normalised fluxes
+            if b != bp
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,bp)
+                push!(D_Flux_V,convert(T,(D_plus * h_plus_right) / Mon_Norm))
+                #D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / Mon_Norm)
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,b)
+                push!(D_Flux_V,convert(T,(D_plus * h_plus_left) / Mon_Norm)) 
+                #D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
+            elseif BCp isa Open # b=bp
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,b)
+                push!(D_Flux_V,convert(T,(D_plus * h_plus_left) / Mon_Norm))
+                #D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
+            end
+            if b != bm
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,b)
+                push!(D_Flux_V,convert(T,(D_minus * h_minus_right) / Mon_Norm))
+                #D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,bm)
+                push!(D_Flux_V,convert(T,(D_minus * h_minus_left) / Mon_Norm))
+                #D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / Mon_Norm) 
+            elseif BCm isa Open # b=bm
+                push!(D_Flux_I,a)
+                push!(D_Flux_J,b)
+                push!(D_Flux_V,convert(T,(D_minus * h_minus_right) / Mon_Norm))
+                #D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
+            end
+
+        end # end coordinates loop
+    end
+end
+
+"""
+    MomentumSpaceNorm(Grids,species_index,px_idx,py_idx,pz_idx)
+
+Returns the normalization factor for a species distribution function in given momentum space sub-domain.
+"""
+function MomentumSpaceNorm(Grids::GridsStruct,species_index,px_idx,py_idx,pz_idx)
+
+    dpx = Grids.dpx_list[species_index][px_idx]
+    dpy = Grids.dpy_list[species_index][py_idx]
+    dpz = Grids.dpz_list[species_index][pz_idx]
+
+    return dpx*dpy*dpz
+
+end
+
+
+
+#===== OLD CODE =====#
+#=  
+
+    """
+        Allocate_Flux(PhaseSpace,Precision,debug_mode)
+
+    Allocates arrays for fluxes and volume elements.
+    """
+    function Allocate_Flux(PhaseSpace::PhaseSpaceStruct,Precision::DataType,debug_mode::Bool)
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        n_space = x_num*y_num*z_num
+
+        n = n_momentum*n_space
+
+        size = n*n*sizeof(Precision)
+
+        if size > 1e9
+            println("Flux will be approx. $(size/1e9) GB in memory if dense")
+        elseif size > 1e6
+            println("Flux will be approx. $(size/1e6) MB in memory if dense")
+        elseif size > 1e3
+            println("Flux will be approx. $(size/1e3) KB in memory if dense")
+        else
+            println("Flux will be approx. $size bytes in memory if dense")
+        end
+
+
+        # boundary terms included in arrays
+        # fluxes allocated with all zeros
+        # time fluxes
+        Ap_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n) 
+        Am_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+        # volume element 
+        Vol::Vector{Precision} = zeros(Precision,n_space)
+        # sum of space and momentum fluxes 
+        X_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+        P_Flux::SparseMatrixCSC{Precision,Int64} = spzeros(Precision,n,n)
+        if debug_mode
+            # space fluxes
+            B_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+            C_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+            D_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+            # momentum fluxes
+            I_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+            J_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+            K_Flux = spzeros(Precision,n,n)::SparseMatrixCSC{Precision,Int64}
+        else
+            # space fluxes
+            B_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+            C_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+            D_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+            # momentum fluxes
+            I_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+            J_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+            K_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} 
+        end
+
+        return (Ap_Flux,Am_Flux,X_Flux,P_Flux,Vol,B_Flux,C_Flux,D_Flux,I_Flux,J_Flux,K_Flux)
+
+    end
+
+    """
+        Fill_A_Flux!(Ap_Flux,Am_Flux,PhaseSpace)
+
+    Generates `Ap_Flux` and `Am_Flux` terms.
+    """
+    function Fill_A_Flux!(Ap_Flux::SparseMatrixCSC{T,Int64},Am_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
+
+
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+                for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                    a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                    b = a
+
+                    # integration sign introduced here
+                    A_plus = AFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    A_minus = -AFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+
+                    # normalisation
+                    norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+                    # fill
+                    Ap_Flux[a,b] += convert(T,A_plus / norm)
+                    Am_Flux[a,b] += convert(T,A_minus / norm)
+
+                end
+            end
+        end
+    end
+
+    """
+    Fill_I_Flux!(I_Flux,PhaseSpace,Forces)
+
+    Generates `I_Flux` terms.
+    """
+    function Fill_I_Flux!(I_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Momentum.scheme
+
+        BCp = momentum_coords.xp_BC
+        BCm = momentum_coords.xm_BC 
+
+        #= Boundary Conditions:
+            Flux on I boundaries should always be closed i.e. no particles leave/enter from the domain bound
+        =#
+        @assert BCp isa Closed || BCm isa Closed "I flux boundaries incorrectly defined, i.e. not closed"
+
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
+
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
                 pxp = px+1
                 pxm = px-1
-                bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-                bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
-
-                #= Boundary Conditions:
-                    Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
-                =#
-                if pxp > px_num
-                    pxp = px_num
-                    bp = (pz-1)*px_num*py_num+(py-1)*px_num+pxp+off_name+off_space
-                    # b = bp therefore no I_plus flux only I_minus i.e. particles only leave/enter from left boundary (p<p_max)
+                if pxp > px_num # right boundary
+                    if BCp isa Closed || BCp isa Open
+                        pxp = px_num
+                    elseif BCp isa Periodic
+                        pxp = 1
+                    end
                 end
-                if pxm < 1
-                    pxm = 1
-                    bm = (pz-1)*px_num*py_num+(py-1)*px_num+pxm+off_name+off_space
-                    # b = bm therefore no I_minus flux only I_plus i.e. particles only leave/enter from right boundary (p_min<p)
+                if pxm < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open
+                        pxm = 1
+                    elseif BCm isa Periodic
+                        pxm = px_num
+                    end
                 end
 
-                I_plus = zero(type)
-                I_minus = zero(type)
+                bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
+                bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
-                    I_plus += IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                    I_minus -= IFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pyr[py],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
+                    I_plus = IFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    I_minus = -IFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
             
                     # scheme
                     if scheme == "upwind"
                         if sign(I_plus) == 1
-                            i_plus_right = 0
-                            i_plus_left = 1
+                            h_plus_right = 0
+                            h_plus_left = 1
                         else
-                            i_plus_right = 1
-                            i_plus_left = 0
+                            h_plus_right = 1
+                            h_plus_left = 0
                         end
                         if sign(I_minus) == 1
-                            i_minus_right = 1
-                            i_minus_left = 0
+                            h_minus_right = 1
+                            h_minus_left = 0
                         else
-                            i_minus_right = 0
-                            i_minus_left = 1
+                            h_minus_right = 0
+                            h_minus_left = 1
                         end
                     elseif scheme == "central"
-                        i_plus_right = 0.5
-                        i_plus_left = 0.5
-                        i_minus_right = 0.5
-                        i_minus_left = 0.5
+                        h_plus_right = 0.5
+                        h_plus_left = 0.5
+                        h_minus_right = 0.5
+                        h_minus_left = 0.5
                     else
                         error("Unknown scheme")
                     end
@@ -327,130 +1362,124 @@ function Fill_I_Flux!(I_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                     ________________________________
                     a |  I_m   | I_m+I_p | I_p    |
                     __|________|_________|________|_
-                         b-1       b        b+1  
+                        b-1       b        b+1  
                     =#
+
+                    ## note on boundaries:
+                    # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                    # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                    Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                    Mom_Normp = MomentumSpaceNorm(Grids,name,pxp,py,pz)
+                    Mom_Normm = MomentumSpaceNorm(Grids,name,pxm,py,pz)
 
                     # normalised fluxes
                     if b != bp
-                        I_Flux[a,bp] += convert(type,(I_plus * i_plus_right) / ((pxr[pxp+1]-pxr[pxp])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                        I_Flux[a,b] += convert(type,(I_plus * i_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                        I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / Mom_Normp)
+                        I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
+                    elseif BCp isa Open # b=bp
+                        I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
                     end
                     if b != bm
-                        I_Flux[a,b] += convert(type,(I_minus * i_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
-                        I_Flux[a,bm] += convert(type,(I_minus * i_minus_left) / ((pxr[pxm+1]-pxr[pxm])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz]))) 
+                        I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
+                        I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / Mom_Normm) 
+                    elseif BCm isa Open # b=bm
+                        I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
                     end
 
                 end # Forces loop
-            end
-        end
-    end
-end
-
-function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseSpaceStruct)
-
-    type = eltype(J_Flux)
-
-    Space = PhaseSpace.Space
-    Momentum = PhaseSpace.Momentum
-    Grids = PhaseSpace.Grids
-
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
-    scheme = Momentum.scheme
-
-    name_list = PhaseSpace.name_list
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
-    px_num_list = Momentum.px_num_list
-    py_num_list = Momentum.py_num_list
-    pz_num_list = Momentum.pz_num_list
-
-    Forces = PhaseSpace.Forces
-
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
+            end # end coordinates loop
         end
     end
 
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
+    """
+        Fill_J_Flux!(J_Flux,PhaseSpace,Forces)
 
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
-    
-    for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
+    Generates `J_Flux` terms.
+    """
+    function Fill_J_Flux!(J_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
 
-        px_num = px_num_list[name]
-        py_num = py_num_list[name]
-        pz_num = pz_num_list[name]
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
 
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Momentum.scheme
+        offset = PhaseSpace.Grids.momentum_species_offset
 
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+        BCp = momentum_coords.yp_BC
+        BCm = momentum_coords.ym_BC 
+        #= Boundary Conditions:
+            Flux on J boundaries should always be closed i.e. no particles leave/enter from the domain bound
+        =#
+        @assert (BCp isa Closed) && (BCm isa Closed) "J flux boundaries incorrectly defined, i.e. not closed"
 
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
 
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
                 pyp = py+1
                 pym = py-1
-                bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
-                bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
-
-                #= Boundary Conditions:
-                    Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
-                =#
-                if pyp > py_num
-                    pyp = py_num
-                    bp = (pz-1)*px_num*py_num+(pyp-1)*px_num+px+off_name+off_space
-                    # b = bp therefore no J_plus flux only J_minus i.e. particles only leave/enter from left boundary (u<1)
+                if pyp > py_num # right boundary
+                    if BCp isa Closed || BCp isa Open
+                        pyp = py_num
+                    elseif BCp isa Periodic
+                        pyp = 1
+                    end
                 end
-                if pym < 1
-                    pym = 1
-                    bm = (pz-1)*px_num*py_num+(pym-1)*px_num+px+off_name+off_space
-                    # b = bm therefore no J_minus flux only J_plus i.e. particles only leave/enter from right boundary (u>-1)
+                if pym < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open
+                        pym = 1
+                    elseif BCm isa Periodic
+                        pym = py_num
+                    end
                 end
 
-                J_plus = zero(type)
-                J_minus = zero(type)
+                bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
+                bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
-                    J_plus += JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py+1],pzr[pz],pzr[pz+1],name_list[name])
-                    J_minus -= JFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pzr[pz],pzr[pz+1],name_list[name])
+                    J_plus = JFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    J_minus = -JFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                     # scheme
                     if scheme == "upwind"
                         if sign(J_plus) == 1
-                            j_plus_right = 0
-                            j_plus_left = 1
+                            h_plus_right = 0
+                            h_plus_left = 1
                         else
-                            j_plus_right = 1
-                            j_plus_left = 0
+                            h_plus_right = 1
+                            h_plus_left = 0
                         end
                         if sign(J_minus) == 1
-                            j_minus_right = 1
-                            j_minus_left = 0
+                            h_minus_right = 1
+                            h_minus_left = 0
                         else
-                            j_minus_right = 0
-                            j_minus_left = 1
+                            h_minus_right = 0
+                            h_minus_left = 1
                         end
                     elseif scheme == "central"
-                        j_plus_right = 0.5
-                        j_plus_left = 0.5
-                        j_minus_right = 0.5
-                        j_minus_left = 0.5
+                        h_plus_right = 0.5
+                        h_plus_left = 0.5
+                        h_minus_right = 0.5
+                        h_minus_left = 0.5
                     else
                         error("Unknown scheme")
                     end
@@ -462,126 +1491,121 @@ function Fill_J_Flux!(J_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                         b-1        b        b+1  
                     =#
 
+                    ## note on boundaries:
+                    # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                    # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                    Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                    Mom_Normp = MomentumSpaceNorm(Grids,name,px,pyp,pz)
+                    Mom_Normm = MomentumSpaceNorm(Grids,name,px,pym,pz)
+
                     # normalised fluxes
                     if b != bp
-                        J_Flux[a,bp] += convert(type,(J_plus * j_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[pyp+1]-pyr[pyp])*(pzr[pz+1]-pzr[pz])))
-                        J_Flux[a,b] += convert(type,(J_plus * j_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                        J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / Mom_Normp)
+                        J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
+                    elseif BCp isa Open # b=bp
+                        J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
                     end
                     if b != bm
-                        J_Flux[a,b] += convert(type,(J_minus * j_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                        J_Flux[a,bm] += convert(type,(J_minus * j_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[pym+1]-pyr[pym])*(pzr[pz+1]-pzr[pz])))
+                        J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
+                        J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm)
+                    elseif BCm isa Open # b=bm
+                        J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
                     end
 
                 end # Force loop
-
             end
         end
     end
-end
 
-function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseSpaceStruct)
+    """
+        Fill_K_Flux!(K_Flux,PhaseSpace)
 
-    type = eltype(K_Flux)
+    Generates `K_Flux` terms.
+    """
+    function Fill_K_Flux!(K_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct,Forces::Vector{ForceType}) where T<:Union{Float32,Float64}
 
-    Space = PhaseSpace.Space
-    Momentum = PhaseSpace.Momentum
-    Grids = PhaseSpace.Grids
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
 
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
-    scheme = Momentum.scheme
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Momentum.scheme
+        offset = PhaseSpace.Grids.momentum_species_offset
 
-    name_list = PhaseSpace.name_list
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
-    px_num_list = Momentum.px_num_list
-    py_num_list = Momentum.py_num_list
-    pz_num_list = Momentum.pz_num_list
+        BCp = momentum_coords.zp_BC
+        BCm = momentum_coords.zm_BC 
+        #= Boundary Conditions:
+            Flux on K boundaries should always be periodic
+        =#
+        @assert (BCp isa Periodic) && (BCm isa Periodic) "K flux boundaries incorrectly defined, i.e. not periodic"
 
-    Forces = PhaseSpace.Forces
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
 
-    offset = zeros(Int64,size(name_list)[1])
-    for i in eachindex(offset)
-        if i == 1
-            offset[i] = 0
-        else
-            offset[i] = offset[i-1]+px_num_list[i-1]*py_num_list[i-1]*pz_num_list[i-1]
-        end
-    end
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
 
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = x_num*y_num*z_num
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-    tr = Grids.tr # time step assumed to be constant!
-    xr = Grids.xr
-    yr = Grids.yr
-    zr = Grids.zr
-    
-    for name in 1:length(name_list)
-        off_name = offset[name]
-        pxr = Grids.pxr_list[name]
-        pyr = Grids.pyr_list[name]
-        pzr = Grids.pzr_list[name]
-
-        px_num = px_num_list[name]
-        py_num = py_num_list[name]
-        pz_num = pz_num_list[name]
-
-        for x in 1:x_num, y in 1:y_num, z in 1:z_num
-
-            off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-
-            for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
-
-                a = (pz-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                b = a
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
                 pzp = pz+1
                 pzm = pz-1
-                bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-                bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
-
-                #= Boundary Conditions:
-                    Flux on boundaries are periodic i.e. particles leave/enter from the opposite bound
-                =#
-                if pzp > pz_num
-                    pzp = 1
-                    bp = (pzp-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                if pzp > pz_num # right boundary
+                    if BCp isa Closed || BCp isa Open
+                        pzp = pz_num
+                    elseif BCp isa Periodic
+                        pzp = 1
+                    end
                 end
-                if pzm < 1
-                    pzm = pz_num
-                    bm = (pzm-1)*px_num*py_num+(py-1)*px_num+px+off_name+off_space
+                if pzm < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open
+                        pzm = 1
+                    elseif BCm isa Periodic
+                        pzm = pz_num
+                    end
                 end
 
-                K_plus = zero(type)
-                K_minus = zero(type)
+                bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
+                bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
 
                 for f in 1:length(Forces)
                     # integration sign introduced here
-                    K_plus += KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz+1],name_list[name])
-                    K_minus -= KFluxFunction(Forces[f],space_coords,momentum_coords,tr[1],tr[2],xr[x],xr[x+1],yr[y],yr[y+1],zr[z],zr[z+1],pxr[px],pxr[px+1],pyr[py],pyr[py+1],pzr[pz],name_list[name])
+                    K_plus = KFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    K_minus = -KFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
 
                     # scheme
                     if scheme == "upwind"
                         if sign(K_plus) == 1
-                            k_plus_right = 0
-                            k_plus_left = 1
+                            h_plus_right = 0
+                            h_plus_left = 1
                         else
-                            k_plus_right = 1
-                            k_plus_left = 0
+                            h_plus_right = 1
+                            h_plus_left = 0
                         end
                         if sign(K_minus) == 1
-                            k_minus_right = 1
-                            k_minus_left = 0
+                            h_minus_right = 1
+                            h_minus_left = 0
                         else
-                            k_minus_right = 0
-                            k_minus_left = 1
+                            h_minus_right = 0
+                            h_minus_left = 1
                         end
                     elseif scheme == "central"
-                        k_plus_right = 1/2
-                        k_plus_left = 1/2
-                        k_minus_right = 1/2
-                        k_minus_left = 1/2
+                        h_plus_right = 1/2
+                        h_plus_left = 1/2
+                        h_minus_right = 1/2
+                        h_minus_left = 1/2
                     else
                         error("Unknown scheme")
                     end
@@ -593,17 +1617,400 @@ function Fill_K_Flux!(K_Flux::AbstractMatrix{<:AbstractFloat},PhaseSpace::PhaseS
                         b-1        b        b+1  
                     =#
 
+                    ## note on boundaries:
+                    # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                    # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                    Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+                    Mom_Normp = MomentumSpaceNorm(Grids,name,px,py,pzp)
+                    Mom_Normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
+
                     if b != bp
-                        K_Flux[a,bp] += convert(type,(K_plus * k_plus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzp+1]-pzr[pzp])))
-                        K_Flux[a,b] += convert(type,(K_plus * k_plus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
+                        K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp)
+                        K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
+                    elseif BCp isa Open # b=bp
+                        K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
                     end
                     if b != bm
-                        K_Flux[a,b] += convert(type,(K_minus * k_minus_right) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pz+1]-pzr[pz])))
-                        K_Flux[a,bm] += convert(type,(K_minus * k_minus_left) / ((pxr[px+1]-pxr[px])*(pyr[py+1]-pyr[py])*(pzr[pzm+1]-pzr[pzm])))
+                        K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
+                        K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm)
+                    elseif BCm isa Open # b=bm
+                        K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
                     end
                     
                 end # force loop
             end
         end
     end
-end
+
+
+    """
+        Fill_B_Flux!(B_Flux,PhaseSpace)
+
+    Generates `B_Flux` terms.
+    """
+    function Fill_B_Flux!(B_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Space.scheme
+
+        BCp = space_coords.xp_BC
+        BCm = space_coords.xm_BC 
+
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
+
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
+                xp = x+1
+                xm = x-1
+                if xp > x_num # right boundary
+                    if BCp isa Closed || BCp isa Open
+                        xp = x_num
+                    elseif BCp isa Periodic
+                        xp = 1
+                    end
+                end
+                if xm < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open
+                        xm = 1
+                    elseif BCm isa Periodic
+                        xm = x_num
+                    end
+                end
+
+                bp = GlobalIndices_To_StateIndex(xp,y,z,px,py,pz,name,PhaseSpace)
+                bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
+
+                # integration sign introduced here
+                B_plus = BFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                B_minus = -BFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        
+                # scheme
+                if scheme == "upwind"
+                    if sign(B_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(B_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 0.5
+                    h_plus_left = 0.5
+                    h_minus_right = 0.5
+                    h_minus_left = 0.5
+                else
+                    error("Unknown scheme")
+                end
+
+                
+                #=
+                ________________________________
+                a |  B_m   | B_m+B_p | B_p    |
+                __|________|_________|________|_
+                    b-1       b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+                # normalised fluxes
+                if b != bp
+                    B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / Mon_Norm) 
+                    B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
+                elseif BCp isa Open # b=bp
+                    B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
+                end
+                if b != bm
+                    B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
+                    B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / Mon_Norm) 
+                elseif BCm isa Open # b=bm
+                    B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
+                end
+
+            end # end coordinates loop
+        end
+    end
+
+    """
+        Fill_C_Flux!(C_Flux,PhaseSpace)
+
+    Generates `C_Flux` terms.
+    """
+    function Fill_C_Flux!(C_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Space.scheme
+        offset = PhaseSpace.Grids.momentum_species_offset
+
+        BCp = space_coords.yp_BC
+        BCm = space_coords.ym_BC 
+
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
+
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
+                yp = y+1
+                ym = y-1
+                if yp > y_num # right boundary
+                    if BCp isa Closed || BCp isa Open
+                        yp = y_num
+                    elseif BCp isa Periodic
+                        yp = 1
+                    end
+                end
+                if ym < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open
+                        ym = 1
+                    elseif BCm isa Periodic
+                        ym = y_num
+                    end
+                end
+
+                bp = GlobalIndices_To_StateIndex(x,yp,z,px,py,pz,name,PhaseSpace)
+                bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
+
+                # integration sign introduced here
+                C_plus = CFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                C_minus = -CFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        
+                # scheme
+                if scheme == "upwind"
+                    if sign(C_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(C_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 0.5
+                    h_plus_left = 0.5
+                    h_minus_right = 0.5
+                    h_minus_left = 0.5
+                else
+                    error("Unknown scheme")
+                end
+
+                
+                #=
+                ________________________________
+                a |  C_m   | C_m+C_p | C_p    |
+                __|________|_________|________|_
+                    b-1       b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mom_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+                # normalised fluxes
+                if b != bp
+                    C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / Mom_Norm) 
+                    C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
+                elseif BCp isa Open # b=bp
+                    C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
+                end
+                if b != bm
+                    C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
+                    C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / Mom_Norm) 
+                elseif BCm isa Open # b=bm
+                    C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
+                end
+
+            end # end coordinates loop
+        end
+    end
+
+    """
+        Fill_D_Flux!(D_Flux,PhaseSpace)
+
+    Generates `D_Flux` terms.
+    """
+    function Fill_D_Flux!(D_Flux::SparseMatrixCSC{T,Int64},PhaseSpace::PhaseSpaceStruct) where T<:Union{Float32,Float64}
+
+        Space = PhaseSpace.Space
+        Momentum = PhaseSpace.Momentum
+        Grids = PhaseSpace.Grids
+        Characteristic = PhaseSpace.Characteristic
+
+        space_coords = Space.space_coordinates
+        momentum_coords = Momentum.momentum_coordinates
+        scheme = Space.scheme
+
+        BCp = space_coords.zp_BC
+        BCm = space_coords.zm_BC 
+
+        name_list = PhaseSpace.name_list
+        x_num = Space.x_num
+        y_num = Space.y_num
+        z_num = Space.z_num
+        px_num_list = Momentum.px_num_list
+        py_num_list = Momentum.py_num_list
+        pz_num_list = Momentum.pz_num_list
+        
+        for name in 1:length(name_list)
+
+            px_num = px_num_list[name]
+            py_num = py_num_list[name]
+            pz_num = pz_num_list[name]
+
+            for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                b = a 
+                zp = z+1
+                zm = z-1
+                if zp > z_num # right boundary
+                    if BCp isa Closed || BCp isa Open || BCp isa Reflective
+                        zp = z_num
+                    elseif BCp isa Periodic
+                        zp = 1
+                    end
+                end
+                if zm < 1 # left boundary
+                    if BCm isa Closed || BCm isa Open || BCm isa Reflective
+                        zm = 1
+                    elseif BCm isa Periodic
+                        zm = z_num
+                    end
+                end
+
+                if BCp isa Reflective && (z+1 > z_num)
+                    @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                    # mirror u momentum at boundary
+                    py_ref = py_num - py + 1
+                    bp = GlobalIndices_To_StateIndex(x,y,zp,px,py_ref,pz,name,PhaseSpace)
+                else
+                    bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
+                end
+                
+                if BCm isa Reflective && (z-1 < 1)
+                    @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
+                    # mirror u momentum at boundary
+                    py_ref = py_num - py + 1
+                    bm = GlobalIndices_To_StateIndex(x,y,zm,px,py_ref,pz,name,PhaseSpace)
+                else
+                    bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
+                end
+
+                # integration sign introduced here
+                D_plus = DFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                D_minus = -DFluxFunction(PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+        
+                # scheme
+                if scheme == "upwind"
+                    if sign(D_plus) == 1
+                        h_plus_right = 0
+                        h_plus_left = 1
+                    else
+                        h_plus_right = 1
+                        h_plus_left = 0
+                    end
+                    if sign(D_minus) == 1
+                        h_minus_right = 1
+                        h_minus_left = 0
+                    else
+                        h_minus_right = 0
+                        h_minus_left = 1
+                    end
+                elseif scheme == "central"
+                    h_plus_right = 0.5
+                    h_plus_left = 0.5
+                    h_minus_right = 0.5
+                    h_minus_left = 0.5
+                else
+                    error("Unknown scheme")
+                end
+
+                
+                #=
+                ________________________________
+                a |  D_m   | D_m+D_p | D_p    |
+                __|________|_________|________|_
+                    b-1       b        b+1  
+                =#
+
+                ## note on boundaries:
+                # b = bp means at right boundary, therefore no plus flux from either direction if closed boundary (no particles leave/enter) or only plus flux from the left if open boundary (particles may only leave)
+                # b = bm means at left boundary, therefore no minus flux from either direction if closed boundary (no particles leave/enter) or only minus flux from the right if open boundary (particles may only leave)
+
+                Mon_Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
+                # normalised fluxes
+                if b != bp
+                    D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / Mon_Norm) 
+                    D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
+                elseif BCp isa Open # b=bp
+                    D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
+                end
+                if b != bm
+                    D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
+                    D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / Mon_Norm) 
+                elseif BCm isa Open # b=bm
+                    D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
+                end
+
+            end # end coordinates loop
+        end
+    end
+    =#

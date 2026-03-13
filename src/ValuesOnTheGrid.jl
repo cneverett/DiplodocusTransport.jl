@@ -1,43 +1,4 @@
 """
-    getGridValues(Lists)
-
-Returns a tuple of `Vector{Vector{Float32}}` of particle masses (normalised), and momentum magnitude and angle cosine grid bounds, differences, and means for each particle species.
-"""
-function getGridValues(Lists::ListStruct)
-
-    name_list = Lists.name_list
-    p_up_list = Lists.p_up_list
-    p_low_list = Lists.p_low_list
-    p_grid_list = Lists.p_grid_list
-    p_num_list = Lists.p_num_list
-    u_grid_list = Lists.u_grid_list
-    u_num_list = Lists.u_num_list
-
-    num_species = length(name_list);
-    pr_list = Vector{Vector{Float32}}(undef,num_species);
-    ur_list = Vector{Vector{Float32}}(undef,num_species);
-    dp_list = Vector{Vector{Float32}}(undef,num_species);
-    du_list = Vector{Vector{Float32}}(undef,num_species);
-    #ΔE_list = Vector{Vector{Float32}}(undef,num_species);
-    #ΔEkin_list = Vector{Vector{Float32}}(undef,num_species);
-    meanp_list = Vector{Vector{Float32}}(undef,num_species);
-    meanu_list = Vector{Vector{Float32}}(undef,num_species);
-    mass_list = Vector{Float32}(undef,num_species);
-    for i in eachindex(name_list)
-        mass_list[i] = getfield(DC,Symbol("mu"*name_list[i]));
-        pr_list[i] = DC.bounds(p_low_list[i],p_up_list[i],p_num_list[i],p_grid_list[i]);
-        ur_list[i] = DC.bounds(DC.u_low,DC.u_up,u_num_list[i],u_grid_list[i]);
-        dp_list[i] = DC.deltaVector(pr_list[i]);
-        du_list[i] = DC.deltaVector(ur_list[i]);    
-        meanp_list[i] = DC.meanVector(pr_list[i]);
-        meanu_list[i] = DC.meanVector(ur_list[i]);
-    end
-
-    return (mass_list,pr_list,ur_list,dp_list,du_list,meanp_list,meanu_list)
-
-end
-
-"""
     getInitialScaling(sol,Lists)
 
 Returns a tuple of `Vector{Float32}` of initial number density, energy density, and temperature values for each particle species, given the output of a simulation `sol` and the input parameters `Lists`.    

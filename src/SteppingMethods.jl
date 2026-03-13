@@ -1,146 +1,340 @@
 """
-    Euler(dg,g,t,dt)
+    ForwardEuler(t_start,t_stop,dt,Verbose)
 
-Explicit and Implicit Euler time-stepping method for the Boltzmann equation. Explicit/Implicit is defined by the boolean `Implicit` flag when defining the EulerStruct.
+Forward (Explicit) Euler time-stepping method for the Boltzmann equation.
 
 # Explicit method:
 Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
 ```math
 dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+\\mathcal{D}+\\mathcal{I}+\\mathcal{J}+\\mathcal{K}+\\right)g^{t}+M_\\text{Emi}g^{t}+M_\\text{Bin}g^{t}g^{t}\\right]/ \\mathcal{A}^+
 ````
+"""
+function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
+    dt0 = method.dt0
 
-# Implicit method:
+    # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
 
+        if t_start + dt >= t_stop
+            dt = t_stop - t_start
+            save = true
+        else
+            save = false
+        end
+
+    # scaling of time stepping
+
+        dt_scale = dt / dt0
+
+    # update momentum and space space using f at time t
+
+    mul!(method.df_Flux,method.F_Flux,method.f)
+    @. method.df = -method.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Flux
+
+    # create df_Emi due to emission terms
+    if method.Emission_Interactions
+        mul!(method.df_Emi,method.M_Emi,method.f)
+        @. method.df += method.df_Emi
+    end
+        
+    # create df_Bin due to binary interactions
+    if method.Binary_Interactions
+        update_Big_Bin!(method)
+        @. method.df += method.df_Bin
+    end
+
+    @. method.df *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
+
+    if !isfinite(sum(method.df))
+        println("non-finite value in df calculation")
+    end
+
+    if Verbose == 1 || Verbose == 2 || Verbose == 3
+
+        Cr = 0.0
+        Cr_Bin = 0.0
+        Cr_Emi = 0.0
+        Cr_Flux = 0.0
+
+        # Cr (CFL) condition check
+        if sum(method.f) != 0.0
+
+            if Verbose == 3
+        
+                # Binary CFL
+                if method.Binary_Interactions
+                    @. method.df_tmp = method.df_Bin / method.f 
+                    Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                end
+
+                # Emission CFL
+                if method.Emission_Interactions
+                    @. method.df_tmp = method.df_Emi / method.f 
+                    Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                end
+
+                # Flux CFL
+                @. method.df_tmp = -method.df_Flux / method.f 
+                Cr_Flux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+
+            end
+
+            @. method.df_tmp = method.df / method.f
+            Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback 
+
+        end   
+
+        if Verbose == 1 && Cr > 1.0
+            println("Cr = $Cr, t=$t_start, dt=$dt, system may be unstable")
+        elseif Verbose == 2
+            println("\rCr = $Cr, t=$t_start, dt=$dt")
+        elseif Verbose == 3
+            println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t_start, t_save =$t_stop, dt=$dt")
+        end
+    end
+    
+    # update state vector f with injection term
+    @. method.f += method.df + method.df_Inj * dt_scale 
+    # removing negative values (values less than 1f-28 for better stability)
+    @. method.f = method.f*(method.f>=1f-10)
+    # hacky fix for inf values
+    @. method.f = method.f*(method.f!=Inf)
+
+    # return dt and save
+
+    return dt,save
+
+end
 
 """
-function (Euler::EulerStruct)(df::Vector{F},f::Vector{F},dt0,dt,t) where F<:AbstractFloat
+    ForwardSymplecticEuler(t_start,t_stop,dt,Verbose)
+
+Forward Symplectic (Semi-Implicit) Euler time-stepping method for the Boltzmann equation. Symplectic integrator updates momentum space first then physical space.
+
+# Explicit method:
+Evaluates `dg`, ``dg = g^{t+1}-g^{t}`` from the following expression:
+```math
+dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+\\mathcal{D}+\\mathcal{I}+\\mathcal{J}+\\mathcal{K}+\\right)g^{t}+\\left(M_\\text{Emi}g^{t}+M_\\text{Bin}g^{t}g^{t}\\right)\\mathcal{V}\\right]/ \\mathcal{A}^+
+````
+"""
+function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
+
+    dt0 = method.dt0
+
+    # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
+
+        if t_start + dt >= t_stop
+            dt = t_stop - t_start
+            save = true
+        else
+            save = false
+        end
+
+    # scaling of time stepping
+
+        dt_scale = dt / dt0
+
+    # update momentum space using f at time t
+
+        # create df_PFlux due to momentum flux terms
+        mul!(method.df_PFlux,method.P_Flux,method.f)
+        @. method.df_Momentum = -method.df_PFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Momentum
+
+        # create df_Emi due to emission terms
+        if method.Emission_Interactions
+            mul!(method.df_Emi,method.M_Emi,method.f)
+            @. method.df_Momentum += method.df_Emi
+        end
+            
+        # create df_Bin due to binary interactions
+        if method.Binary_Interactions
+            update_Big_Bin!(method)
+            @. method.df_Momentum += method.df_Bin
+        end
+
+        @. method.df_Momentum *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
+
+        # update f_momentum (f after momentum update)
+        @. method.f_Momentum = method.f + method.df_Momentum
+        # removing negative values (values less than 0f0 for better stability)
+        @. method.f_Momentum = method.f_Momentum*(method.f_Momentum>=1f-10)
+
+    # update physical space using f_Momentum (f after momentum update)
+
+        # create df_XFlux due to space flux terms
+        mul!(method.df_XFlux,method.X_Flux,method.f_Momentum)
+        @. method.df_Space = -method.df_XFlux * method.invAp_Flux * dt_scale # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
+
+        # update f_Space (f after momentum and space updates)
+        @. method.f_Space = method.f_Momentum + method.df_Space
+        # removing negative values (values less than 0f0 for better stability)
+        @. method.f_Space = method.f_Space*(method.f_Space>=1f-20)
+
+    # CFL condition check TODO: add adaptive time stepping based on CFL condition 
+
+        if Verbose == 1 || Verbose == 2 || Verbose == 3
+
+            Cr = 0.0
+            Cr_Bin = 0.0
+            Cr_Emi = 0.0
+            Cr_PFlux = 0.0
+            Cr_Momentum = 0.0
+            Cr_Space = 0.0
+
+            # Cr (CFL) condition check
+            if sum(method.f) != 0.0
+
+                if Verbose == 3
+            
+                    # Binary CFL
+                    if method.Binary_Interactions
+                        @. method.df_tmp = method.df_Bin * method.invAp_Flux * dt_scale / method.f
+                        Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    end
+
+                    # Emission CFL
+                    if method.Emission_Interactions
+                        @. method.df_tmp = method.df_Emi * method.invAp_Flux * dt_scale / method.f
+                        Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    end
+
+                    # P Flux CFL
+                    @. method.df_tmp = -method.df_PFlux * method.invAp_Flux * dt_scale / method.f
+                    replace!(method.df_tmp,NaN=>0.0)
+                    Cr_PFlux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+
+                    # Momentum CFL
+                    @. method.df_tmp = method.df_Momentum /  method.f
+                    Cr_Momentum = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+
+                    # Space CFL
+                    @. method.df_tmp = method.df_Space / method.f_Momentum
+                    Cr_Space = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                end
+
+                # Cr is calculated for the entire time step (momentum and space updates)
+                # f_tmp - f = df of the momentum step
+                @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f 
+                Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) 
+
+            end   
+
+            if Verbose == 1 && Cr > 1.0
+                println("Cr = $(round(Cr, sigdigits=3)), t=$t_start, dt=$dt, system may be unstable")
+            elseif Verbose == 2
+                println("Cr = $(round(Cr, sigdigits=3)), t=$t_start, dt=$dt")
+            elseif Verbose == 3
+                println("Cr = $(round(Cr, sigdigits=3)), Cr_Bin = $(round(Cr_Bin, sigdigits=3)), Cr_Emi = $(round(Cr_Emi, sigdigits=3)), Cr_PFlux = $(round(Cr_PFlux, sigdigits=3)), Cr_Momentum = $(round(Cr_Momentum, sigdigits=3)), Cr_Space = $(round(Cr_Space, sigdigits=3)),  t=$t_start, t_save=$t_stop , dt=$dt")
+            end
+        end
+
+    # update state vector f with momentum, space and injection updates
+    
+        @. method.f = method.f_Space + method.df_Inj * dt_scale
+        # removing negative values (values less than 1f-28 for better stability) and ensure positivity for CFL calculations
+        @. method.f = method.f*(method.f>=1f-20)*sign(method.f)
+        # hacky fix for inf values
+        @. method.f = method.f*(method.f!=Inf)
+
+    # return dt and save
+
+    return dt,save
+
+end
+
+"""
+    BackwardsEuler(dg,g,t,dt)
+
+Backwards (Implicit) Euler time-stepping method for the Boltzmann equation. 
+
+"""
+function (BackwardEuler::BackwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
     # limit u to be positive, now done in solver
     #@. f = f*(f>=0f0)
 
     # reset arrays
-    fill!(df,zero(eltype(df)))
-    fill!(Euler.df,zero(eltype(Euler.df)))
-    fill!(Euler.temp,zero(eltype(Euler.temp)))
-    if Euler.Implicit
-        fill!(Euler.Jac,zero(eltype(Euler.Jac)))
+    fill!(BackwardEuler.df,zero(eltype(BackwardEuler.df)))
+    #fill!(Euler.temp,zero(eltype(Euler.temp)))
+    if BackwardEuler.Implicit
+        fill!(BackwardEuler.Jac,zero(eltype(BackwardEuler.Jac)))
     end
         
-    # add binary terms to temp (jacobians are added in update_Big_Bin! if implicit)
-    if isempty(Euler.PhaseSpace.Binary_list) == false
-        update_Big_Bin!(Euler,f)
-        @. Euler.temp += Euler.M_Bin_Mul_Step 
+    # create df_Bin due to binary interactions (jacobians are added in update_Big_Bin! if implicit)
+    if BackwardEuler.Binary_Interactions
+        update_Big_Bin!(BackwardEuler)
+        @. BackwardEuler.df += BackwardEuler.df_Bin
+        if !isfinite(sum(BackwardEuler.df_Bin))
+            println("overflow in df_Bin calculation, $(sum(BackwardEuler.df_Bin))")
+        end
     end
-    # add emission terms to temp (jacobians are added in update_Big_Emi! if implicit)
-    if isempty(Euler.PhaseSpace.Emi_list) == false
-        update_Big_Emi!(Euler,f)
-        @. Euler.temp += Euler.M_Emi_Step
+    # create df_Emi due to emission terms  (jacobians are added in update_Big_Emi! if implicit)
+    if BackwardsEuler.Emission_Interactions
+        update_Big_Emi!(BackwardEuler)
+        @. BackwardEuler.df += BackwardEuler.df_Emi
     end
-    # add flux terms to temp
-    #  @. Euler.temp -= Euler.FluxM.B_Flux
-    #  @. Euler.temp -= Euler.FluxM.C_Flux
-    #  @. Euler.temp -= Euler.FluxM.D_Flux
-    #@. Euler.temp -= Euler.FluxM.K_Flux 
-    #@. Euler.temp -= Euler.FluxM.J_Flux 
-    #@. Euler.temp -= Euler.FluxM.I_Flux
-    #@. Euler.temp -= Euler.FluxM.I_Flux + Euler.FluxM.J_Flux + Euler.FluxM.K_Flux
-    Euler.temp -= Euler.FluxM.F_Flux
-    if Euler.Implicit
-        #@. Euler.Jac -= Euler.FluxM.K_Flux
-        #@. Euler.Jac -= Euler.FluxM.J_Flux
-        #@. Euler.Jac -= Euler.FluxM.I_Flux
-        @. Euler.Jac -= Euler.FluxM.F_Flux
+
+    # create df_Flux due to space and momentum flux terms
+    mul!(BackwardEuler.df_Flux,BackwardEuler.F_Flux,BackwardEuler.f)
+    @. BackwardEuler.df -= BackwardEuler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+    if !isfinite(sum(BackwardEuler.df_Flux))
+        println("overflow in df_Flux calculation, $(sum(BackwardEuler.df_Flux))")
     end
+    if BackwardEuler.Implicit
+        @. BackwardEuler.Jac -= BackwardEuler.F_Flux
+    end
+
+    # Add injection term 
+    @. BackwardEuler.df += BackwardEuler.df_Inj
     # phase space correction for non-uniform time stepping only applied to spatial coordinate fluxes and interactions 
-    if Euler.PhaseSpace.Time.t_grid != "u" 
-        Euler.temp .*= dt / dt0
-        if Euler.Implicit
-            Euler.Jac .*= dt / dt0
+    if BackwardEuler.PhaseSpace.Time.t_grid != "u" 
+        BackwardEuler.df .*= dt / dt0
+        if BackwardEuler.Implicit
+            BackwardEuler.Jac .*= dt / dt0
         end
     end
-    # add time fluxes to temp
-    #@. Euler.temp -= Euler.FluxM.Ap_Flux
-    #@. Euler.temp -= Euler.FluxM.Am_Flux
-    @. Euler.temp -= Euler.FluxM.Ap_Flux + Euler.FluxM.Am_Flux
 
-    if isinf(sum(Euler.temp))
-        println("overflow in arrays")
-        #@. g.temp = g.temp*(g.temp!=Inf)
+    # df_Flux due to time fluxes TODO: can remove this step if system is stationary therefore Ap=-Am. This will also allow more timestep control
+    #mul!(Euler.df_Flux,Euler.FluxM.Am_Flux+Euler.FluxM.Ap_Flux,f)
+    #@. Euler.df -= Euler.df_Flux # minus sign as flux terms are on RHS of Boltzmann equation
+
+    if !isfinite(sum(BackwardEuler.df))
+        println("overflow in df calculation")
     end
 
-    if Euler.Implicit
-        # TOFIX add fluxes inside mul!
-        mul!(Euler.df_temp,Euler.temp,f)
-        println("t = $t")
-        println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
-        lu!(Euler.LU,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
-        @. Euler.LU.ipiv = Euler.LU.ipiv
-        ldiv!(Euler.df,Euler.LU,Euler.df_temp)
-        #@. g.Jac = 2*g.M_Bin_Mul_Step
-        #g.df .= (I-dt*g.Jac)\g.df
-        #@. df = dt*g.df
 
-        #if t > 1e-16
-            #println("$(Euler.LU)")
-        #    println("$(Euler.df)")
-        #    error("here")
-        #end
+        # TODO: Update Implicit
+        #mul!(Euler.df_temp,Euler.temp,f)
+        #println("t = $t")
+        #println("cond = $(cond(Euler.FluxM.Ap_Flux .+ Euler.Jac))")
+        #lu!(Euler.LU,(Euler.FluxM.Ap_Flux .+ Euler.Jac))
+        #@. Euler.LU.ipiv = Euler.LU.ipiv
+        #ldiv!(Euler.df,Euler.LU,Euler.df_temp)
 
+
+    # Add injection term 
+    if BackwardEuler.PhaseSpace.Time.t_grid != "u" 
+        @. BackwardEuler.df += BackwardEuler.df_Inj * dt / dt0
     else
-        #= mul!(Euler.df_temp,Euler.temp,f)
-        if isdiag(Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.df,factorize(Euler.FluxM.Ap_Flux),Euler.df_temp)
-        else
-            lu!(Euler.LU,Euler.FluxM.Ap_Flux)
-            ldiv!(Euler.df,Euler.LU,Euler.df_temp)
-        end =#
-
-        
-        #if isdiag(Euler.FluxM.Ap_Flux)
-            Euler.df_temp .= diag(Euler.FluxM.Ap_Flux) # ASSUMING Ap_Flux is DIAGONAL, TO BE UPDATED LATER !!!!!!!!!!!
-            Euler.temp ./= Euler.df_temp
-            #ldiv!(Euler.temp,factorize(Euler.FluxM.Ap_Flux),Euler.temp)
-            #println("$(sum(Euler.temp))")
-            # CFL ish check
-            #println("t = $t")
-            #println("max λ = $(maximum(abs.(eigvals(Euler.temp))))")
-            #println("min λ = $(minimum(abs.(eigvals(Euler.temp))))")
-        #else
-        #    lu!(Euler.LU,Euler.FluxM.Ap_Flux)
-        #    ldiv!(Euler.temp,Euler.LU,Euler.temp)
-        #end
-        mul!(Euler.df,Euler.temp,f)
-
-        @. Euler.df_temp = Euler.df / f 
-        replace!(Euler.df_temp,Inf32=>0f0,NaN32=>0f0,-Inf32=>0f0,-NaN32=>0f0)
-        Cr = maximum(abs.(Euler.df_temp))
-
-        if Cr > 1.0
-            println("Cr = $Cr, system may be unstable")
-        end
-
-
+        @. BackwardEuler.df += BackwardEuler.df_Inj
     end
     
-    @. df = Euler.df
+    # update state vector f
+    @. BackwardEuler.f += BackwardEuler.df
+    # removing negative values (values less than 1f-28 for better stability)
+    @. BackwardEuler.f = BackwardEuler.f*(BackwardEuler.f>=1f-28)
+    # hacky fix for inf values
+    @. BackwardEuler.f = BackwardEuler.f*(BackwardEuler.f!=Inf)
 
-    #println("$df")
-    #error("")
 
 end
 
-function update_Big_Bin!(method::SteppingMethodType,f)
-
-    if size(method.BigM.M_Bin) != (length(f)^2,length(f))
-        error("M_Bin is not the correct size")
-    end
-
+function update_Big_Bin!(method::SteppingMethodType)
+    
     PhaseSpace = method.PhaseSpace
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
     Momentum = PhaseSpace.Momentum
-    FluxM = method.FluxM 
 
     x_num = Space.x_num
     y_num = Space.y_num
@@ -152,52 +346,66 @@ function update_Big_Bin!(method::SteppingMethodType,f)
     n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
-    Vol = FluxM.Vol
+    @assert size(method.M_Bin) == (n_momentum^2,n_momentum) "M_Bin is not the correct size"
+
+    f = method.f
+
+    Vol = method.Vol
+
+    Domain = method.Bin_Domain
 
     # Thanks to Emma Godden for fixing a bug here
-    temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
+    #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
-        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
 
-        tempView = @view temp[n_momentum^2*off_space+1:n_momentum^2*(off_space+1)]
-        fView = @view f[n_momentum*off_space+1:n_momentum*(off_space+1)]
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
 
-        mul!(tempView,method.BigM.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+        fView = @view f[start_idx:end_idx]
 
-        # multiply by volume element
-        tempView .*= Vol[off_space+1]
+        if isnothing(Domain) || in(off_space,Domain) || isnothing(findfirst(!iszero,fView))
 
-        # assign jacobian elements
-        #=if method.Implicit
-            JacView = @view method.Jac[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
-            @. JacView += 2*method.M_Bin_Mul_Step 
-        end 
-        =#
+            df_BinView = @view method.df_Bin[start_idx:end_idx]
+            mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+            mul!(df_BinView,method.M_Bin_Mul_Step,fView)
+
+            #println("M_Bin = $(sum(method.M_Bin))")
+            #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
+            #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
+
+            # multiply by volume element
+            df_BinView .*= view(Vol,off_space+1)
+
+        else
+            continue
+        end
 
     end
 
+    #=
+    # TODO: Update Implicit
     if method.Implicit
         # assign jacobian elements
-        @. method.Jac += 2*method.M_Bin_Mul_Step 
-    end
+        @. method.Jac += 2*method.M_Bin_Mul_Step*view(Vol,off_space+1)
+    end=#
 
     return nothing
 
 end
 
-function update_Big_Emi!(method::SteppingMethodType,f)
+function update_Big_Emi!(method::SteppingMethodType)
 
-    if size(method.BigM.M_Emi) != (length(f),length(f))
-        error("M_Bin is not the correct size")
-    end
+    f = method.f
+
+    @assert size(method.M_Emi) == (length(f),length(f)) "M_Emi is not the correct size"
 
     PhaseSpace = method.PhaseSpace
     Space = PhaseSpace.Space
     Time = PhaseSpace.Time
     Momentum = PhaseSpace.Momentum
-    FluxM = method.FluxM 
 
     x_num = Space.x_num
     y_num = Space.y_num
@@ -209,25 +417,33 @@ function update_Big_Emi!(method::SteppingMethodType,f)
     n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
-    Vol = FluxM.Vol
+    Vol = method.Vol
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
 
-        tempView = @view method.M_Emi_Step[n_momentum*off_space+1:n_momentum*(off_space+1),n_momentum*off_space+1:n_momentum*(off_space+1)]
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
 
-        @. tempView = method.BigM.M_Emi * Vol[off_space+1]
+        fView = @view f[start_idx:end_idx]
+        df_EmiView = @view method.df_Emi[start_idx:end_idx]
+
+        M_EmiView = @view method.M_Emi[start_idx:end_idx,start_idx:end_idx] # TODO: make M_Emi block diagonal to save memory 
+
+        mul!(df_EmiView,M_EmiView,fView)
 
         # multiply by volume element
-        #tempView .*= Vol[off_space+1]
+        df_EmiView .*= Vol[off_space+1]
 
     end
 
+    #=
+    TODO: Update Implicit
     # assign jacobian elements
     if method.Implicit
-        @. method.Jac += method.M_Emi_Step 
-    end
+        @. method.Jac += method.M_Emi
+    end=#
 
     return nothing
 
