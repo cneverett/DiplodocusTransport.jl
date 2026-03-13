@@ -35,18 +35,12 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     if method.Emission_Interactions
         mul!(method.df_Emi,method.M_Emi,method.f)
         @. method.df += method.df_Emi
-        #if !isfinite(sum(method.df_Emi))
-        #    println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
-        #end
     end
         
     # create df_Bin due to binary interactions
     if method.Binary_Interactions
         update_Big_Bin!(method)
         @. method.df += method.df_Bin
-        #if !isfinite(sum(method.df_Bin))
-        #    println("non-finite value in df_Bin calculation, $(sum(method.df_Bin))")
-        #end
     end
 
     @. method.df *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
@@ -70,27 +64,23 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
                 # Binary CFL
                 if method.Binary_Interactions
                     @. method.df_tmp = method.df_Bin / method.f 
-                    replace!(method.df_tmp,NaN=>0.0)
-                    Cr_Bin = -minimum(method.df_tmp)
+                    Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Emission CFL
                 if method.Emission_Interactions
                     @. method.df_tmp = method.df_Emi / method.f 
-                    replace!(method.df_tmp,NaN=>0.0)
-                    Cr_Emi = -minimum(method.df_tmp)
+                    Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Flux CFL
                 @. method.df_tmp = -method.df_Flux / method.f 
-                replace!(method.df_tmp,NaN=>0.0)
-                Cr_Flux = -minimum(method.df_tmp)
+                Cr_Flux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
 
             end
 
             @. method.df_tmp = method.df / method.f
-            replace!(method.df_tmp,NaN=>0.0)
-            Cr = -minimum(method.df_tmp) 
+            Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback 
 
         end   
 
@@ -149,33 +139,20 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
         # create df_PFlux due to momentum flux terms
         mul!(method.df_PFlux,method.P_Flux,method.f)
         @. method.df_Momentum = -method.df_PFlux # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Momentum
-        #if !isfinite(sum(method.df_PFlux)) #TODO: speed up using find first non-finite value instead of summing entire array
-        #    println("non-finite value in df_PFlux calculation, $(sum(method.df_PFlux))")
-        #end
 
         # create df_Emi due to emission terms
         if method.Emission_Interactions
             mul!(method.df_Emi,method.M_Emi,method.f)
             @. method.df_Momentum += method.df_Emi
-            #if !isfinite(sum(method.df_Emi))
-            #    println("non-finite value in df_Emi calculation, $(sum(method.df_Emi))")
-            #end
         end
             
         # create df_Bin due to binary interactions
         if method.Binary_Interactions
             update_Big_Bin!(method)
             @. method.df_Momentum += method.df_Bin
-            #if !isfinite(sum(method.df_Bin))
-            #    println("non-finite value in df_Bin calculation, $(sum(method.df_Bin))")
-            #end
         end
 
         @. method.df_Momentum *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
-
-        #if !isfinite(sum(method.df_Momentum))
-        #    println("non-finite value in momentum df calculation, $(sum(method.df_Momentum))")
-        #end
 
         # update f_momentum (f after momentum update)
         @. method.f_Momentum = method.f + method.df_Momentum
@@ -187,19 +164,11 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
         # create df_XFlux due to space flux terms
         mul!(method.df_XFlux,method.X_Flux,method.f_Momentum)
         @. method.df_Space = -method.df_XFlux * method.invAp_Flux * dt_scale # minus sign as flux terms are on RHS of Boltzmann equation, also resets df_Space
-        #if !isfinite(sum(method.df_XFlux))
-        #    println("non-finite value in df_XFlux calculation, $(sum(method.df_XFlux))")
-        #end
-
-        #if !isfinite(sum(method.df_Space))
-        #    println("non-finite value in space df calculation, $(sum(method.df_Space))")
-        #end
 
         # update f_Space (f after momentum and space updates)
         @. method.f_Space = method.f_Momentum + method.df_Space
         # removing negative values (values less than 0f0 for better stability)
         @. method.f_Space = method.f_Space*(method.f_Space>=1f-20)
-
 
     # CFL condition check TODO: add adaptive time stepping based on CFL condition 
 
@@ -212,7 +181,6 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
             Cr_Momentum = 0.0
             Cr_Space = 0.0
 
-
             # Cr (CFL) condition check
             if sum(method.f) != 0.0
 
@@ -221,38 +189,33 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
                     # Binary CFL
                     if method.Binary_Interactions
                         @. method.df_tmp = method.df_Bin * method.invAp_Flux * dt_scale / method.f
-                        replace!(method.df_tmp,NaN=>0.0)
-                        Cr_Bin = -minimum(method.df_tmp)
+                        Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                     end
 
                     # Emission CFL
                     if method.Emission_Interactions
                         @. method.df_tmp = method.df_Emi * method.invAp_Flux * dt_scale / method.f
-                        replace!(method.df_tmp,NaN=>0.0)
-                        Cr_Emi = -minimum(method.df_tmp)
+                        Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                     end
 
                     # P Flux CFL
                     @. method.df_tmp = -method.df_PFlux * method.invAp_Flux * dt_scale / method.f
                     replace!(method.df_tmp,NaN=>0.0)
-                    Cr_PFlux = -minimum(method.df_tmp)
+                    Cr_PFlux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
 
                     # Momentum CFL
                     @. method.df_tmp = method.df_Momentum /  method.f
-                    replace!(method.df_tmp,NaN=>0.0)
-                    Cr_Momentum = -minimum(method.df_tmp)
+                    Cr_Momentum = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
 
                     # Space CFL
                     @. method.df_tmp = method.df_Space / method.f_Momentum
-                    replace!(method.df_tmp,NaN=>0.0)
-                    Cr_Space = -minimum(method.df_tmp)
+                    Cr_Space = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Cr is calculated for the entire time step (momentum and space updates)
                 # f_tmp - f = df of the momentum step
                 @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f 
-                replace!(method.df_tmp,NaN=>0.0)
-                Cr = -minimum(method.df_tmp) 
+                Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) 
 
             end   
 
