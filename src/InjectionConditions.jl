@@ -33,10 +33,11 @@ function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     # Add initial conditions to temporary vector
     Initial_PowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
-    tr = PhaseSpace.Grids.tr
-    dt0 = tr[2] - tr[1]
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp*dt0)
+    @. Injection += rate_Inj * tmp
 
     return nothing
 end
@@ -54,10 +55,11 @@ function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceS
     # Add initial conditions to temporary vector
     Initial_BoostedPowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,Gamma=Gamma,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
-    tr = PhaseSpace.Grids.tr
-    dt0 = tr[2] - tr[1]
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp*dt0)
+    @. Injection += rate_Inj * tmp
 
     return nothing
 
@@ -76,10 +78,11 @@ function Injection_Constant!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     # Add initial conditions to temporary vector
     Initial_Constant!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
-    tr = PhaseSpace.Grids.tr
-    dt0 = tr[2] - tr[1]
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp*dt0)
+    @. Injection += rate_Inj * tmp
 
     return nothing
 end
@@ -97,10 +100,11 @@ function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceSt
     # Add initial conditions to temporary vector
     Initial_MaxwellJuttner!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
-    tr = PhaseSpace.Grids.tr
-    dt0 = tr[2] - tr[1]
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp*dt0)
+    @. Injection += rate_Inj * tmp
 
     return nothing
 end
@@ -118,10 +122,11 @@ function Injection_BlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,
     # Add initial conditions to temporary vector
     Initial_BlackBody!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
-    tr = PhaseSpace.Grids.tr
-    dt0 = tr[2] - tr[1]
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
     # Scale by rate (rate scaled by dt0 to convert to per time step)
-    @. Injection += rate_Inj * (tmp*dt0)
+    @. Injection += rate_Inj * tmp
 
     return nothing
 end
