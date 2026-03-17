@@ -29,10 +29,7 @@ struct Reflective <: BoundaryType end # particles reflect off this boundary (mom
     zp_BC::BoundaryType = Periodic()
     zm_BC::BoundaryType = Periodic()
 end
-@kwdef struct Cylindrical <: CoordinateType # x=ρ, y=ϑ, z=z
-    α::Float64 = 0.0# != 0 not implemented
-    β::Float64 = 0.0
-    γ::Float64 = 0.0# != 0 not implemented 
+@kwdef struct Cylindrical <: CoordinateType # x=ρ, y=ϑ, z=z 
     xp_BC::BoundaryType = Closed()
     xm_BC::BoundaryType = Closed()
     yp_BC::BoundaryType = Periodic()

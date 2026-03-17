@@ -96,9 +96,9 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     # update state vector f with injection term
     @. method.f += method.df + method.df_Inj * dt_scale 
     # removing negative values (values less than 1f-28 for better stability)
-    @. method.f = method.f*(method.f>=1f-10)
+    @. method.f = method.f * (method.f>=1f-10) * sign(method.f)
     # hacky fix for inf values
-    @. method.f = method.f*(method.f!=Inf)
+    @. method.f = method.f * (method.f!=Inf)
 
     # return dt and save
 

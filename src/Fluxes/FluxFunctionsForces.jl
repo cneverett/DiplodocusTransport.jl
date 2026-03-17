@@ -11,6 +11,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -60,9 +61,9 @@
             flux *= 0e0
         else
             
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
             if α != 0.0
                 error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
@@ -83,6 +84,7 @@
         
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -132,9 +134,9 @@
             flux *= 0e0
         else
             
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
             if α != 0.0
                 error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
@@ -159,6 +161,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -208,9 +211,9 @@
             flux *= 0e0
         else
             
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
             if α != 0.0
                 error("IFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
             end
@@ -236,6 +239,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Roation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -295,6 +299,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -355,6 +360,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 

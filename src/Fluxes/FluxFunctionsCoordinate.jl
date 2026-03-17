@@ -69,6 +69,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -112,9 +113,9 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
 
             if α != 0.0
                 error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
@@ -150,6 +151,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -193,9 +195,9 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
 
             if α != 0.0
                 error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
@@ -227,6 +229,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -268,9 +271,9 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
 
             if α != 0.0
                 error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
@@ -341,6 +344,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -396,6 +400,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -435,9 +440,9 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
 
             if α != 0.0
                 error("JFluxFunction not implemented for non-zero α in Cylindrical coordinates.")
@@ -471,6 +476,7 @@
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
+        Rotation = PhaseSpace.GlobalToLocalRotation
         space_coords = PhaseSpace.Space.space_coordinates
         momentum_coords = PhaseSpace.Momentum.momentum_coordinates
 
@@ -510,9 +516,9 @@
 
         elseif space_coords isa Cylindrical && momentum_coords isa Spherical
 
-            α::Float64 = space_coords.α
-            β::Float64 = space_coords.β
-            γ::Float64 = space_coords.γ
+            α::Float64 = Rotation[1]
+            β::Float64 = Rotation[2]
+            γ::Float64 = Rotation[3]
 
             if α != 0.0
                 error("KFluxFunction not implemented for non-zero α in Cylindrical coordinates.")

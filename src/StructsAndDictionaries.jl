@@ -296,6 +296,12 @@ A struct for storing the phase space of the simulation.
     Space::SpaceStruct                  = SpaceStruct()
     Momentum::MomentumStruct            = MomentumStruct()
 
+    GlobalToLocalRotation::NTuple{3,Float64} = try 
+            getfield(Main,Symbol("global_to_local_rotation"))
+        catch
+            (0.0,0.0,0.0)
+        end
+
     ElectroMagneticField::Union{ElectroMagneticFieldStruct,Nothing} = try 
             getfield(Main,Symbol("ElectroMagneticField"))
         catch
