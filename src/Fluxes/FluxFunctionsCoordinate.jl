@@ -287,7 +287,7 @@
             h1 = h1/pi
             h0 = h0/pi
 
-            flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * (y0 - y1) / 2
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
             flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0) - cospi(h1)) / 2
 
         else

@@ -61,6 +61,47 @@ function Initial_PowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 end
 
 """
+    Initial_PowerLawExpDecay!(Initial,PhaseSpace,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Init)
+
+Modifies the initial state vector `Initial` with a power law distribution with `index` for `species`, with an exponential cut-off. A power-law distribution is typically defined by N(E) ∝ E^(-index)exp(-E/Emax). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index)exp(-E/Emax) * p/E = pE^(-index-1)exp(-E/Emax).
+"""
+function Initial_PowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::Float64,num_Init::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1)  where F<:AbstractFloat
+
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    name_list = PhaseSpace.name_list
+
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
+    species_index = findfirst(==(species),name_list)
+    pr = Grids.pxr_list[species_index]
+    ur = Grids.pyr_list[species_index]
+    hr = Grids.pzr_list[species_index]
+    mass = Grids.mass_list[species_index]
+    p_num = Momentum.px_num_list[species_index]
+    u_num = Momentum.py_num_list[species_index]
+    h_num = Momentum.pz_num_list[species_index]
+
+    f0_3D_species = zeros(Float64,p_num,u_num,h_num)
+
+    DistributionToDIP_TrapeziumIntegration!(f0_3D_species,pr,ur,hr,Distribution_PowerLawExpDecay,index,pmin,pmax,mass,umin=umin,umax=umax,hmin=hmin,hmax=hmax)
+
+    # set values and normalise to initial number density (in m^{-3})
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
+
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
+
+    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+
+    Initial_local .+= convert(typeof(Initial),f0_species)
+
+    return nothing
+end
+
+"""
     Initial_BoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the local z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.

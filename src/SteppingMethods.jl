@@ -15,7 +15,9 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
     # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
 
-        if t_start + dt >= t_stop
+        if isapprox(t_start + dt, t_stop)
+            save = true
+        elseif t_start + dt >= t_stop
             dt = t_stop - t_start
             save = true
         else
@@ -92,9 +94,31 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
             println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t_start, t_save =$t_stop, dt=$dt")
         end
     end
+
+    # Basis timestep control based on CFL condition
+    #=if Cr > 1.0 
+        dt = dt/2 
+        dt_scale = dt / dt0
     
-    # update state vector f with injection term
+        # update state vector f with injection term
+        @. method.f += method.df/2 + method.df_Inj * dt_scale 
+
+    elseif Cr < 0.25
+        dt = dt*2
+        dt_scale = dt / dt0
+
+        # update state vector f with momentum, space and injection updates
+        @. method.f += method.df*2 + method.df_Inj * dt_scale 
+        
+    else
+
+        # update state vector f with momentum, space and injection updates
+        @. method.f += method.df + method.df_Inj * dt_scale 
+    end=#
+
+    # update state vector f with momentum, space and injection updates
     @. method.f += method.df + method.df_Inj * dt_scale 
+
     # removing negative values (values less than 1f-28 for better stability)
     @. method.f = method.f * (method.f>=1f-10) * sign(method.f)
     # hacky fix for inf values

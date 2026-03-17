@@ -185,6 +185,29 @@ function Distribution_PowerLaw(px::Float64,py::Float64,pz::Float64,index::Float6
 end
 
 """
+    Distribution_PowerLawExpDecay(px,py,pz,index,p_min,p_max,m)
+
+Generates an isotropic Power-law distribution with exponential decay dN/dE ∝ E^(-index)exp(-E/Emax) ∴ f(\vec{p}): 
+```math
+f(\\vec{p})} \\propto \\frac{E^{(-index-1)}}{4π p}\\exp(-E/Emax)
+```
+where ``E(p) = \\sqrt{m^2+p^2}``. This power law is taken to start at momentum `p_min` and end at `p_max`.
+"""
+function Distribution_PowerLawExpDecay(px::Float64,py::Float64,pz::Float64,index::Float64,p_min::Float64,p_max::Float64,m::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0)
+
+    if (px >= p_min) && (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
+
+        E = sqrt(m^2 + px^2)
+        PL = E^(-index - 1) / (4 * pi * px) * exp(-E/sqrt(m^2+p_max^2)) # here we take Emax = pmax for simplicity, as for highly relativistic particles E ~ p 
+    else 
+        PL = 0.0
+    end
+
+    return PL
+
+end
+
+"""
     Distribution_Boosted(px,py,pz,Gamma,DistributionFunction,Parameters...)
 
 Generates an isotropic Power-law distribution dN/dE ∝ E^(-index) ∴ f(\vec{p}): 

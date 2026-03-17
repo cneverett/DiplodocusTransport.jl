@@ -42,6 +42,29 @@ function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     return nothing
 end
 
+
+"""
+    Injection_PowerLawExpDecay!(Injection,PhaseSpace,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Inj,rate_Inj)
+
+Modifies the injection state vector `Injection` with a power law distribution with exponential cut-off generated using `Initial_PowerLawExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
+"""
+function Injection_PowerLawExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+    
+    # Create temporary vector to hold initial conditions
+    tmp = zeros(eltype(Injection), length(Injection))
+
+    # Add initial conditions to temporary vector
+    Initial_PowerLawExpDecay!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
+    # Scale by rate (rate scaled by dt0 to convert to per time step)
+    @. Injection += rate_Inj * tmp
+
+    return nothing
+end
+
 """
     Injection_BoostedPowerLaw!(Injection,PhaseSpace,species,pmin,pmax,Gamma,index,num_Inj,rate_Inj)
 
