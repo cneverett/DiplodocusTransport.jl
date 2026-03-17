@@ -136,8 +136,8 @@
             y1 = y1/pi
             y0 = y0/pi
 
-            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) * (sinpi(h0) - sinpi(h1)) / 2
-            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-u0*sqrt(1 - u0^2) + u1*sqrt(1 - u1^2) + 2acot_mod(u0) - 2acot_mod(u1)) * (sinpi(h0) - sinpi(h1))
+            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * pi*(h0 - h1)
 
         else
             error("B Flux function not implemented for this combination of co-ordinate systems.")
@@ -215,7 +215,7 @@
             h0 = h0/pi
 
             flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * sin(y) / 2
-            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0) - cospi(h1)) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (sinpi(h0) - sinpi(h1)) / 2
 
         else 
             error("C Flux function not implemented for this combination of co-ordinate systems.")
@@ -284,8 +284,11 @@
 
         elseif space_coords isa Spherical && momentum_coords isa Spherical
 
-            flux *= (t0 - t1) * (x0^2 - x1^2) * (y0 - y1) / 2
-            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1) / 2
+            h1 = h1/pi
+            h0 = h0/pi
+
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * (y0 - y1) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2acot_mod(u0) + 2acot_mod(u1)) * (cospi(h0) - cospi(h1)) / 2
 
         else
             error("D Flux function not implemented for this combination of co-ordinate systems.")
@@ -462,7 +465,8 @@
             y1 = y1/pi
             y0 = y0/pi
 
-            flux *= -2(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * u*sqrt(1 - u^2) * (x0^2 - x1^2) * (z0 - z1) * sinpi((y0 - y1)/2) * sinpi((h0 - h1)/2) * sinpi((y0 + y1 + h0 + h1)/2)
+            flux *= (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) * (cospi(y0) - cospi(y1)) / 2
+            flux *= (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (-1+u^2) * pi*(h0 - h1)
 
         else
             error("JFluxFunction not implemented for this combination of co-ordinate systems.")
@@ -535,8 +539,8 @@
             y1 = y1/pi
             y0 = y0/pi
 
-            flux *=  (t0 - t1) * (x0^2 - x1^2) * (z0 - z1) / 2
-            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2)) * cospi(h) * (sinpi(y0) - sinpi(y1)) + asin(u1) * (cospi(h) * (sinpi(y0) - sinpi(y1)) + 2(cospi(y0) - cospi(y1)) * sinpi(h)) + asin(u0) * (cospi(h) * (-sinpi(y0) + sinpi(y1)) + 2(-cospi(y0) + cospi(y1))*sinpi(h))) / 2
+            flux *=  (t0 - t1) * (x0^2 - x1^2) * (sinpi(y0) - sinpi(y1)) * (z0 - z1) / 2
+            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * ((u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - 2*acot_mod(u0) + 2*acot_mod(u1)) * sinpi(h)) / 2
 
         else
             error("KFluxFunction not implemented for this combination of co-ordinate systems.")
