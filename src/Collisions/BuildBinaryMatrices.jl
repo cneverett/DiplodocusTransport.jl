@@ -131,6 +131,10 @@ function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset
 
     for px2 in 1:px2_num, px1 in 1:px1_num, px3 in 1:px3_num
 
+        if px1 == 1 || px2 == 1
+            continue # skip first bin as the occupation of this bin can become very large causing time stepping issues.
+        end
+
         if mode isa Iso
 
             val = 0.0 
@@ -218,6 +222,10 @@ function LossMatrix_to_M_Bin!(LossMatrix::Array{Float64,6},offset1::Int64,offset
 
     #for pz2 in 1:pz2_num, py2 in 1:py2_num, px2 in 1:px2_num, pz1 in 1:pz1_num, py1 in 1:py1_num, px1 in 1:px1_num
     for px2 in 1:px2_num, px1 in 1:px1_num
+
+        if px1 == 1 || px2 == 1
+            continue # skip first bin as the occupation of this bin can become very large causing time stepping issues.
+        end
 
         if mode isa Iso 
 

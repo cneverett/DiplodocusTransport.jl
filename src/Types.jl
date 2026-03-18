@@ -19,6 +19,7 @@ struct Periodic <: BoundaryType end # particles leaving at one coordinate bounda
 struct Open <: BoundaryType end # particles may leave or enter at this flux boundary. Entering may be specified, could be constrained to only photons with other particles closed 
 struct Closed <: BoundaryType end # no particles may leave or enter this boundary (no particle reflection when they hit this boundary)
 struct Reflective <: BoundaryType end # particles reflect off this boundary (momentum component normal to boundary reverses sign) TODO: this reversal of sign may not be well defined for specific coordinate systems and momentum grids
+struct Escape <: BoundaryType end # particles leave based on their momentum magnitude and not direction, useful for isotropic particle distributions in spherical regions.
 
 # CoordinateType Structs: 
 @kwdef struct Cartesian <: CoordinateType # x=x, y=y, z=z

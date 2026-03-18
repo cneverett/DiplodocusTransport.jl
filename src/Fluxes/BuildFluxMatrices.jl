@@ -740,7 +740,7 @@ function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flu
             xp = x+1
             xm = x-1
             if xp > x_num # right boundary
-                if BCp isa Closed || BCp isa Open
+                if BCp isa Closed || BCp isa Open || BCp isa Escape
                     xp = x_num
                 elseif BCp isa Periodic
                     xp = 1
@@ -810,7 +810,7 @@ function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flu
                 push!(B_Flux_J,b)
                 push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))
                 #B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
-            elseif BCp isa Open # b=bp
+            elseif BCp isa Open || BCp isa Escape # b=bp
                 push!(B_Flux_I,a)
                 push!(B_Flux_J,b)
                 push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))

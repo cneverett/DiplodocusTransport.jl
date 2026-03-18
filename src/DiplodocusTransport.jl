@@ -6,7 +6,7 @@ module DiplodocusTransport
     export BackendType
     export CoordinateType, Cylindrical, Spherical, Cartesian
     export ModeType, Ani, Axi, Iso
-    export BoundaryType, Periodic, Open, Closed, Reflective
+    export BoundaryType, Periodic, Open, Closed, Reflective, Escape
     export CoordinateForce, SyncRadReact, GradBInvZDecay
     export BuildBinaryMatrices, BuildEmissionMatrices, BuildFluxMatrices
     export Initialise_Initial_Condition, Location_Species_To_StateVector, Initial_Constant!, Initial_MaxwellJuttner!, Initial_PowerLaw!, Initial_BoostedPowerLaw!, Initial_BlackBody!, Initial_PowerLawExpDecay!

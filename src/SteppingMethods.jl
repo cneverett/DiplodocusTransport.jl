@@ -120,7 +120,7 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     @. method.f += method.df + method.df_Inj * dt_scale 
 
     # removing negative values (values less than 1f-28 for better stability)
-    @. method.f = method.f * (method.f>=1f-10) * sign(method.f)
+    @. method.f = method.f * (method.f>=1f0) * sign(method.f)
     # hacky fix for inf values
     @. method.f = method.f * (method.f!=Inf)
 

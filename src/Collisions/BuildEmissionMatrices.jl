@@ -162,6 +162,10 @@ function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractA
     
     for px1 in axes(GainMatrix,4), px2 in axes(GainMatrix,1)
 
+        if px1 == 1 
+            continue # skip first bin as the occupation of this bin can become very large causing time stepping issues.
+        end
+
         if mode isa Iso
             val = 0.0
             w = 1.0/(sum(dpy1)*sum(dpz1)*sum(dpy2)*sum(dpz2))
@@ -224,6 +228,10 @@ function LossMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,LossMatrix::Array{Flo
     is_sparse = isnothing(M_Emi)
 
     for px1 in axes(LossMatrix,1)
+
+        if px1 == 1 
+            continue # skip first bin as the occupation of this bin can become very large causing time stepping issues.
+        end
 
         if mode isa Iso
 

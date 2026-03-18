@@ -127,8 +127,6 @@
             flux *= 1/2 * (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2)) * (t0 - t1) * x * (y0 - y1) * (z0 - z1)
             flux *= (-u0 * sqrt(1 - u0^2) + u1 * sqrt(1 - u1^2) + 2*acot_mod(u0) - 2*acot_mod(u1)) * (sinpi(γ - h0) - sinpi(γ - h1))
 
-
-
         elseif space_coords isa Spherical && momentum_coords isa Spherical 
 
             h1 = h1/pi
@@ -137,7 +135,11 @@
             y0 = y0/pi
 
             flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) / 2
-            flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * pi*(h0 - h1)
+            if space_coords.xp_BC isa Escape
+                flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) # TODO: This was a quick fix, check later
+            else
+                flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * pi*(h0 - h1)
+            end
 
         else
             error("B Flux function not implemented for this combination of co-ordinate systems.")
