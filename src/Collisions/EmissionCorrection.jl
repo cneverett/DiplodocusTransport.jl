@@ -34,12 +34,12 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
             pc = 1.054e-34*ω0/(9.11e-31*3e8^2)*(p1m[px])^3
             pmin = p3r[1]
 
-            if pc < pmin
+            #=if pc < pmin
                 println("pmin = $(pmin), pc = $(pc)")
                 println("Critical frequency below minimum momentum, no correction applied")
                 println(Ext[Ext_idx])
                 continue
-            end
+            end=#
         
             GainSumE3 = zero(Float64)
             LossSumE1 = zero(Float64)
@@ -124,6 +124,16 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
                 if Correction < 0.0 
                     println("Negative correction factor, check flux calculations, setting correction to zero")
                     Correction = 0.0
+                elseif Correction > 1e2 || Correction < 1e-2 # if outside this range kernel is inaccurate or sync critical freqency out of range.
+                    println("Correction factor may be inaccurate, due to sampling or synchrotron critical frequency out of range")
+                    if pc < pmin
+                        println("pmin = $(pmin), pc = $(pc)")
+                        println("Critical frequency below minimum momentum, no correction applied")
+                        println(Ext[Ext_idx])
+                        continue
+                    else
+                        Correction = 0.0
+                    end
                 end
                 println("$Correction")
                 @view(GainMatrix3[:,:,:,px,py,pz]) .= Correction * @view(GainMatrix3[:,:,:,px,py,pz])
