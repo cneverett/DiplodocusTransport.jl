@@ -239,29 +239,35 @@ function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String
         px2_up::Float64 = px_up_list[name2_loc]
         px3_up::Float64 = px_up_list[name3_loc]
 
-        Parameters = (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext_sampled)
+        println("Loading emission matrices for $type emission: $(name1) -> $(name2) + $(name3)")
 
-        filename = EmissionFileName(Parameters)
+        # build Vector of Emission Gain matrices for each sampled value of Ext
+        GainMatrix3_All = Vector{Array{Float64,6}}(undef,length(Ext_sampled))
 
-        println(filename)
+        for Ext_idx in eachindex(Ext_sampled)
 
-        #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
-        #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
-        GainMatrix3_All = EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
+            Parameters = (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext_sampled[Ext_idx])
 
-        # apply correct scaling from DiplodocusCollisions to non-dimensionalisation of DiplodocusTransport
-        GainMatrix3_All .*= Emi_Norm 
+            filename = EmissionFileName(Parameters)
+            println(filename)
 
-        # apply energy correction
-        if Emi_corrected
-            for Ext_idx in eachindex(Ext_sampled)
-                EmissionCorrection!(PhaseSpace,@view(GainMatrix3_All[:,:,:,:,:,:,Ext_idx]),Parameters,Ext_idx)
+            #Parameters = DC.fload_Matrix_Sync(DataDirectory,filename)[1] # 1 is Parameters
+            #matrix = DC.fload_Matrix_Sync(DataDirectory,filename)[2] # 1 is Parameters
+            GainMatrix3_All[Ext_idx] = EmissionFileLoad_Matrix(DataDirectory,filename)[2] # remove later
+
+            # apply correct scaling from DiplodocusCollisions to non-dimensionalisation of DiplodocusTransport
+            @view(GainMatrix3_All[Ext_idx]) .*= Emi_Norm 
+
+            # apply energy correction
+            if Emi_corrected
+                EmissionCorrection!(PhaseSpace,@view(GainMatrix3_All[Ext_idx]),Parameters)
             end
-        end
 
-        name_locs = (name1_loc,name2_loc,name3_loc)
+        end   
 
         println("Filling M_Emi for $type emission: $(name1) -> $(name2) + $(name3)")
+
+        name_locs = (name1_loc,name2_loc,name3_loc)
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
@@ -283,7 +289,7 @@ function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String
 
                 end
 
-                GainMatrix3 = @view(GainMatrix3_All[:,:,:,:,:,:,Ext_idx])
+                GainMatrix3 = @view(GainMatrix3_All[Ext_idx])
 
                 # Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields
                 Fill_M_Emi!(PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode,M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)

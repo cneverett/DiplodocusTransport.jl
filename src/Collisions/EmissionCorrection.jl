@@ -1,4 +1,4 @@
-function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractArray{Float64,6},Parameters,Ext_idx::Int64)
+function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractArray{Float64,6},Parameters)
 
     (name1,name2,name3,type,m1,m2,m3,z1,z2,z3,px1_low,px1_up,px1_grid,px1_num,py1_grid,py1_num,pz1_grid,pz1_num,px2_low,px2_up,px2_grid,px2_num,py2_grid,py2_num,pz2_grid,pz2_num,px3_low,px3_up,px3_grid,px3_num,py3_grid,py3_num,pz3_grid,pz3_num,Ext) = Parameters
 
@@ -6,7 +6,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
 
     if type == "Sync"
 
-        force = SyncRadReact(Ani(),Ext[Ext_idx])
+        force = SyncRadReact(Ani(),Ext)
         Momentum = PhaseSpace.Momentum
         Space = PhaseSpace.Space
         scheme = Momentum.scheme
@@ -30,7 +30,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
         for px in axes(GainMatrix3, 4), py in axes(GainMatrix3,5), pz in axes(GainMatrix3,6) # loop over p1 states
 
             # critical frequency
-            ω0 = abs((z1*1.6e-19*Ext[Ext_idx]))/(p1m[px]*9.11e-31)
+            ω0 = abs((z1*1.6e-19*Ext))/(p1m[px]*9.11e-31)
             pc = 1.054e-34*ω0/(9.11e-31*3e8^2)*(p1m[px])^3
             pmin = p3r[1]
 
@@ -124,12 +124,12 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
                 if Correction < 0.0 
                     println("Negative correction factor, check flux calculations, setting correction to zero")
                     Correction = 0.0
-                elseif Correction > 1e2 || Correction < 1e-2 # if outside this range kernel is inaccurate or sync critical freqency out of range.
+                elseif Correction > 1e2 || Correction < 1e-2 # if outside this range kernel is inaccurate or sync critical frequency out of range.
                     println("Correction factor may be inaccurate, due to sampling or synchrotron critical frequency out of range")
                     if pc < pmin
                         println("pmin = $(pmin), pc = $(pc)")
                         println("Critical frequency below minimum momentum, no correction applied")
-                        println(Ext[Ext_idx])
+                        println(Ext)
                         continue
                     else
                         Correction = 0.0
