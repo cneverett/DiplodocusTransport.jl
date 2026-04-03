@@ -29,6 +29,7 @@ module DiplodocusTransport
     using CUDA.CUSPARSE
     using MKL
     using MKLSparse
+    using HCubature
 
     include("Constants.jl")
     include("Types.jl")
@@ -36,6 +37,7 @@ module DiplodocusTransport
     include("StructsAndDictionaries.jl")
     include("PhaseSpaceFactors.jl")
     include("MatrixResizing.jl")
+    include("NumericalIntegration.jl")
     include("DistributionFunctions.jl")
     include("DistributionMoments.jl")
     include("InitialConditions.jl")
