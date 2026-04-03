@@ -105,6 +105,36 @@ where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``, and f is norm
 
 end
 
+@inline function Distribution_BlackBody(px::Float64,py::Float64,pz::Float64,T::Float64,m::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0)
+    # Generates the height of the BB distribution at positions of the mean momentum per bin
+
+    name_list = PhaseSpace.name_list
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    species_index = findfirst(x->x==species,name_list)
+
+    dp = Grids.dpx_list[species_index]
+    #du = Grids.dpy_list[species_index] # angle averaged therefore not used and dudh = 4π
+    #dh = Grids.dpz_list[species_index]
+    meanp = Grids.mpx_list[species_index]
+    mass = Grids.mass_list[species_index]
+
+    mEle = 9.11e-31
+    c = 3e8
+    kb = 1.38e-23
+    
+    if (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
+        # calculate only if within angular bounds
+        # besselk doesn't do well with small T besselkx = besselk * e^x does better.
+        invtheta = m*mEle*c^2/(kb*T)
+        return 1.0 / (exp(px*invtheta)-1.0)
+    end
+
+    return 0.0
+
+end
+
 """
     Distribution_PowerLaw(px,py,pz,index,p_min,p_max,m)
 

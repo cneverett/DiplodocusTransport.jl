@@ -25,13 +25,13 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution generated using `Initial_PowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+function Injection_PowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_PowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_PowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,method="hcubature",samples=32)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
@@ -48,13 +48,13 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution with exponential cut-off generated using `Initial_PowerLawExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_PowerLawExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+function Injection_PowerLawExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::AbstractFloat=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_PowerLawExpDecay!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_PowerLawExpDecay!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,umin=umin,umax=umax,hmin=hmin,hmax=hmax,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,method="hcubature",samples=32)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
@@ -70,13 +70,13 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution generated using `Initial_BoostedPowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,Gamma::Float64,index::AbstractFloat,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+function Injection_BoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,Gamma::Float64,index::AbstractFloat,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
 
      # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_BoostedPowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,Gamma=Gamma,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_BoostedPowerLaw!(tmp,PhaseSpace,species;pmin=pmin,pmax=pmax,Gamma=Gamma,index=index,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,method="hcubature",samples=32)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
@@ -115,13 +115,13 @@ end
 
 Modifies the injection state vector `Injection` with a Maxwell-Juttner distribution generated using `Initial_MaxwellJuttner!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1) where F<:AbstractFloat
+function Injection_MaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_MaxwellJuttner!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_MaxwellJuttner!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,method=method,samples=samples1)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
@@ -137,13 +137,13 @@ end
 
 Modifies the injection state vector `Injection` with a Black-Body distribution generated using `Initial_BlackBody!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function Injection_BlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::S=-1.0,umax::S=1.0,hmin::S=0.0,hmax::S=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1)  where S <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function Injection_BlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    Initial_BlackBody!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_BlackBody!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,method=method,samples=samples)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
