@@ -6,7 +6,8 @@ function Solve(method::SteppingMethodType,dt_initial::AbstractFloat,t_save::Vect
 
     PhaseSpace = method.PhaseSpace
 
-    f = copy(method.f_init)
+    f=zeros(eltype(method.f_init),size(method.f_init))
+    copyto!(f,method.f_init)
     n_save = length(t_save)
     output = OutputStruct(f,n_save)
 

@@ -13,17 +13,6 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
     dt0 = method.dt0
 
-    # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
-
-        if isapprox(t_start + dt, t_stop)
-            save = true
-        elseif t_start + dt >= t_stop
-            dt = t_stop - t_start
-            save = true
-        else
-            save = false
-        end
-
     # scaling of time stepping
 
         dt_scale = dt / dt0
@@ -45,7 +34,10 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
         @. method.df += method.df_Bin
     end
 
+    #println("df: $(method.df)")
+
     @. method.df *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
+    @. method.df += method.df_Inj * dt_scale 
 
     if !isfinite(sum(method.df))
         println("non-finite value in df calculation")
@@ -66,23 +58,23 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
                 # Binary CFL
                 if method.Binary_Interactions
                     @. method.df_tmp = method.df_Bin / method.f 
-                    Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Emission CFL
                 if method.Emission_Interactions
                     @. method.df_tmp = method.df_Emi / method.f 
-                    Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Flux CFL
                 @. method.df_tmp = -method.df_Flux / method.f 
-                Cr_Flux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                Cr_Flux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
 
             end
 
             @. method.df_tmp = method.df / method.f
-            Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback 
+            Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback 
 
         end   
 
@@ -91,40 +83,48 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
         elseif Verbose == 2
             println("\rCr = $Cr, t=$t_start, dt=$dt")
         elseif Verbose == 3
-            println("Cr = $Cr,Cr_Bin = $Cr_Bin, Cr_Emi = $Cr_Emi, Cr_Flux = $Cr_Flux, t=$t_start, t_save =$t_stop, dt=$dt")
+            println("Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
         end
     end
 
     # Basis timestep control based on CFL condition
-    #=if Cr > 1.0 
-        dt = dt/2 
+    if Cr > 1.0 
+        dt = dt * 0.5 
         dt_scale = dt / dt0
-    
-        # update state vector f with injection term
-        @. method.f += method.df/2 + method.df_Inj * dt_scale 
-
-    elseif Cr < 0.25
-        dt = dt*2
+        adaptive_factor = 0.5
+    elseif Cr < 1e-3 && Cr > 0.0
+        dt = dt * 2.0
         dt_scale = dt / dt0
-
-        # update state vector f with momentum, space and injection updates
-        @. method.f += method.df*2 + method.df_Inj * dt_scale 
-        
+        adaptive_factor = 2.0        
     else
+        adaptive_factor = 1.0
+    end
 
-        # update state vector f with momentum, space and injection updates
-        @. method.f += method.df + method.df_Inj * dt_scale 
-    end=#
+    # will we reached the next t_save?
+
+    if isapprox(t_start + dt, t_stop)
+        save = true
+    elseif t_start + dt >= t_stop
+        adaptive_factor *= (t_stop - t_start) / dt # adjust adaptive factor for final time step to ensure we end exactly at t_stop 
+        dt = t_stop - t_start
+        save = true
+    else
+        save = false
+    end
+
+    if dt < 0.0
+        error("Negative time step calculated, something went wrong with the CFL condition calculation")
+    end
 
     # update state vector f with momentum, space and injection updates
-    @. method.f += method.df + method.df_Inj * dt_scale 
+    @. method.f += method.df * adaptive_factor 
+
+    #println("max. f = $(maximum(method.f))")
 
     # removing negative values (values less than 1f-28 for better stability)
-    @. method.f = method.f * (method.f>=1f0) * sign(method.f)
+    @. method.f = method.f * (method.f>=method.n_cut) * sign(method.f)
     # hacky fix for inf values
     @. method.f = method.f * (method.f!=Inf)
-
-    # return dt and save
 
     return dt,save
 
@@ -147,7 +147,9 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
 
     # will we reached the next t_save? TODO: adjust this for adaptive time stepping, currently assumes constant time stepping
 
-        if t_start + dt >= t_stop
+        if isapprox(t_start + dt, t_stop)
+            save = true
+        elseif t_start + dt >= t_stop
             dt = t_stop - t_start
             save = true
         else
@@ -213,33 +215,31 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
                     # Binary CFL
                     if method.Binary_Interactions
                         @. method.df_tmp = method.df_Bin * method.invAp_Flux * dt_scale / method.f
-                        Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                        Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                     end
 
                     # Emission CFL
                     if method.Emission_Interactions
                         @. method.df_tmp = method.df_Emi * method.invAp_Flux * dt_scale / method.f
-                        Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                        Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                     end
 
                     # P Flux CFL
                     @. method.df_tmp = -method.df_PFlux * method.invAp_Flux * dt_scale / method.f
-                    replace!(method.df_tmp,NaN=>0.0)
-                    Cr_PFlux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    Cr_PFlux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
 
                     # Momentum CFL
                     @. method.df_tmp = method.df_Momentum /  method.f
-                    Cr_Momentum = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
-
+                    Cr_Momentum = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                     # Space CFL
                     @. method.df_tmp = method.df_Space / method.f_Momentum
-                    Cr_Space = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+                    Cr_Space = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Cr is calculated for the entire time step (momentum and space updates)
                 # f_tmp - f = df of the momentum step
                 @. method.df_tmp = (method.df_Space + method.df_Momentum) / method.f 
-                Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp) 
+                Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) 
 
             end   
 
@@ -255,8 +255,8 @@ function (method::ForwardSymplecticEulerStruct)(t_start,t_stop,dt,Verbose::Int64
     # update state vector f with momentum, space and injection updates
     
         @. method.f = method.f_Space + method.df_Inj * dt_scale
-        # removing negative values (values less than 1f-28 for better stability) and ensure positivity for CFL calculations
-        @. method.f = method.f*(method.f>=1f-20)*sign(method.f)
+        # removing negative values (values less than p_cut for better stability) and ensure positivity for CFL calculations
+        @. method.f = method.f*(method.f>=method.p_cut)*sign(method.f)
         # hacky fix for inf values
         @. method.f = method.f*(method.f!=Inf)
 

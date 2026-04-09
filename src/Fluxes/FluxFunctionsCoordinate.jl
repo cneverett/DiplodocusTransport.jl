@@ -134,10 +134,12 @@
             y1 = y1/pi
             y0 = y0/pi
 
-            flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) / 2
             if space_coords.xp_BC isa Escape
-                flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) # TODO: This was a quick fix, check later
+                # TODO: This was a quick fix, check later
+                flux *= (1/3) * (x^3) * (z0 - z1) * (cospi(y0) - cospi(y1))
+                flux *= (p0 - p1) * (u0 - u1) * (h0 - h1)
             else
+                flux *= (t0 - t1) * x^2 * (z0 - z1) * (cospi(y0) - cospi(y1)) / 2
                 flux *= (-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * pi*(h0 - h1)
             end
 
