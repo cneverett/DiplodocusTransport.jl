@@ -54,7 +54,7 @@ function InitialPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,specie
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -95,7 +95,7 @@ function InitialPowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruc
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -177,7 +177,7 @@ function InitialBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -251,7 +251,7 @@ function InitialConstant!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,specie
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -292,7 +292,7 @@ function InitialMaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -334,7 +334,7 @@ function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = Location_Species_To_StateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 

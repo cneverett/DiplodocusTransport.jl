@@ -27,6 +27,8 @@ module DiplodocusTransport
     # Solvers 
     export AbstractSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
     export OutputStruct, SolutionFileLoad
+    # Utilities
+    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector
 
     using JLD2
     using DiplodocusCollisions: bounds, location, deltaVector, meanVector, deltaEVector, EmissionFileName, BinaryFileName, EmissionFileLoad_Matrix, BinaryFileLoad_Matrix, DoesConserve

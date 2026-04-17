@@ -239,7 +239,7 @@ function Fill_A_Flux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_F
 
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
                 b = a
 
                 # integration sign introduced here
@@ -330,7 +330,7 @@ function FillTimeFlux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_
                     Aminus -= CFSpaceVectorMinus[a]*CFMomentumVector[a]
                 end
 
-                a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+                a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
                 b = a
 
                 # fill
@@ -436,49 +436,49 @@ function AssignFlux!(PhaseSpace::PhaseSpaceStruct,flux::String,Flux_I::Vector{In
     py_num = PhaseSpace.Momentum.py_num_list[name]
     pz_num = PhaseSpace.Momentum.pz_num_list[name]
 
-    a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+    a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
     b = a 
     Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
     if flux == "B"
         xp = RightBound(x,x_num,BCp)
         xm = LeftBound(x,x_num,BCm)
-        bp = GlobalIndices_To_StateIndex(xp,y,z,px,py,pz,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,xp,y,z,px,py,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,xm,y,z,px,py,pz,name)
         Norm_p = Norm
         Norm_m = Norm
     elseif flux == "C"
         yp = RightBound(y,y_num,BCp)
         ym = LeftBound(y,y_num,BCm)
-        bp = GlobalIndices_To_StateIndex(x,yp,z,px,py,pz,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,x,yp,z,px,py,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,x,ym,z,px,py,pz,name)
         Norm_p = Norm
         Norm_m = Norm
     elseif flux == "D"
         zp = RightBound(z,z_num,BCp)
         zm = LeftBound(z,z_num,BCm)
-        bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,zp,px,py,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,zm,px,py,pz,name)
         Norm_p = Norm
         Norm_m = Norm
     elseif flux == "I"
         pxp = RightBound(px,px_num,BCp)
         pxm = LeftBound(px,px_num,BCm)
-        bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxp,py,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxm,py,pz,name)
         Norm_p = MomentumSpaceNorm(Grids,name,pxp,py,pz)
         Norm_m = MomentumSpaceNorm(Grids,name,pxm,py,pz)
     elseif flux == "J"
         pyp = RightBound(py,py_num,BCp)
         pym = LeftBound(py,py_num,BCm)
-        bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pyp,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pym,pz,name)
         Norm_p = MomentumSpaceNorm(Grids,name,px,pyp,pz)
         Norm_m = MomentumSpaceNorm(Grids,name,px,pym,pz)
     elseif flux == "K"
         pzp = RightBound(pz,pz_num,BCp)
         pzm = LeftBound(pz,pz_num,BCm)
-        bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
-        bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzp,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzm,name)
         Norm_p = MomentumSpaceNorm(Grids,name,px,py,pzp)
         Norm_m = MomentumSpaceNorm(Grids,name,px,py,pzm)
     end
@@ -850,7 +850,7 @@ function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             pxp = px+1
             pxm = px-1
@@ -869,8 +869,8 @@ function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,pxp,py,pz,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,pxm,py,pz,name,PhaseSpace)
+            bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxp,py,pz,name)
+            bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxm,py,pz,name)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -995,7 +995,7 @@ function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             pyp = py+1
             pym = py-1
@@ -1014,8 +1014,8 @@ function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,px,pyp,pz,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,px,pym,pz,name,PhaseSpace)
+            bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pyp,pz,name)
+            bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pym,pz,name)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -1139,7 +1139,7 @@ function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             pzp = pz+1
             pzm = pz-1
@@ -1158,8 +1158,8 @@ function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,y,z,px,py,pzp,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,y,z,px,py,pzm,name,PhaseSpace)
+            bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzp,name)
+            bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzm,name)
 
             for f in 1:length(Forces)
                 # integration sign introduced here
@@ -1278,7 +1278,7 @@ function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flu
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             xp = x+1
             xm = x-1
@@ -1297,8 +1297,8 @@ function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flu
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(xp,y,z,px,py,pz,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(xm,y,z,px,py,pz,name,PhaseSpace)
+            bp = GlobalIndicesToStateIndex(PhaseSpace,xp,y,z,px,py,pz,name)
+            bm = GlobalIndicesToStateIndex(PhaseSpace,xm,y,z,px,py,pz,name)
 
             # integration sign introduced here
             B_plus = BFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
@@ -1415,7 +1415,7 @@ function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int64},C_Flu
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             yp = y+1
             ym = y-1
@@ -1434,8 +1434,8 @@ function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int64},C_Flu
                 end
             end
 
-            bp = GlobalIndices_To_StateIndex(x,yp,z,px,py,pz,name,PhaseSpace)
-            bm = GlobalIndices_To_StateIndex(x,ym,z,px,py,pz,name,PhaseSpace)
+            bp = GlobalIndicesToStateIndex(PhaseSpace,x,yp,z,px,py,pz,name)
+            bm = GlobalIndicesToStateIndex(PhaseSpace,x,ym,z,px,py,pz,name)
 
             # integration sign introduced here
             C_plus = CFluxFunction(PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
@@ -1551,7 +1551,7 @@ function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int64},D_Flu
 
         for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-            a = GlobalIndices_To_StateIndex(x,y,z,px,py,pz,name,PhaseSpace)
+            a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
             b = a 
             zp = z+1
             zm = z-1
@@ -1574,18 +1574,18 @@ function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int64},D_Flu
                 @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
                 # mirror u momentum at boundary
                 py_ref = py_num - py + 1
-                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py_ref,pz,name,PhaseSpace)
+                bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,zp,px,py_ref,pz,name)
             else
-                bp = GlobalIndices_To_StateIndex(x,y,zp,px,py,pz,name,PhaseSpace)
+                bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,zp,px,py,pz,name)
             end
             
             if BCm isa Reflective && (z-1 < 1)
                 @assert space_coords isa Cartesian "Reflective BCs only implemented for Cartesian coordinates"
                 # mirror u momentum at boundary
                 py_ref = py_num - py + 1
-                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py_ref,pz,name,PhaseSpace)
+                bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,zm,px,py_ref,pz,name)
             else
-                bm = GlobalIndices_To_StateIndex(x,y,zm,px,py,pz,name,PhaseSpace)
+                bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,zm,px,py,pz,name)
             end
 
             # integration sign introduced here

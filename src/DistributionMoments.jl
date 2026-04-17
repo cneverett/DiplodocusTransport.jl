@@ -14,7 +14,7 @@ function FourFlow(state::AbstractVector{T},PhaseSpace::PhaseSpaceStruct,species:
         species_index = findfirst(==(species),name_list)
     end
 
-    f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
+    f1D = copy(LocationSpeciesToStateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
 
     m = PhaseSpace.Grids.mass_list[species_index]
     p_num = PhaseSpace.Momentum.px_num_list[species_index]
@@ -100,7 +100,7 @@ function StressEnergyTensor(state::Vector{T},PhaseSpace::PhaseSpaceStruct,specie
         species_index = findfirst(==(species),PhaseSpace.name_list)
     end
 
-    f1D = copy(Location_Species_To_StateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
+    f1D = copy(LocationSpeciesToStateVector(state,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx))
 
     m = PhaseSpace.Grids.mass_list[species_index]
     p_num = PhaseSpace.Momentum.px_num_list[species_index]
