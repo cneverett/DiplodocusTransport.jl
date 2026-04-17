@@ -26,7 +26,7 @@ module DiplodocusTransport
     export InitialiseInjectionCondition, InjectionConstant!, InjectionMaxwellJuttner!, InjectionPowerLaw!, InjectionBoostedPowerLaw!, InjectionBlackBody!, InjectionPowerLawExpDecay!
     # Solvers 
     export Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
-    export SolutionFileLoad
+    export OutputStruct, SolutionFileLoad
 
     using JLD2
     using DiplodocusCollisions: bounds, location, deltaVector, meanVector, deltaEVector, EmissionFileName, BinaryFileName, EmissionFileLoad_Matrix, BinaryFileLoad_Matrix, DoesConserve
