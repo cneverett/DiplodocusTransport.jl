@@ -1,5 +1,7 @@
+abstract type AbstractSteppingMethod <: Function end
+
 # Struct for storing the Boltzmann equation and its solution
-mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
+mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
 
     PhaseSpace::PhaseSpaceStruct
 
@@ -42,7 +44,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
         self.Implicit = false
         self.Adaptive = Adaptive
-        self.dt0 = convert(Precision,PhaseSpace.Time.dt0)
+        self.dt0 = convert(Precision,PhaseSpace.Spacetime.dt0)
         self.n_cut = convert(Precision,n_cut)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
@@ -77,10 +79,10 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
         end  
 
         Momentum = PhaseSpace.Momentum
-        Space = PhaseSpace.Space
-        x_num = Space.x_num
-        y_num = Space.y_num
-        z_num = Space.z_num
+        Spacetime = PhaseSpace.Spacetime
+        x_num = Spacetime.x_num
+        y_num = Spacetime.y_num
+        z_num = Spacetime.z_num
         px_num_list = Momentum.px_num_list
         py_num_list = Momentum.py_num_list
         pz_num_list = Momentum.pz_num_list
@@ -103,7 +105,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
 
 end
 
-mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodType
+mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
 
     PhaseSpace::PhaseSpaceStruct
 
@@ -153,7 +155,7 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
 
         self.Adaptive = Adaptive
         self.Implicit = false
-        self.dt0 = convert(Precision,PhaseSpace.Time.dt0)
+        self.dt0 = convert(Precision,PhaseSpace.Spacetime.dt0)
         self.p_cut = convert(Precision,p_cut)
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
@@ -198,10 +200,10 @@ mutable struct ForwardSymplecticEulerStruct{T<:AbstractFloat} <: SteppingMethodT
         end  
 
         Momentum = PhaseSpace.Momentum
-        Space = PhaseSpace.Space
-        x_num = Space.x_num
-        y_num = Space.y_num
-        z_num = Space.z_num
+        Spacetime = PhaseSpace.Spacetime
+        x_num = Spacetime.x_num
+        y_num = Spacetime.y_num
+        z_num = Spacetime.z_num
         px_num_list = Momentum.px_num_list
         py_num_list = Momentum.py_num_list
         pz_num_list = Momentum.pz_num_list
@@ -233,7 +235,7 @@ end
 
 
 # Struct for storing the Boltzmann equation and its solution
-mutable struct BackwardEulerStruct{T<:AbstractFloat} <: SteppingMethodType
+mutable struct BackwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
 
     PhaseSpace::PhaseSpaceStruct
 

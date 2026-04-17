@@ -1,4 +1,22 @@
-function Solve(method::SteppingMethodType,dt_initial::AbstractFloat,t_save::Vector{<:AbstractFloat};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
+mutable struct OutputStruct
+    
+    f::Vector{Vector{AbstractFloat}}
+    t::Vector{AbstractFloat}
+
+    function OutputStruct(f0::Vector{T},n_save::Int64) where T<:Union{Float32,Float64}
+
+        self = new()
+        self.f = [similar(f0) for _ in 1:n_save]
+        self.t = Vector{T}(undef,n_save)
+
+        return self
+    
+    end
+
+end
+
+
+function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::Vector{<:AbstractFloat};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
 
     if isdir(fileLocation) == false
         mkpath(fileLocation)

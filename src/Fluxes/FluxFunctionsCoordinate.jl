@@ -305,7 +305,8 @@
     function VolFunction(PhaseSpace::PhaseSpaceStruct,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64)
 
         Grids = PhaseSpace.Grids
-        space_coords = PhaseSpace.Space.space_coordinates
+        metric = PhaseSpace.Spacetime.metric
+        coordinates = PhaseSpace.Spacetime.coordinates
 
         t0 = Grids.tr[t_idx]
         t1 = Grids.tr[t_idx+1]
@@ -320,23 +321,27 @@
 
         vol::Float64 = 1.0
 
-        if space_coords isa Cartesian
+        if metric isa Minkowski
+            if coordinates isa Cartesian
 
-            vol *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+                vol *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
 
-        elseif space_coords isa Cylindrical
+            elseif coordinates isa Cylindrical
 
-            vol *=(-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
+                vol *=(-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
 
-        elseif space_coords isa Spherical
+            elseif coordinates isa Spherical
 
-            y1 = y1/pi
-            y0 = y0/pi
+                y1 = y1/pi
+                y0 = y0/pi
 
-            vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0) - cospi(y1))
+                vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0) - cospi(y1))
 
+            else
+                error("Volume function not implemented metric $(typeof(metric)) with coordinates $(typeof(coordinates)).")
+            end
         else
-            error("Volume function not implemented for this co-ordinate system.")
+            error("Volume function not implemented metric $(typeof(metric)).")
         end
 
         return vol
@@ -570,6 +575,253 @@ function acot_mod(x)
     end=#
 
     return acos(x)/2
+
+end
+
+# ============ CoordinateForce and CoordinateFlux Momentum Integrals =========== #
+
+function CoordinateFluxMomentumIntegral!(FluxMomentumArray::MVector{4,Float64},PhaseSpace::PhaseSpaceStruct,species_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+    Grids = PhaseSpace.Grids
+    m = Grids.mass_list[species_idx]
+    p0 = Grids.pxr_list[species_idx][px_idx]
+    p1 = Grids.pxr_list[species_idx][px_idx+1]
+    u0 = Grids.pyr_list[species_idx][py_idx]
+    u1 = Grids.pyr_list[species_idx][py_idx+1]
+    h0 = Grids.pzr_list[species_idx][pz_idx]
+    h1 = Grids.pzr_list[species_idx][pz_idx+1]
+
+    FluxMomentumArray[1] = 1.0
+    FluxMomentumArray[2] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (sin(h1) - sin(h0))
+    FluxMomentumArray[3] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (cos(h0) - cos(h1))
+    FluxMomentumArray[4] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h1 - h0)
+
+end
+
+function CoordinateForceMomentumIntegral!(ForceMomentumArray::MArray{Tuple{4,4,4,3,2},Float64,5,384},PhaseSpace::PhaseSpaceStruct,species_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+
+    Grids = PhaseSpace.Grids
+    m = Grids.mass_list[species_idx]
+    p0 = Grids.pxr_list[species_idx][px_idx]
+    p1 = Grids.pxr_list[species_idx][px_idx+1]
+    u0 = Grids.pyr_list[species_idx][py_idx]
+    u1 = Grids.pyr_list[species_idx][py_idx+1]
+    h0 = Grids.pzr_list[species_idx][pz_idx]
+    h1 = Grids.pzr_list[species_idx][pz_idx+1]
+
+    CoordinateForceIFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,1,1),m,p1,u0,u1,h0,h1)
+    CoordinateForceIFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,1,2),m,p0,u0,u1,h0,h1)
+
+    CoordinateForceJFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,2,1),m,p0,p1,u1,h0,h1)
+    CoordinateForceJFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,2,2),m,p0,p1,u0,h0,h1)
+
+    CoordinateForceKFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,3,1),m,p0,p1,u0,u1,h1)
+    CoordinateForceKFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,3,2),m,p0,p1,u0,u1,h0)
+
+end
+
+function CoordinateForceIFluxMomentumIntegral!(ForceMomentumArrayView::AbstractArray{T,3},m::T,p::T,u0::T,u1::T,h0::T,h1::T) where T
+
+    sh0,ch0 = sincos(h0)
+    sh1,ch1 = sincos(h1)
+
+    M121::T = -(1/4) * sqrt(m^2 + p^2) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (sh0 - sh1)
+    M131::T = 1/4 * sqrt(m^2 + p^2) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (ch0 - ch1)
+    M141::T = -(1/4) * (h0 - h1) * sqrt(m^2 + p^2) * (u0^2 - u1^2)
+
+    M122::T = 1/12 * p * (-3u0 + u0^3 + 3u1 - u1^3) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
+    M132::T = -(1/12) * p * (-3u0 + u0^3 + 3u1 - u1^3) * (ch0^2 - ch1^2)
+    M142::T = 1/6 * p * ((1 - u0^2)^(3/2) - (1 - u1^2)^(3/2)) * (sh0 - sh1)
+
+    M123::T = M132
+    M133::T = 1/12 * p * (-3u0 + u0^3 + 3u1 - u1^3) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
+    M143::T = 1/6 * p * (-(1 - u0^2)^(3/2) + (1 - u1^2)^(3/2)) * (ch0 - ch1)
+
+    M124::T = M142
+    M134::T = M143
+    M144::T = 1/6 * (h0 - h1) * p * (-u0^3 + u1^3)
+
+    ForceMomentumArrayView[1,2,1] = M121
+    ForceMomentumArrayView[1,3,1] = M131
+    ForceMomentumArrayView[1,4,1] = M141
+    ForceMomentumArrayView[1,2,2] = M122
+    ForceMomentumArrayView[1,3,2] = M132
+    ForceMomentumArrayView[1,4,2] = M142
+    ForceMomentumArrayView[1,2,3] = M123
+    ForceMomentumArrayView[1,3,3] = M133
+    ForceMomentumArrayView[1,4,3] = M143
+    ForceMomentumArrayView[1,2,4] = M124
+    ForceMomentumArrayView[1,3,4] = M134
+    ForceMomentumArrayView[1,4,4] = M144
+
+    ForceMomentumArrayView[2,1,1] = -M121
+    ForceMomentumArrayView[3,1,1] = -M131
+    ForceMomentumArrayView[4,1,1] = -M141
+    ForceMomentumArrayView[2,1,2] = -M122
+    ForceMomentumArrayView[3,1,2] = -M132
+    ForceMomentumArrayView[4,1,2] = -M142
+    ForceMomentumArrayView[2,1,3] = -M123
+    ForceMomentumArrayView[3,1,3] = -M133
+    ForceMomentumArrayView[4,1,3] = -M143
+    ForceMomentumArrayView[2,1,4] = -M124
+    ForceMomentumArrayView[3,1,4] = -M134
+    ForceMomentumArrayView[4,1,4] = -M144
+    
+end
+
+function CoordinateForceJFluxMomentumIntegral!(ForceMomentumArrayView::AbstractArray{T,3},m::T,p0::T,p1::T,u::T,h0::T,h1::T) where T
+
+    sh0,ch0 = sincos(h0)
+    sh1,ch1 = sincos(h1)
+    sqrt_mp0 = sqrt(m^2 + p0^2)
+    sqrt_mp1 = sqrt(m^2 + p1^2)
+
+    M121::T = 0.5 * u * sqrt(1 - u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1)) * (sh0 - sh1)
+    M131::T = -0.5 * u * sqrt(1 - u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1)) * (ch0 - ch1)
+    M141::T = 0.5 * (h0 - h1) * (-1 + u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1))
+    M241::T = -0.5 * (p0 - p1) * sqrt(1 - u^2) * (sh0 - sh1)
+    M341::T = 0.5 * (p0 - p1) * sqrt(1 - u^2) * (ch0 - ch1)
+    M122::T = 0.25 * (-p0 + p1) * u * (-1 + u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
+    M132::T = 0.25 * (p0 - p1) * u * (-1 + u^2) * (ch0^2 - ch1^2)
+    M142::T = -0.5 * (p0 - p1) * (1 - u^2)^(3/2) * (sh0 - sh1)
+    M242::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
+    M342::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (ch0^2 - ch1^2)
+    M123::T = M132
+    M133::T = 0.25 * (-p0 + p1) * u * (-1 + u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
+    M143::T = 0.5 * (p0 - p1) * (1 - u^2)^(3/2) * (ch0 - ch1)
+    M243::T = M342
+    M343::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
+
+    M124::T = 0.5 * (p0 - p1) * u^2 * sqrt(1 - u^2) * (sh0 - sh1)
+    M134::T = 0.5 * (-p0 + p1) * u^2 * sqrt(1 - u^2) * (ch0 - ch1)
+    M144::T = 0.5 * (h0 - h1) * (p0 - p1) * u * (-1 + u^2)
+    M244::T = -0.5 * (sqrt_mp0 - sqrt_mp1) * u * sqrt(1 - u^2) * (sh0 - sh1)
+    M344::T = 0.5 * (sqrt_mp0 - sqrt_mp1) * u * sqrt(1 - u^2) * (ch0 - ch1)
+
+    ForceMomentumArrayView[1,2,1] = M121
+    ForceMomentumArrayView[1,3,1] = M131
+    ForceMomentumArrayView[1,4,1] = M141
+    ForceMomentumArrayView[1,2,2] = M122
+    ForceMomentumArrayView[1,3,2] = M132
+    ForceMomentumArrayView[1,4,2] = M142
+    ForceMomentumArrayView[1,2,3] = M123
+    ForceMomentumArrayView[1,3,3] = M133
+    ForceMomentumArrayView[1,4,3] = M143
+    ForceMomentumArrayView[1,2,4] = M124
+    ForceMomentumArrayView[1,3,4] = M134
+    ForceMomentumArrayView[1,4,4] = M144
+
+    ForceMomentumArrayView[2,1,1] = -M121
+    ForceMomentumArrayView[3,1,1] = -M131
+    ForceMomentumArrayView[4,1,1] = -M141
+    ForceMomentumArrayView[2,1,2] = -M122
+    ForceMomentumArrayView[3,1,2] = -M132
+    ForceMomentumArrayView[4,1,2] = -M142
+    ForceMomentumArrayView[2,1,3] = -M123
+    ForceMomentumArrayView[3,1,3] = -M133
+    ForceMomentumArrayView[4,1,3] = -M143
+    ForceMomentumArrayView[2,1,4] = -M124
+    ForceMomentumArrayView[3,1,4] = -M134
+    ForceMomentumArrayView[4,1,4] = -M144
+
+    ForceMomentumArrayView[2,4,1] = M241
+    ForceMomentumArrayView[3,4,1] = M341
+    ForceMomentumArrayView[2,4,2] = M242
+    ForceMomentumArrayView[3,4,2] = M342
+    ForceMomentumArrayView[2,4,3] = M243
+    ForceMomentumArrayView[3,4,3] = M343
+    ForceMomentumArrayView[2,4,4] = M244
+    ForceMomentumArrayView[3,4,4] = M344
+
+    ForceMomentumArrayView[4,2,1] = -M241
+    ForceMomentumArrayView[4,3,1] = -M341
+    ForceMomentumArrayView[4,2,2] = -M242
+    ForceMomentumArrayView[4,3,2] = -M342
+    ForceMomentumArrayView[4,2,3] = -M243
+    ForceMomentumArrayView[4,3,3] = -M343
+    ForceMomentumArrayView[4,2,4] = -M244
+    ForceMomentumArrayView[4,3,4] = -M344
+end
+
+function CoordinateForceKFluxMomentumIntegral!(ForceMomentumArrayView::AbstractArray{T,3},m::T,p0::T,p1::T,u0::T,u1::T,h::T) where T
+
+    sqrt_mp0 = sqrt(m^2 + p0^2)
+    sqrt_mp1 = sqrt(m^2 + p1^2)
+    sh,ch = sincos(h)
+
+    M121::T = 0.5 * (-acos(u0) + acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * sh
+    M131::T = -0.5 * (-acos(u0) + acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * ch
+
+    M231::T = -0.5 * (p0 - p1) * (u0 - u1)
+    M241::T = 0.5 * (p0 - p1) * (sqrt(1 - u0^2) - sqrt(1 - u1^2)) * sh
+    M341::T = -0.5 * (p0 - p1) * (sqrt(1 - u0^2) - sqrt(1 - u1^2)) * ch
+    M122::T = 0.5 * (p0 - p1) * (u0 - u1) * sh * ch
+    M132::T = -0.5 * (p0 - p1) * (u0 - u1) * ch^2
+
+    M232::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * ch
+    M242::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * sh * ch
+    M342::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * ch^2
+    M123::T = 0.5 * (p0 - p1) * (u0 - u1) * sh^2
+    M133::T = -M122
+
+    M233::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sh
+    M243::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * sh^2
+    M343::T = -M242
+    M124::T = -M241
+    M134::T = -M341
+
+    M234::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2)
+    M244::T = -M233
+    M344::T = -M232
+
+    ForceMomentumArrayView[1,2,1] = M121
+    ForceMomentumArrayView[1,3,1] = M131
+
+    ForceMomentumArrayView[1,2,2] = M122
+    ForceMomentumArrayView[1,3,2] = M132
+    ForceMomentumArrayView[1,2,3] = M123
+    ForceMomentumArrayView[1,3,3] = M133
+
+    ForceMomentumArrayView[1,2,4] = M124
+    ForceMomentumArrayView[1,3,4] = M134
+
+    ForceMomentumArrayView[2,1,1] = -M121
+    ForceMomentumArrayView[3,1,1] = -M131
+
+    ForceMomentumArrayView[2,1,2] = -M122
+    ForceMomentumArrayView[3,1,2] = -M132
+    ForceMomentumArrayView[2,1,3] = -M123
+    ForceMomentumArrayView[3,1,3] = -M133
+
+    ForceMomentumArrayView[2,1,4] = -M124
+    ForceMomentumArrayView[3,1,4] = -M134
+
+    ForceMomentumArrayView[2,3,1] = M231
+    ForceMomentumArrayView[2,4,1] = M241
+    ForceMomentumArrayView[3,4,1] = M341
+    ForceMomentumArrayView[2,3,2] = M232
+    ForceMomentumArrayView[2,3,3] = M233
+    ForceMomentumArrayView[2,4,2] = M242
+    ForceMomentumArrayView[3,4,2] = M342
+    ForceMomentumArrayView[2,4,3] = M243
+    ForceMomentumArrayView[3,4,3] = M343
+    ForceMomentumArrayView[2,3,4] = M234
+    ForceMomentumArrayView[2,4,4] = M244
+    ForceMomentumArrayView[3,4,4] = M344
+
+    ForceMomentumArrayView[3,2,1] = -M231
+    ForceMomentumArrayView[4,2,1] = -M241
+    ForceMomentumArrayView[4,3,1] = -M341
+    ForceMomentumArrayView[3,2,2] = -M232
+    ForceMomentumArrayView[3,2,3] = -M233
+    ForceMomentumArrayView[4,2,2] = -M242
+    ForceMomentumArrayView[4,3,2] = -M342
+    ForceMomentumArrayView[4,2,3] = -M243
+    ForceMomentumArrayView[4,3,3] = -M343
+    ForceMomentumArrayView[3,2,4] = -M234
+    ForceMomentumArrayView[4,2,4] = -M244
+    ForceMomentumArrayView[4,3,4] = -M344
+
 
 end
 

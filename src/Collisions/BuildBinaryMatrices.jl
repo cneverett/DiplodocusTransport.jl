@@ -3,7 +3,7 @@
 
 Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BinaryMatricesStruct`.
 """
-function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryStruct},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;loading_check::Bool=false,Bin_Mode::ModeType=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
+function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryInteraction},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;loading_check::Bool=false,Bin_Mode::AbstractMode=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
@@ -74,7 +74,7 @@ end
 
 Fills the big matrix `M_Bin` directly if dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for a specific binary interactions given by `name_locs` and the collision arrays `GainMatrix3`, `GainMatrix4`, `LossMatrix1`, `LossMatrix2`.
 """
-function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6},n_momentum::Int64;mode::ModeType=Ani(),M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6},n_momentum::Int64;mode::AbstractMode=Ani(),M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     Grids = PhaseSpace.Grids
     offset = Grids.momentum_species_offset
@@ -107,7 +107,7 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
 end
 
 
-function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64,mode::ModeType,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},dpy3::Vector{Float64},dpz3::Vector{Float64},n_momentum::Int64;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},dpy3::Vector{Float64},dpz3::Vector{Float64},n_momentum::Int64;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     px3_num = size(GainMatrix,1)-2 # ignore underflow and overflow bins
     py3_num = size(GainMatrix,2)
@@ -203,7 +203,7 @@ function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset
 
 end
 
-function LossMatrix_to_M_Bin!(LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64,mode::ModeType,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},n_momentum::Int64;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function LossMatrix_to_M_Bin!(LossMatrix::Array{Float64,6},offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},n_momentum::Int64;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)

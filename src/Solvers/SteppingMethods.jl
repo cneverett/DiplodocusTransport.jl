@@ -353,16 +353,15 @@ function (BackwardEuler::BackwardEulerStruct)(dt0,dt,t;Verbose::Bool=false)
 
 end
 
-function update_Big_Bin!(method::SteppingMethodType)
+function update_Big_Bin!(method::AbstractSteppingMethod)
     
     PhaseSpace = method.PhaseSpace
-    Space = PhaseSpace.Space
-    Time = PhaseSpace.Time
+    Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
 
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
@@ -420,20 +419,19 @@ function update_Big_Bin!(method::SteppingMethodType)
 
 end
 
-function update_Big_Emi!(method::SteppingMethodType)
+function update_Big_Emi!(method::AbstractSteppingMethod)
 
     f = method.f
 
     @assert size(method.M_Emi) == (length(f),length(f)) "M_Emi is not the correct size"
 
     PhaseSpace = method.PhaseSpace
-    Space = PhaseSpace.Space
-    Time = PhaseSpace.Time
+    Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
 
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list

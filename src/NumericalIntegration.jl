@@ -47,6 +47,7 @@ end
 # nx, ny, nz are the number of intervals in each dimension.
 
 function trapz3d(f, a, b, n::Vector{Int})
+
     nx = n[1]
     ny = n[2]
     nz = n[3]
@@ -95,8 +96,8 @@ end
 #   x in [ax, bx], y in [ay, by], z in [az, bz]
 #
 # nx, ny, nz must be even.
+function simpson3d(f, a, b, n::Vector{Int},args...)
 
-function simpson3d(f, a, b, n::Vector{Int})
     nx = n[1]
     ny = n[2]
     nz = n[3]
@@ -120,7 +121,7 @@ function simpson3d(f, a, b, n::Vector{Int})
     hy = (by - ay) / ny
     hz = (bz - az) / nz
 
-    total = 0.0
+    total = similar(f(zeros(Float64,3)))
     xyz = zeros(Float64,3)
 
     @inbounds for i in 0:nx
@@ -141,4 +142,245 @@ function simpson3d(f, a, b, n::Vector{Int})
     end
 
     return (hx * hy * hz / 27.0) * total
+end
+
+function simpson4d(f, a::SVector{4,T}, b::SVector{4,T}, n::Vector{Int}) where T
+
+    nt = n[1]
+    nx = n[2]
+    ny = n[3]
+    nz = n[4]
+
+    at = a[1]
+    ax = a[2]
+    ay = a[3]
+    az = a[4]
+
+    bt = b[1]
+    bx = b[2]
+    by = b[3]
+    bz = b[4]
+
+    nt < 2 && error("nt must be at least 2")
+    nx < 2 && error("nx must be at least 2")
+    ny < 2 && error("ny must be at least 2")
+    nz < 2 && error("nz must be at least 2")
+
+    iseven(nt) || error("nt must be even")
+    iseven(nx) || error("nx must be even")
+    iseven(ny) || error("ny must be even")
+    iseven(nz) || error("nz must be even")
+
+    ht = (bt - at) / nt
+    hx = (bx - ax) / nx
+    hy = (by - ay) / ny
+    hz = (bz - az) / nz
+
+    acc = similar(v)
+    fill!(acc,zero(T))
+    txyz::MVector{4,T} = zeros(T,4)
+
+    @inbounds for i in 0:nt
+        t = at + i * ht
+        wt = (i == 0 || i == nt) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
+
+        for j in 0:nx
+            x = ax + j * hx
+            wx = (j == 0 || j == nx) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
+
+            for k in 0:ny
+                y = ay + k * hy
+                wy = (k == 0 || k == ny) ? 1.0 : (isodd(k) ? 4.0 : 2.0)
+
+                for l in 0:nz
+                    z = az + l * hz
+                    wz = (l == 0 || l == nz) ? 1.0 : (isodd(l) ? 4.0 : 2.0)
+
+                    total += wt * wx * wy * wz * f(txyz)
+                end
+            end
+        end
+    end
+
+    return (ht * hx * hy * hz / 81.0) * total
+end
+
+function simpson3d!(f!, x::AbstractArray{T}, a::SVector{3,T}, b::SVector{3,T}, n::SVector{3,Int64};args...) where T
+
+    nx = n[1]
+    ny = n[2]
+    nz = n[3]
+
+    ax = a[1]
+    ay = a[2]
+    az = a[3]
+    bx = b[1]
+    by = b[2]
+    bz = b[3]
+
+    nx < 2 && error("nx must be at least 2")
+    ny < 2 && error("ny must be at least 2")
+    nz < 2 && error("nz must be at least 2")
+
+    iseven(nx) || error("nx must be even")
+    iseven(ny) || error("ny must be even")
+    iseven(nz) || error("nz must be even")
+
+    hx = (bx - ax) / nx
+    hy = (by - ay) / ny
+    hz = (bz - az) / nz
+
+    total = similar(x)
+    fill!(total,zero(T))
+    xyz::MVector{3,T} = zeros(T,3)
+
+    @inbounds for i in 0:nx
+        xyz[1] = ax + i * hx
+        wx = (i == 0 || i == nx) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
+
+        for j in 0:ny
+            xyz[2] = ay + j * hy
+            wy = (j == 0 || j == ny) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
+
+            for k in 0:nz
+                xyz[3] = az + k * hz
+                wz = (k == 0 || k == nz) ? 1.0 : (isodd(k) ? 4.0 : 2.0)
+                f!(x,xyz;args...)
+                @. total += wx * wy * wz * x
+            end
+        end
+    end
+
+    return (hx * hy * hz / 27.0) * total
+end
+
+function Simpson4D!(f!,v::AbstractArray{T}, a::SVector{4,T}, b::SVector{4,T}, n::SVector{4,Int64}) where T
+
+    nt = n[1]
+    nx = n[2]
+    ny = n[3]
+    nz = n[4]
+
+    at = a[1]
+    ax = a[2]
+    ay = a[3]
+    az = a[4]
+
+    bt = b[1]
+    bx = b[2]
+    by = b[3]
+    bz = b[4]
+
+    nt < 2 && error("nt must be at least 2")
+    nx < 2 && error("nx must be at least 2")
+    ny < 2 && error("ny must be at least 2")
+    nz < 2 && error("nz must be at least 2")
+
+    iseven(nt) || error("nt must be even")
+    iseven(nx) || error("nx must be even")
+    iseven(ny) || error("ny must be even")
+    iseven(nz) || error("nz must be even")
+
+    ht = (bt - at) / nt
+    hx = (bx - ax) / nx
+    hy = (by - ay) / ny
+    hz = (bz - az) / nz
+
+    txyz::MVector{4,T} = zeros(T,4)
+    acc = similar(v)
+    fill!(acc,zero(T))
+
+    @inbounds for i in 0:nt
+        txyz[1] = at + i * ht
+        wt = (i == 0 || i == nt) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
+
+        for j in 0:nx
+            txyz[2] = ax + j * hx
+            wx = (j == 0 || j == nx) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
+
+            for k in 0:ny
+                txyz[3] = ay + k * hy
+                wy = (k == 0 || k == ny) ? 1.0 : (isodd(k) ? 4.0 : 2.0)
+
+                for l in 0:nz
+                    txyz[4] = az + l * hz
+                    wz = (l == 0 || l == nz) ? 1.0 : (isodd(l) ? 4.0 : 2.0)
+
+                    f!(txyz,v)
+                    w = wt * wx * wy * wz
+                    @. acc += w * v
+                end
+            end
+        end
+    end
+
+    @. v = acc * (ht * hx * hy * hz / T(81))
+
+    return nothing
+end
+
+function FluxSimpson3D!(f!,vp::MVector{4,Float64},vm::MVector{4,Float64}, a::SVector{4,T}, b::SVector{4,T}, n::SVector{3,Int64}) where T
+
+    # t coordinate is assumed to be fixed and gives the two bounds for the spacetime components of the coordinate fluxes. These give the plus flux `vp` and minus flux `vm`.
+
+    nx = n[1]
+    ny = n[2]
+    nz = n[3]
+
+    ax = a[1]
+    ay = a[2]
+    az = a[3]
+    tp = a[4]
+
+    bx = b[1]
+    by = b[2]
+    bz = b[3]
+    tm = b[4]
+
+    nx < 2 && error("nx must be at least 2")
+    ny < 2 && error("ny must be at least 2")
+    nz < 2 && error("nz must be at least 2")
+
+    iseven(nx) || error("nx must be even")
+    iseven(ny) || error("ny must be even")
+    iseven(nz) || error("nz must be even")
+
+    hx = (bx - ax) / nx
+    hy = (by - ay) / ny
+    hz = (bz - az) / nz
+
+    xyztp::MVector{4,T} = zeros(T,4)
+    xyztm::MVector{4,T} = zeros(T,4)
+    xyztp[4] = tp
+    xyztm[4] = tm
+    accp = similar(vp)
+    accm = similar(vm)
+    fill!(accp,zero(T))
+    fill!(accm,zero(T))
+
+    @inbounds for i in 0:nx
+        xyztp[1] = xyztm[1] = ax + i * hx
+        wx = (i == 0 || i == nx) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
+
+        for j in 0:ny
+            xyztp[2] = xyztm[2] = ay + j * hy
+            wy = (j == 0 || j == ny) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
+
+            for k in 0:nz
+                xyztp[3] = xyztm[3] = az + k * hz
+                wz = (k == 0 || k == nz) ? 1.0 : (isodd(k) ? 4.0 : 2.0)
+
+                f!(xyztp,vp)
+                f!(xyztm,vm)
+                w = wx * wy * wz
+                @. accp += w * vp
+                @. accm += w * vm
+            end
+        end
+    end
+
+    @. vp = accp * (hx * hy * hz / T(27))
+    @. vm = accm * (hx * hy * hz / T(27))
+
+    return nothing
 end

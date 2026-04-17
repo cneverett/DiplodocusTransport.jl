@@ -61,18 +61,23 @@ A struct for storing the time domain of the simulation.
 end
 
 """
-    SpaceStruct()
+    SpacetimeStruct()
 
 A struct for storing the space domain of the simulation.
 """
-@kwdef struct SpaceStruct
+@kwdef struct SpacetimeStruct
 
-    space_coordinates::CoordinateType = getfield(Main,Symbol("space_coords"))
+    metric::AbstractMetric = getfield(Main,Symbol("metric"))
+    coordinates::AbstractCoordinates = getfield(Main,Symbol("coordinates"))
+    tetrad::AbstractTetrad = getfield(Main,Symbol("tetrad"))
+
     scheme::String = try 
             getfield(Main,Symbol("space_scheme"))
         catch
             "upwind"
         end
+
+    dt0::Float64 = 1.0 # dt used for building flux terms
 
     x_up::Float64   = getfield(Main,Symbol("x_up"))     
     x_low::Float64  = getfield(Main,Symbol("x_low"))
@@ -98,7 +103,11 @@ A struct for storing the momentum domain of the simulation.
 """
 @kwdef struct MomentumStruct 
 
-    momentum_coordinates::CoordinateType = getfield(Main,Symbol("momentum_coords"))
+    coordinates::AbstractCoordinates = try 
+            getfield(Main,Symbol("momentum_coords"))
+        catch
+            ModifiedSpherical()
+        end
     scheme::String = try 
             getfield(Main,Symbol("momentum_scheme"))
         catch
@@ -165,30 +174,28 @@ A struct for storing the grid values for each particle in the simulation.
     B_field::Array{Float64,3} # magnetic field values on the x,y,z grid
     E_field::Array{Float64,3} # electric field values on the x,y,z grid
 
-    function GridsStruct(name_list,time::TimeStruct,space::SpaceStruct,momentum::MomentumStruct,characteristic::CharacteristicStruct,ElectroMagneticField::Union{ElectroMagneticFieldStruct,Nothing})
+    function GridsStruct(name_list,spacetime::SpacetimeStruct,momentum::MomentumStruct)
 
         self = new()
 
-        # time domain (only first timestep)
+        # spacetime domain
 
-            self.tr = [0.0,time.dt0]
+            self.tr = [0.0,spacetime.dt0] # only first set
 
-        # space domain grids
+            x_up    = spacetime.x_up
+            x_low   = spacetime.x_low
+            x_grid  = spacetime.x_grid
+            x_num   = spacetime.x_num
 
-            x_up    = space.x_up
-            x_low   = space.x_low
-            x_grid  = space.x_grid
-            x_num   = space.x_num
+            y_up    = spacetime.y_up
+            y_low   = spacetime.y_low
+            y_grid  = spacetime.y_grid
+            y_num   = spacetime.y_num
 
-            y_up    = space.y_up
-            y_low   = space.y_low
-            y_grid  = space.y_grid
-            y_num   = space.y_num
-
-            z_up    = space.z_up
-            z_low   = space.z_low
-            z_grid  = space.z_grid
-            z_num   = space.z_num
+            z_up    = spacetime.z_up
+            z_low   = spacetime.z_low
+            z_grid  = spacetime.z_grid
+            z_num   = spacetime.z_num
 
             self.xr = bounds(x_low,x_up,x_num,x_grid)
             self.yr = bounds(y_low,y_up,y_num,y_grid)
@@ -266,11 +273,9 @@ A struct for storing the grid values for each particle in the simulation.
 
             end
 
-            if !isnothing(ElectroMagneticField)
+            if spacetime.tetrad isa ElectromagneticTetrad
                 # build electromagnetic field grids
-                parameters = ElectroMagneticField.parameters
-                ElectroMagneticFieldFunction = ElectroMagneticField.ElectroMagneticFieldFunction
-                self.B_field, self.E_field = ElectroMagneticFieldFunction(space,momentum,characteristic,self,parameters)
+                self.B_field, self.E_field = ElectroMagneticFieldFunction(spacetime,spacetime.tetrad,self)
             else
                 self.B_field = zeros(Float64,0,0,0)
                 self.E_field = zeros(Float64,0,0,0)
@@ -292,92 +297,10 @@ A struct for storing the phase space of the simulation.
     # list of particle names
     name_list::Vector{String}           = getfield(Main,Symbol("name_list"))
     Characteristic::CharacteristicStruct= CharacteristicStruct()
-    Time::TimeStruct                    = TimeStruct()    
-    Space::SpaceStruct                  = SpaceStruct()
+    Spacetime::SpacetimeStruct          = SpacetimeStruct()    
     Momentum::MomentumStruct            = MomentumStruct()
 
-    GlobalToLocalRotation::NTuple{3,Float64} = try 
-            getfield(Main,Symbol("global_to_local_rotation"))
-        catch
-            (0.0,0.0,0.0)
-        end
-
-    ElectroMagneticField::Union{ElectroMagneticFieldStruct,Nothing} = try 
-            getfield(Main,Symbol("ElectroMagneticField"))
-        catch
-            nothing 
-        end
-
     # grids
-    Grids::GridsStruct  = GridsStruct(name_list,Time,Space,Momentum,Characteristic,ElectroMagneticField)
-
-end
-
-
-"""
-    BinaryMatricesStruct()
-
-A struct for storing the big matrices associated with binary interactions in the simulation.
-"""
-struct BinaryMatricesStruct{T<:Union{Float32,Float64}}
-    
-    M_Bin::AbstractMatrix{T}  # big matrix for binary interactions
-    Binary_list::Vector{BinaryStruct} # list of binary interactions
-    Domain::Union{Vector{Int64},Nothing} # domain of the binary interaction in the state vector
-
-end
-
-"""
-    EmissionMatricesStruct()
-
-A struct for storing the big matrices associated with emission interactions and their corresponding reaction forces if applicable in the simulation.
-"""
-struct EmissionMatricesStruct{T<:Union{Float32,Float64}}
-    
-    M_Emi::AbstractMatrix{T}  # big matrix for emission interactions
-    Emission_list::Vector{EmiStruct} # list of emission interactions
-
-end
-
-"""
-    FluxMatricesStruct()
-
-A struct for storing the flux matrices associated with the simulation.
-"""
-struct FluxMatricesStruct{T<:Union{Float32,Float64}}
-
-    Ap_Flux::Vector{T}                  # Forward Boundary time flux 
-    Am_Flux::Vector{T}                  # Backward Boundary time flux
-    
-    X_Flux::SparseMatrixCSC{T,Int64}    # sum of space fluxes 
-    P_Flux::SparseMatrixCSC{T,Int64}    # sum of momentum fluxes 
-
-    Vol::Vector{T}                      # SpaceTime volume element
-
-    B_Flux::SparseMatrixCSC{T,Int64}    # B Flux through x boundaries
-    C_Flux::SparseMatrixCSC{T,Int64}    # C Flux through y boundaries
-    D_Flux::SparseMatrixCSC{T,Int64}    # D Flux through z boundaries
-
-    I_Flux::SparseMatrixCSC{T,Int64}    # I Flux through px boundaries
-    J_Flux::SparseMatrixCSC{T,Int64}    # J Flux through py boundaries
-    K_Flux::SparseMatrixCSC{T,Int64}    # K Flux through pz boundaries
-
-end
-
-
-mutable struct OutputStruct
-    
-    f::Vector{Vector{AbstractFloat}}
-    t::Vector{AbstractFloat}
-
-    function OutputStruct(f0::Vector{T},n_save::Int64) where T<:Union{Float32,Float64}
-
-        self = new()
-        self.f = [similar(f0) for _ in 1:n_save]
-        self.t = Vector{T}(undef,n_save)
-
-        return self
-    
-    end
+    Grids::GridsStruct  = GridsStruct(name_list,Spacetime,Momentum)
 
 end

@@ -44,20 +44,9 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
             GainSumE3 = zero(Float64)
             LossSumE1 = zero(Float64)
 
-            pxp = px+1
-            pxm = px-1
-
             px_num = px1_num
-
-            #= Boundary Conditions:
-                Flux on boundaries should be zero i.e. no particles leave/enter from the domain bounds
-            =#
-            if pxp > px_num
-                pxp = px_num
-            end
-            if pxm < 1
-                pxm = 1
-            end
+            pxp = RightBound(px,px_num,Closed())
+            pxm = LeftBound(px,px_num,Closed())
 
             I_plus = zero(Float64)
             I_minus = zero(Float64)
@@ -66,31 +55,8 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
             I_minus -= IFluxFunction(force,PhaseSpace,name1_loc,"minus",1,1,1,1,px,py,pz)
 
             # scheme
-            if scheme == "upwind"
-                if sign(I_plus) == 1
-                    i_plus_right = 0
-                    i_plus_left = 1
-                else
-                    i_plus_right = 1
-                    i_plus_left = 0
-                end
-                if sign(I_minus) == 1
-                    i_minus_right = 1
-                    i_minus_left = 0
-                else
-                    i_minus_right = 0
-                    i_minus_left = 1
-                end
-            elseif scheme == "central"
-                i_plus_right = 0.5
-                i_plus_left = 0.5
-                i_minus_right = 0.5
-                i_minus_left = 0.5
-            else
-                error("Unknown scheme")
-            end
+            (i_plus_right, i_plus_left, i_minus_right, i_minus_left) = SchemeCoefficients(scheme,I_plus,I_minus)
 
-            
             #=
             ________________________________
             a |  I_m   | I_m+I_p | I_p    |

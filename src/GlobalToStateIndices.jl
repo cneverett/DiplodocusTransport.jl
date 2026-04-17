@@ -6,9 +6,9 @@ Returns a the index in the state vector corresponding to the global coordinate i
 """
 function GlobalIndices_To_StateIndex(x::Int64,y::Int64,z::Int64,px::Int64,py::Int64,pz::Int64,species_index::Int64,PhaseSpace::PhaseSpaceStruct)
 
-    x_num = PhaseSpace.Space.x_num
-    y_num = PhaseSpace.Space.y_num
-    z_num = PhaseSpace.Space.z_num
+    x_num = PhaseSpace.Spacetime.x_num
+    y_num = PhaseSpace.Spacetime.y_num
+    z_num = PhaseSpace.Spacetime.z_num
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list
     pz_num_list = PhaseSpace.Momentum.pz_num_list
@@ -37,9 +37,9 @@ function Location_Species_To_StateVector(StateVector::Vector{F},PhaseSpace::Phas
     if iszero(species_index)
         error("Species not defined")
     end
-    x_num = PhaseSpace.Space.x_num
-    y_num = PhaseSpace.Space.y_num
-    z_num = PhaseSpace.Space.z_num
+    x_num = PhaseSpace.Spacetime.x_num
+    y_num = PhaseSpace.Spacetime.y_num
+    z_num = PhaseSpace.Spacetime.z_num
 
     px_num_list = PhaseSpace.Momentum.px_num_list
     py_num_list = PhaseSpace.Momentum.py_num_list

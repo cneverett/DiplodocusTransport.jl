@@ -3,21 +3,21 @@
 
 Function that builds the emission matrices associated with emissive interactions and their corresponding reaction forces if applicable. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `EmissionMatricesStruct`.
 """
-function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vector{EmiStruct},DataDirectory::String;loading_check::Bool=false,Emi_corrected::Bool=true,Emi_sparse::Bool=false)
+function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vector{EmissiveInteraction},DataDirectory::String;loading_check::Bool=false,Emi_corrected::Bool=true,Emi_sparse::Bool=false)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
     @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
     Momentum = PhaseSpace.Momentum
-    Space = PhaseSpace.Space
+    Spacetime = PhaseSpace.Spacetime
 
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
 
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
-    n_space = Space.x_num*Space.y_num*Space.z_num
+    n_space = Spacetime.x_num*Spacetime.y_num*Spacetime.z_num
 
     n = n_momentum*n_space
 
@@ -127,7 +127,7 @@ function Allocate_M_Emi(PhaseSpace::PhaseSpaceStruct,loading_check::Bool,Precisi
 
 end
 
-function Fill_M_Emi!(PhaseSpace::PhaseSpaceStruct,names::Tuple{Int64,Int64,Int64},x::Int64,y::Int64,z::Int64;GainMatrix2=nothing,GainMatrix3=nothing,LossMatrix1=nothing,mode::ModeType=Ani(),M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function Fill_M_Emi!(PhaseSpace::PhaseSpaceStruct,names::Tuple{Int64,Int64,Int64},x::Int64,y::Int64,z::Int64;GainMatrix2=nothing,GainMatrix3=nothing,LossMatrix1=nothing,mode::AbstractMode=Ani(),M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     Grids = PhaseSpace.Grids
 
@@ -149,7 +149,7 @@ function Fill_M_Emi!(PhaseSpace::PhaseSpaceStruct,names::Tuple{Int64,Int64,Int64
 end
 
 
-function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractArray{Float64,6},name2::Int64,name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractArray{Float64,6},name2::Int64,name1::Int64,x::Int64,y::Int64,z::Int64,mode::AbstractMode;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     vol = VolFunction(PhaseSpace,1,x,y,z)
 
@@ -218,7 +218,7 @@ function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractA
 
 end
 
-function LossMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,LossMatrix::Array{Float64,2},name1::Int64,x::Int64,y::Int64,z::Int64,mode::ModeType;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function LossMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,LossMatrix::Array{Float64,2},name1::Int64,x::Int64,y::Int64,z::Int64,mode::AbstractMode;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     vol = VolFunction(PhaseSpace,1,x,y,z)
 
@@ -303,7 +303,7 @@ end
 
 Generates `I_Flux` terms in the Emission matrix `M_Emi` if the emission interaction has an associated `Force`.
 """
-function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
+function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -462,7 +462,7 @@ end
 
 Generates `J_Flux` term in the Emission matrix `M_Emi` if the emission interaction has an associated `Force`.
 """
-function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
+function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum
@@ -620,7 +620,7 @@ end
 
 Generates `K_Flux` terms in the Emission matrix `M_Emi` if the emission interaction has an associated `Force`.
 """
-function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::ForceType,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
+function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
     Space = PhaseSpace.Space
     Momentum = PhaseSpace.Momentum

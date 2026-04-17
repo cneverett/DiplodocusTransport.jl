@@ -1,53 +1,41 @@
 """
-    ElectroMagneticFieldFunction_Constant(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64})
+    ElectromagneticFieldGrid(Spacetime,tetrad,Grids)
 
-Returns the values of the magnetic and electric fields at a given spatial grid point (x_index,y_index,z_index) for a constant electromagnetic field with parameters defined by the `ElectroMagneticField_Constant` struct. For a constant magnetic field in the z-direction, this function returns the magnetic field strength B and zero electric field.
-
+Returns the average values of the magnetic and electric fields within a given spatial grid cell (x_index,y_index,z_index) as measured by an observer associated with the `tetrad`, which also defines the type of field. Returning two arrays for the magnetic field B(x_index,y_index,z_index) and electric field E(x_index,y_index,z_index) respectively. Note: this is currently only defined for "force-free" tetrads the **magnetic is measured with respect to the orthonormal observer frame of the tetrad** and is taken to be along the local momentum z-direction and the electric field is zero. Tetrads that allow an E parallel to B will be implemented in the future.
 """
-function ElectroMagneticFieldFunction_Constant(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64}) 
+ElectroMagneticFieldGrid(Spacetime::SpacetimeStruct,tetrad::ForceFreeTetrad,Grids::GridsStruct) = error("Electromagnetic field not defined for this tetrad $(typeof(tetrad)).")
 
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
-    Characteristic = Characteristic
-    Grids = Grids
 
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+function ElectroMagneticFieldGrid(Spacetime::SpacetimeStruct,tetrad::UniformElectromagneticFieldTetrad,Grids::GridsStruct) 
 
-    L = Characteristic.CHAR_length
-    B0 = parameters[1]
-    E0 = parameters[2]
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
 
-    #println("B0 = $B0, E0 = $E0")
+    B0 = tetrad.B0 # measured with respect to stationary observer NOT tetrad frame
+    E0 = tetrad.E0 # measured with respect to stationary observer NOT tetrad frame
+
+    B = sqrt(B0^2-E0^2)
 
     B_field = zeros(Float64,x_num,y_num,z_num)
     E_field = zeros(Float64,x_num,y_num,z_num)
 
-    # B field is ALWAYS in local momentum z-direction and E field in local momentum y-direction using local orthonormal basis (n^α,ϵ^αβγδn_βE_γB_δ,E^α,B^α)
+    #=
+     B field is ALWAYS in local momentum z-direction and E field in local momentum y-direction using local orthonormal basis (T^α,ϵ^αβγδn_βE_γB_δ,E^α,B^α), in this frame E is zero.
 
-    if space_coords isa Cartesian # B along z, # E along y
-        for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
-            B_field[ix,iy,iz] = B0
-            E_field[ix,iy,iz] = E0
-        end
-    elseif space_coords isa Cylindrical # B along z, # E along y
-        for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
-            B_field[ix,iy,iz] = B0
-            E_field[ix,iy,iz] = E0
-        end
-    elseif space_coords isa Spherical # B along z, # E along y
-        for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
-            B_field[ix,iy,iz] = B0
-            E_field[ix,iy,iz] = E0
-        end
+     B field is taken to be the average B field in a coordinate grid cell i.e. ∫B(x,y,z)χ dxdydz / ∫χ dxdydz where χ is the volume element of the grid cell. For a uniform B field and E field this is just B and E.
+    =#
+
+    for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
+        B_field[ix,iy,iz] = B
+        E_field[ix,iy,iz] = 0.0
     end
 
     return B_field, E_field
 
 end
 
-"""
+#="""
     ElectroMagneticFieldFunction_InvZDecay(Space::SpaceStruct,Momentum::MomentumStruct,Characteristic::CharacteristicStruct,Grids::GridsStruct,parameters::Vector{Float64})
 
 Returns the values of the magnetic and electric fields at a given spatial grid point (x_index,y_index,z_index) for a magnetic field that has the form B=B0*L0/z (Note this is only for testing as grad(B)!=0), with the parameters `B0` and `L0` defined by the `ElectroMagneticField_InvZDecay` struct. Note: L0 and B0 are defined in terms of the characteristic length and magnetic field scales respectively.
@@ -88,4 +76,4 @@ function ElectroMagneticFieldFunction_InvZDecay(Space::SpaceStruct,Momentum::Mom
 
     return B_field, E_field
 
-end
+end=#

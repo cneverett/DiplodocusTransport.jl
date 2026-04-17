@@ -1,8 +1,7 @@
-abstract type BackendType end
+abstract type AbstractBackend end
 
-struct CPUBackend <: BackendType end
-struct CUDABackend <: BackendType end
-
+struct CPUBackend <: AbstractBackend end
+struct CUDABackend <: AbstractBackend end
 
 # zeros functions
 function Base.zeros(::CPUBackend, T::Type{<:AbstractFloat}, dims::Int...)

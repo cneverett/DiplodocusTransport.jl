@@ -3,7 +3,7 @@
 
 Loads the binary interaction matrices from the specified `DataDirectory` for each interaction in `Binary_list` and fills the big matrix `M_Bin` either directly if `M_Bin` is dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for binary interactions between all particles in the simulation. The `corrected` argument specifies whether to load the number and energy corrected matrices. The `mode` argument specifies whether to assume these arrays are anisotropic, axisymmetric or isotropic.
 """
-function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::ModeType=Ani(),corrected::Bool=true;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
+function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
     
@@ -146,7 +146,7 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryStruct},DataDirectory::St
 end
 
 
-function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
+function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Emi_Norm = PhaseSpace.Characteristic.Emi_Norm
     
@@ -182,7 +182,7 @@ function LoadMatrices_Emi(Emission_list::Vector{EmiStruct},DataDirectory::String
         name3::String = interaction.name3
         type::String = interaction.EmiName
         Ext_sampled::Vector{Float64} = interaction.Ext_sampled
-        mode::ModeType = interaction.mode
+        mode::AbstractMode = interaction.mode
         Force::Bool = interaction.Force
         Domain::Union{Vector{Int64},Nothing} = interaction.Domain
 
