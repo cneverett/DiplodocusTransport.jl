@@ -74,5 +74,13 @@ end
     zp_BC::AbstractBoundaryCondition = Periodic()
     zm_BC::AbstractBoundaryCondition = Periodic()
 end
+@kwdef struct Paraboloidal <: AbstractCoordinates # x=ϕ, y=u, z=v (where u and v have dimensions of sqrt(length))
+    xp_BC::AbstractBoundaryCondition = Periodic()
+    xm_BC::AbstractBoundaryCondition = Periodic()
+    yp_BC::AbstractBoundaryCondition = Closed() 
+    ym_BC::AbstractBoundaryCondition = Closed() # u = 0 is jet axis (z<0) so should be like cylindrical ρ axis
+    zp_BC::AbstractBoundaryCondition = Closed()
+    zm_BC::AbstractBoundaryCondition = Closed() # v = 0 is jet axis (z>0) so should be like cylindrical ρ axis
+end
 
 

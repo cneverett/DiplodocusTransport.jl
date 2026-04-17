@@ -696,6 +696,7 @@ function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_F
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
 
     metric = Spacetime.metric
     coordinates = Spacetime.coordinates
@@ -745,20 +746,22 @@ function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_F
 
         aB::SVector{4,Float64} = [y0,z0,t0,x0]
         bB::SVector{4,Float64} = [y1,z1,t1,x1]
-        nB::SVector{3,Int64} = [8,8,2] 
+        nB::SVector{3,Int64} = [16,16,2] 
 
         aC::SVector{4,Float64} = [z0,t0,x0,y0]
         bC::SVector{4,Float64} = [z1,t1,x1,y1]
-        nC::SVector{3,Int64} = [8,2,8] 
+        nC::SVector{3,Int64} = [16,2,16] 
 
         aD::SVector{4,Float64} = [t0,x0,y0,z0]
         bD::SVector{4,Float64} = [t1,x1,y1,z1]
-        nD::SVector{3,Int64} = [2,8,8] 
+        nD::SVector{3,Int64} = [2,16,16] 
 
         # Integrate space part of flux
         FluxSimpson3D!(CoordinateFluxBIntegrand!,CFSpaceBPlus,CFSpaceBMinus,aB,bB,nB)
         FluxSimpson3D!(CoordinateFluxCIntegrand!,CFSpaceCPlus,CFSpaceCMinus,aC,bC,nC)
         FluxSimpson3D!(CoordinateFluxDIntegrand!,CFSpaceDPlus,CFSpaceDMinus,aD,bD,nD)
+
+        #println("$CFSpaceDPlus,$CFSpaceDMinus,$x0,$x1,$y0,$y1,$z0,$z1")
 
         for name in 1:length(name_list)
 
@@ -795,8 +798,6 @@ function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_F
                 C_minus *= non_dimensional_factor
                 D_plus *= non_dimensional_factor
                 D_minus *= non_dimensional_factor
-
-                #println("$B_plus,$B_minus")
 
                 # fill
                 AssignFlux!(PhaseSpace,"B",B_Flux_I,B_Flux_J,B_Flux_V,B_plus,B_minus,x,y,z,px,py,pz,name,scheme,BC_xp,BC_xm)

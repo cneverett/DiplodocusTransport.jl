@@ -382,5 +382,9 @@ function FluxSimpson3D!(f!,vp::MVector{4,Float64},vm::MVector{4,Float64}, a::SVe
     @. vp = accp * (hx * hy * hz / T(27))
     @. vm = accm * (hx * hy * hz / T(27))
 
+    if abs(vp[4]) > 1e7
+        println("vp = $vp, a= $a, b = $b, n = $n")
+    end
+
     return nothing
 end

@@ -3,13 +3,13 @@ module DiplodocusTransport
     # Metrics
     export AbstractMetric, Minkowski, Schwarzschild, Kerr
     # Coordinates
-    export AbstractCoordinates, Cartesian, Cylindrical, Spherical, ModifiedSpherical
+    export AbstractCoordinates, Cartesian, Cylindrical, Spherical, ModifiedSpherical, Paraboloidal
     # Boundary Conditions
     export AbstractBoundaryCondition, Periodic, Open, Closed, Reflective, Escape
     # Modes
     export AbstractMode, Iso, Axi, Ani
     # Tetrads
-    export AbstractTetrad, StationaryObserverTetrad, UniformElectromagneticFieldTetrad
+    export AbstractTetrad, StationaryObserverTetrad, UniformElectromagneticFieldTetrad, ParabolicForceFreeFieldTetrad
     # Backends
     export AbstractBackend, CPUBackend, CUDABackend
     # Phasespace
@@ -61,7 +61,7 @@ module DiplodocusTransport
     
     #include("Types.jl")
     include("PhaseSpaceStructs.jl")
-    include("ElectroMagneticFields.jl")
+    include("ElectromagneticFields.jl")
     #include("MatrixResizing.jl")
     include("DistributionFunctions.jl")
     include("DistributionMoments.jl")

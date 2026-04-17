@@ -337,6 +337,10 @@
 
                 vol *= -(1/3) * (t0 - t1) * (x0^3 - x1^3) * (z0 - z1) * (cospi(y0) - cospi(y1))
 
+            elseif coordinates isa Paraboloidal
+
+                vol *= 1/8 * (t0 - t1) * (x0 - x1) * (y0^2 - y1^2) * (z0^2 - z1^2) * (y0^2 + y1^2 + z0^2 + z1^2)
+
             else
                 error("Volume function not implemented metric $(typeof(metric)) with coordinates $(typeof(coordinates)).")
             end
