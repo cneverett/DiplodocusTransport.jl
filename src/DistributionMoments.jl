@@ -281,10 +281,11 @@ function ScalarTemperature(p::Float64,n::Float64)
 
     T::Float64 = 0.0
 
-    kb = 1.38f-23
-    c = 3f8
-    mEle = 9.11e-31
-    T = p/n / CONST_kb * CONST_mEle * CONST_c^2 # Kelvin
+    kb = CONST_kb
+    c = CONST_c
+    mEle = CONST_mEle
+    
+    T = p/n / kb * mEle * c^2 # Kelvin
 
     return T
 

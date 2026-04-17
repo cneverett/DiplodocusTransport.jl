@@ -29,6 +29,8 @@ module DiplodocusTransport
     export OutputStruct, SolutionFileLoad
     # Utilities
     export GlobalIndicesToStateIndex,LocationSpeciesToStateVector
+    # Distribution Moments 
+    export FourFlow, HydroFourVelocity, HydroThreeVelocity, ProjectionTensor, StressEnergyTensor, ScalarNumberDensity, ScalarMassDensity, ScalarEnergyDensity, ScalarPressure, ScalarTemperature
 
     using JLD2
     using DiplodocusCollisions: bounds, location, deltaVector, meanVector, deltaEVector, EmissionFileName, BinaryFileName, EmissionFileLoad_Matrix, BinaryFileLoad_Matrix, DoesConserve
