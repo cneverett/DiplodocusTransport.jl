@@ -25,7 +25,7 @@ module DiplodocusTransport
     export InitialiseInitialCondition, InitialConstant!, InitialMaxwellJuttner!, InitialPowerLaw!, InitialBoostedPowerLaw!, InitialBlackBody!, InitialPowerLawExpDecay!
     export InitialiseInjectionCondition, InjectionConstant!, InjectionMaxwellJuttner!, InjectionPowerLaw!, InjectionBoostedPowerLaw!, InjectionBlackBody!, InjectionPowerLawExpDecay!
     # Solvers 
-    export Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
+    export AbstractSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
     export OutputStruct, SolutionFileLoad
 
     using JLD2
