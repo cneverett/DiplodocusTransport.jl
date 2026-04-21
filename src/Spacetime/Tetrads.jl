@@ -45,9 +45,22 @@ The force-free field configuration as described by Blandford1976. This is an ana
 @kwdef struct ParabolicForceFreeFieldTetrad{T} <: ForceFreeTetrad
     B0::T = 1.0 # strength of the uniform magnetic field (Tesla)
     Ω = ΩZero # field line rotation rate as a function of cylindrical radius ρ0 in the equatorial plane (z=0)
+    Bfunction = LocalParabolicForceFreeBField
 end
 @inline function ΩZero(ρ0) 
         return 0.0
+end
+@inline function LocalParabolicForceFreeBField(txyz::MVector{4,T},::Paraboloidal) where T
+    u = txyz[3] 
+    v = txyz[4]
+    signz = sign((u^2-v^2))
+    if signz == 1
+        return T(1.0) / u / sqrt(u^2+v^2)
+    elseif signz == -1
+        return T(1.0) / v / sqrt(u^2+v^2)
+    else
+        return T(0.0)
+    end
 end
 
 

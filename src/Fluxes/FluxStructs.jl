@@ -35,6 +35,8 @@ mutable struct SyncRadReact <: AbstractForce
     B::Float64
 end
 
+struct FirstOrderGuidingCentre <: AbstractForce end
+
 struct ExB <: AbstractForce
     E0::Float64
     B0::Float64

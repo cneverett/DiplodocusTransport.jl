@@ -144,7 +144,46 @@ function simpson3d(f, a, b, n::Vector{Int},args...)
     return (hx * hy * hz / 27.0) * total
 end
 
-function simpson4d(f, a::SVector{4,T}, b::SVector{4,T}, n::Vector{Int}) where T
+function Simpson2D(f, a::SVector{2,T}, b::SVector{2,T}, n::Vector{Int}) where T
+
+    nx = n[1]
+    ny = n[2]
+
+    ax = a[1]
+    ay = a[2]
+
+    bx = b[1]
+    by = b[2]
+
+    nx < 2 && error("nx must be at least 2")
+    ny < 2 && error("ny must be at least 2")
+
+    iseven(nx) || error("nx must be even")
+    iseven(ny) || error("ny must be even")
+
+    hx = (bx - ax) / nx
+    hy = (by - ay) / ny
+
+    total = zero(T)
+    xy::MVector{2,T} = zeros(T,2)
+
+    @inbounds for i in 0:nx
+        x = ax + i * hx
+        wx = (i == 0 || i == nx) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
+
+        for j in 0:ny
+            y = ay + j * hy
+            wy = (j == 0 || j == ny) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
+
+            total += wx * wy * f(xy)
+        end
+    end
+
+    return (hx * hy / 9.0) * total
+end
+
+
+function Simpson4D(f, a::SVector{4,T}, b::SVector{4,T}, n::SVector{4,Int64}) where T
 
     nt = n[1]
     nx = n[2]
@@ -176,8 +215,7 @@ function simpson4d(f, a::SVector{4,T}, b::SVector{4,T}, n::Vector{Int}) where T
     hy = (by - ay) / ny
     hz = (bz - az) / nz
 
-    acc = similar(v)
-    fill!(acc,zero(T))
+    total = zero(T)
     txyz::MVector{4,T} = zeros(T,4)
 
     @inbounds for i in 0:nt

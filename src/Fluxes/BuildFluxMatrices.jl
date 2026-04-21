@@ -71,17 +71,18 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
     if debug_mode
 
-        println("Building A flux matrices...")
-
+        println("Building time flux matrices...")
         FillTimeFlux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
         Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
 
+        println("Building space flux matrices...")
         FillSpaceFlux!(PhaseSpace,B_Flux_I,B_Flux_J,B_Flux_V,C_Flux_I,C_Flux_J,C_Flux_V,D_Flux_I,D_Flux_J,D_Flux_V)
         B_Flux = sparse(B_Flux_I,B_Flux_J,B_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         C_Flux = sparse(C_Flux_I,C_Flux_J,C_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         D_Flux = sparse(D_Flux_I,D_Flux_J,D_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
+        println("Building momentum flux matrices...")
         FillMomentumFlux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V,J_Flux_I,J_Flux_J,J_Flux_V,K_Flux_I,K_Flux_J,K_Flux_V)
         I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
@@ -125,13 +126,16 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         
     else
 
+        println("Building time flux matrices...")
         FillTimeFlux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
         Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
 
+        println("Building space flux matrices...")
         FillSpaceFlux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
         X_Flux = sparse(X_Flux_I,X_Flux_J,X_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
+        println("Building momentum flux matrices...")
         FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
         P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         
@@ -177,7 +181,7 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         error("Aminus flux is not diagonal, which should be the case for stationary spacetimes")
     end
 
-    size = Base.summarysize(X_Flux)
+    size = round(Base.summarysize(X_Flux),sigdigits=3)
 
     if size > 1e9
         println("X_Flux is approx. $(size/1e9) GB in memory")
@@ -190,7 +194,7 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
     end
 
 
-    size = Base.summarysize(P_Flux)
+    size = round(Base.summarysize(P_Flux),sigdigits=3)
 
     if size > 1e9
         println("P_Flux is approx. $(size/1e9) GB in memory")
@@ -489,7 +493,7 @@ function AssignFlux!(PhaseSpace::PhaseSpaceStruct,flux::String,Flux_I::Vector{In
     ________________________________
     a |  F_m   | F_m+F_p | F_p    |
     __|________|_________|________|_
-            b-1       b        b+1  
+          b-1       b        b+1  
     =#
 
     #= note on boundaries:
@@ -608,7 +612,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
             a::SVector{4,Float64} = [t0,x0,y0,z0]
             b::SVector{4,Float64} = [t1,x1,y1,z1]
-            n::SVector{4,Int64} = [2,8,8,8] # number of points for integration, can be changed to increase accuracy
+            n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
 
             # Integrate space part of force
             Simpson4D!(CoordinateForceSpaceIntegrand_func!,CFSpaceArray,a,b,n)
