@@ -181,7 +181,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             # X components X^α = g^αβX_β = (0, 1, 0, 0)
             e[2,2] = 1.0
             # Y components Y^α = g^αβY_β = (0, 0, 1/ρ, 0)
-            e[3,3] = 1.0/ρ
+            e[3,3] = ρ == 0.0 ? 1.0 : 1.0/ρ
             # Z components Z^α = g^αβZ_β = (0, 0, 0, 1)
             e[4,4] = 1.0
 
@@ -206,13 +206,13 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceAIntegrand!(xyzt::MVector{4,T},A::MVector{4,T},::Minkowski,::Cylindrical,::StationaryObserverTetrad) where T 
             #= A=A_a=e_a^{~0}χ =#
-            ρ = xyzt[2]
+            ρ = xyzt[1]
             A[1] = ρ
 
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Cylindrical,::StationaryObserverTetrad) where T 
             #= B=B_a=e_a^{~1}χ =#
-            ρ = yztx[1]
+            ρ = yztx[4]
             B[2] = ρ
 
         end
@@ -223,7 +223,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceDIntegrand!(txyz::MVector{4,T},D::MVector{4,T},::Minkowski,::Cylindrical,::StationaryObserverTetrad) where T 
             #= D=D_a=e_a^{~3}χ =#
-            ρ = txyz[3]
+            ρ = txyz[2]
             D[4] = ρ
 
         end
@@ -449,28 +449,29 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
     # ============ Minkowski Cylindrical ========== #
         @inline function TetradComponents!(pos::MVector{4,T},e::MMatrix{4,4,T,16},::Minkowski,::Cylindrical,tetrad::UniformElectromagneticFieldTetrad) where T
 
-        ρ = pos[2]
-        ϕ = pos[3]
-        # B field in z direction, E field in y direction
-        B = tetrad.B0
-        E = tetrad.E0
-        #=     Y = dy = sinϕ dρ + ρcosϕ dϕ      Z = dz      n = -dt      U_perp = (E/B)dx = (E/B)(cosϕ dρ - ρsinϕ dϕ)     T = γ(n-U_perp) = γ(-dt - (E/B)dx) = γ(-dt - (E/B)(cosϕ dρ - ρsinϕ dϕ))     X = *(T∧Y∧Z) = γ(E/B)dt + γdx = γ(E/B)dt + γ(cosϕ dρ - ρsinϕ dϕ)    =#
-        γ = sqrt(B^2/(B^2 - E^2))
-        v = E/B
-        sϕ,cϕ = sincos(ϕ)
-        # T components T^α = g^αβT_β = (γ, -γE/Bcosϕ, +γE/Bsinϕ/ρ, 0)
-        e[1,1] = γ
-        e[1,2] = -γ*v*cϕ
-        e[1,3] = γ*v*sϕ/ρ
-        # X components X^α = g^αβX_β (-γE/B, γcosϕ, -γsinϕ/ρ, 0)
-        e[2,1] = -γ*v
-        e[2,2] = γ*cϕ
-        e[2,3] = -γ*sϕ/ρ
-        # Y components Y^α = g^αβY_β (0, sinϕ, cosϕ/ρ, 0)
-        e[3,2] = sϕ
-        e[3,3] = cϕ/ρ
-        # Z components Z^α = g^αβZ_β = (0, 0, 0, 1)
-        e[4,4] = 1.0
+            ρ = pos[2]
+            ϕ = pos[3]
+            # B field in z direction, E field in y direction
+            B = tetrad.B0
+            E = tetrad.E0
+            #=     Y = dy = sinϕ dρ + ρcosϕ dϕ      Z = dz      n = -dt      U_perp = (E/B)dx = (E/B)(cosϕ dρ - ρsinϕ dϕ)     T = γ(n-U_perp) = γ(-dt - (E/B)dx) = γ(-dt - (E/B)(cosϕ dρ - ρsinϕ dϕ))     X = *(T∧Y∧Z) = γ(E/B)dt + γdx = γ(E/B)dt + γ(cosϕ dρ - ρsinϕ dϕ)    =#
+            γ = sqrt(B^2/(B^2 - E^2))
+            v = E/B
+            ϕdivpi = ϕ/π
+            sϕ,cϕ = sincospo(ϕdivpi)
+            # T components T^α = g^αβT_β = (γ, -γE/Bcosϕ, +γE/Bsinϕ/ρ, 0)
+            e[1,1] = γ
+            e[1,2] = -γ*v*cϕ
+            e[1,3] = γ*v*sϕ/ρ
+            # X components X^α = g^αβX_β (-γE/B, γcosϕ, -γsinϕ/ρ, 0)
+            e[2,1] = -γ*v
+            e[2,2] = γ*cϕ
+            e[2,3] = -γ*sϕ/ρ
+            # Y components Y^α = g^αβY_β (0, sinϕ, cosϕ/ρ, 0)
+            e[3,2] = sϕ
+            e[3,3] = cϕ/ρ
+            # Z components Z^α = g^αβZ_β = (0, 0, 0, 1)
+            e[4,4] = 1.0
 
         return nothing
 
@@ -485,7 +486,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             #=     Y = dy = sinϕ dρ + ρcosϕ dϕ      Z = dz      n = -dt      U_perp = (E/B)dx = (E/B)(cosϕ dρ - ρsinϕ dϕ)     T = γ(n-U_perp) = γ(-dt - (E/B)dx) = γ(-dt - (E/B)(cosϕ dρ - ρsinϕ dϕ))     X = *(T∧Y∧Z) = γ(E/B)dt + γdx = γ(E/B)dt + γ(cosϕ dρ - ρsinϕ dϕ)    =#
             γ = sqrt(B^2/(B^2 - E^2))
             v = E/B
-            sϕ,cϕ = sincos(ϕ)
+            ϕdivpi = ϕ/π
+            sϕ,cϕ = sincospo(ϕdivpi)
             # T components -T_α = (γ, γE/Bcosϕ, -γρE/Bsinϕ, 0)
             inve[1,1] = γ
             inve[2,1] = γ*v*cϕ
@@ -504,7 +506,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
 
         end
         @inline function CoordinateFluxSpaceAIntegrand!(xyzt::MVector{4,T},A::MVector{4,T},::Minkowski,::Cylindrical,tetrad::UniformElectromagneticFieldTetrad) where T 
-            ρ = pos[2]
+            ρ = xyzt[1]
             B = tetrad.B0
             E = tetrad.E0
             γ = sqrt(B^2/(B^2 - E^2))
@@ -515,31 +517,33 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
 
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Cylindrical,tetrad::UniformElectromagneticFieldTetrad) where T 
-            ρ = pos[2]
-            ϕ = pos[3]
+            ρ = yztx[4]
+            ϕ = yztx[1]
             B = tetrad.B0
             E = tetrad.E0
             γ = sqrt(B^2/(B^2 - E^2))
             v = E/B
-            sϕ,cϕ = sincos(ϕ)
+            ϕdivpi = ϕ/π
+            sϕ,cϕ = sincospo(ϕdivpi)
             B[1] = -γ*v*cϕ*ρ
             B[2] = γ*cϕ*ρ
             B[3] = sϕ*ρ
 
         end
         @inline function CoordinateFluxSpaceCIntegrand!(ztxy::MVector{4,T},C::MVector{4,T},::Minkowski,::Cylindrical,tetrad::UniformElectromagneticFieldTetrad) where T 
-            ϕ = pos[3]
+            ϕ = ztxy[4]
             B = tetrad.B0
             E = tetrad.E0
             γ = sqrt(B^2/(B^2 - E^2))
             v = E/B
-            sϕ,cϕ = sincos(ϕ)
+            ϕdivpi = ϕ/π
+            sϕ,cϕ = sincospo(ϕdivpi)
             C[1] = γ*v*sϕ
             C[2] = -γ*sϕ
             C[3] = cϕ
         end
         @inline function CoordinateFluxSpaceDIntegrand!(txyz::MVector{4,T},D::MVector{4,T},::Minkowski,::Cylindrical,tetrad::UniformElectromagneticFieldTetrad) where T 
-            ρ = pos[2]
+            ρ = txyz[2]
             D[4] = ρ
         end
 

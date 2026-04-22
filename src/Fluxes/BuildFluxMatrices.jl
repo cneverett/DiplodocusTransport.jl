@@ -87,6 +87,14 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
         K_Flux = sparse(K_Flux_I,K_Flux_J,K_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        # when values cancel they can still leave a saved zero in arrays
+        dropzeros!(B_Flux)
+        dropzeros!(C_Flux)
+        dropzeros!(D_Flux)
+        dropzeros!(I_Flux)
+        dropzeros!(J_Flux)
+        dropzeros!(K_Flux)
         
         #=Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
         Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
@@ -138,6 +146,10 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         println("Building momentum flux matrices...")
         FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
         P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+
+        # when values cancel they can still leave a saved zero in arrays
+        dropzeros!(X_Flux)
+        dropzeros!(P_Flux)
         
         #=println("Building time flux matrices...")
         Fill_A_Flux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
@@ -764,8 +776,6 @@ function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_F
         FluxSimpson3D!(CoordinateFluxBIntegrand!,CFSpaceBPlus,CFSpaceBMinus,aB,bB,nB)
         FluxSimpson3D!(CoordinateFluxCIntegrand!,CFSpaceCPlus,CFSpaceCMinus,aC,bC,nC)
         FluxSimpson3D!(CoordinateFluxDIntegrand!,CFSpaceDPlus,CFSpaceDMinus,aD,bD,nD)
-
-        #println("$CFSpaceDPlus,$CFSpaceDMinus,$x0,$x1,$y0,$y1,$z0,$z1")
 
         for name in 1:length(name_list)
 

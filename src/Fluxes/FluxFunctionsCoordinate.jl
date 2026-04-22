@@ -751,81 +751,86 @@ function CoordinateForceKFluxMomentumIntegral!(ForceMomentumArrayView::AbstractA
 
     sqrt_mp0 = sqrt(m^2 + p0^2)
     sqrt_mp1 = sqrt(m^2 + p1^2)
-    sh,ch = sincos(h)
+    hdivpi = h / pi
+    sh,ch = sincospi(hdivpi) # high accuracy than sincos 
 
-    M121::T = 0.5 * (-acos(u0) + acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * sh
-    M131::T = -0.5 * (-acos(u0) + acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * ch
+    M121::T = -0.5 * (acos(u0) - acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * sh
+    M131::T = 0.5 * (acos(u0) - acos(u1)) * (sqrt_mp0 - sqrt_mp1 - m * asinh(m/p0) + m * asinh(m/p1)) * ch
 
     M231::T = -0.5 * (p0 - p1) * (u0 - u1)
     M241::T = 0.5 * (p0 - p1) * (sqrt(1 - u0^2) - sqrt(1 - u1^2)) * sh
     M341::T = -0.5 * (p0 - p1) * (sqrt(1 - u0^2) - sqrt(1 - u1^2)) * ch
+
     M122::T = 0.5 * (p0 - p1) * (u0 - u1) * sh * ch
     M132::T = -0.5 * (p0 - p1) * (u0 - u1) * ch^2
 
     M232::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * ch
     M242::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * sh * ch
     M342::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * ch^2
+
     M123::T = 0.5 * (p0 - p1) * (u0 - u1) * sh^2
     M133::T = -M122
 
     M233::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sh
     M243::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2) * sh^2
     M343::T = -M242
+
     M124::T = -M241
     M134::T = -M341
 
     M234::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (u0^2 - u1^2)
     M244::T = -M233
-    M344::T = -M232
+    M344::T = M232
 
+    # TODO: Assign correct values!!!!
     ForceMomentumArrayView[1,2,1] = M121
     ForceMomentumArrayView[1,3,1] = M131
-
-    ForceMomentumArrayView[1,2,2] = M122
-    ForceMomentumArrayView[1,3,2] = M132
-    ForceMomentumArrayView[1,2,3] = M123
-    ForceMomentumArrayView[1,3,3] = M133
-
-    ForceMomentumArrayView[1,2,4] = M124
-    ForceMomentumArrayView[1,3,4] = M134
-
-    ForceMomentumArrayView[2,1,1] = -M121
-    ForceMomentumArrayView[3,1,1] = -M131
-
-    ForceMomentumArrayView[2,1,2] = -M122
-    ForceMomentumArrayView[3,1,2] = -M132
-    ForceMomentumArrayView[2,1,3] = -M123
-    ForceMomentumArrayView[3,1,3] = -M133
-
-    ForceMomentumArrayView[2,1,4] = -M124
-    ForceMomentumArrayView[3,1,4] = -M134
-
     ForceMomentumArrayView[2,3,1] = M231
     ForceMomentumArrayView[2,4,1] = M241
     ForceMomentumArrayView[3,4,1] = M341
+
+    ForceMomentumArrayView[1,2,2] = M122
+    ForceMomentumArrayView[1,3,2] = M132
     ForceMomentumArrayView[2,3,2] = M232
-    ForceMomentumArrayView[2,3,3] = M233
     ForceMomentumArrayView[2,4,2] = M242
     ForceMomentumArrayView[3,4,2] = M342
+
+    ForceMomentumArrayView[1,2,3] = M123
+    ForceMomentumArrayView[1,3,3] = M133
+    ForceMomentumArrayView[2,3,3] = M233
     ForceMomentumArrayView[2,4,3] = M243
     ForceMomentumArrayView[3,4,3] = M343
+
+    ForceMomentumArrayView[1,2,4] = M124
+    ForceMomentumArrayView[1,3,4] = M134
     ForceMomentumArrayView[2,3,4] = M234
     ForceMomentumArrayView[2,4,4] = M244
     ForceMomentumArrayView[3,4,4] = M344
 
+    # antisymmetric parts
+    ForceMomentumArrayView[2,1,1] = -M121
+    ForceMomentumArrayView[3,1,1] = -M131
     ForceMomentumArrayView[3,2,1] = -M231
     ForceMomentumArrayView[4,2,1] = -M241
     ForceMomentumArrayView[4,3,1] = -M341
+
+    ForceMomentumArrayView[2,1,2] = -M122
+    ForceMomentumArrayView[3,1,2] = -M132
     ForceMomentumArrayView[3,2,2] = -M232
-    ForceMomentumArrayView[3,2,3] = -M233
     ForceMomentumArrayView[4,2,2] = -M242
     ForceMomentumArrayView[4,3,2] = -M342
+
+    ForceMomentumArrayView[2,1,3] = -M123
+    ForceMomentumArrayView[3,1,3] = -M133
+    ForceMomentumArrayView[3,2,3] = -M233
     ForceMomentumArrayView[4,2,3] = -M243
     ForceMomentumArrayView[4,3,3] = -M343
+
+    ForceMomentumArrayView[2,1,4] = -M124
+    ForceMomentumArrayView[3,1,4] = -M134
     ForceMomentumArrayView[3,2,4] = -M234
     ForceMomentumArrayView[4,2,4] = -M244
     ForceMomentumArrayView[4,3,4] = -M344
-
 
 end
 

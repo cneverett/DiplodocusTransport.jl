@@ -52,7 +52,7 @@ abstract type AbstractCoordinates end
 end
 @kwdef struct Cylindrical <: AbstractCoordinates # x=ρ, y=ϑ, z=z
     xp_BC::AbstractBoundaryCondition = Open()
-    xm_BC::AbstractBoundaryCondition = Closed()
+    xm_BC::AbstractBoundaryCondition = Closed() # ρ=0 is axis so should be closed
     yp_BC::AbstractBoundaryCondition = Periodic()
     ym_BC::AbstractBoundaryCondition = Periodic()
     zp_BC::AbstractBoundaryCondition = Periodic()
@@ -60,7 +60,7 @@ end
 end
 @kwdef struct Spherical <: AbstractCoordinates # x=r, y=θ, z=ψ
     xp_BC::AbstractBoundaryCondition = Open()
-    xm_BC::AbstractBoundaryCondition = Open()
+    xm_BC::AbstractBoundaryCondition = Closed() # r=0 is origin so should be closed
     yp_BC::AbstractBoundaryCondition = Closed()
     ym_BC::AbstractBoundaryCondition = Closed()
     zp_BC::AbstractBoundaryCondition = Periodic()
@@ -77,9 +77,9 @@ end
 @kwdef struct Paraboloidal <: AbstractCoordinates # x=ϕ, y=u, z=v (where u and v have dimensions of sqrt(length))
     xp_BC::AbstractBoundaryCondition = Periodic()
     xm_BC::AbstractBoundaryCondition = Periodic()
-    yp_BC::AbstractBoundaryCondition = Closed() 
+    yp_BC::AbstractBoundaryCondition = Open() 
     ym_BC::AbstractBoundaryCondition = Closed() # u = 0 is jet axis (z<0) so should be like cylindrical ρ axis
-    zp_BC::AbstractBoundaryCondition = Closed()
+    zp_BC::AbstractBoundaryCondition = Open()
     zm_BC::AbstractBoundaryCondition = Closed() # v = 0 is jet axis (z>0) so should be like cylindrical ρ axis
 end
 
