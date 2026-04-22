@@ -82,5 +82,3 @@ end
     zp_BC::AbstractBoundaryCondition = Open()
     zm_BC::AbstractBoundaryCondition = Closed() # v = 0 is jet axis (z>0) so should be like cylindrical ρ axis
 end
-
-

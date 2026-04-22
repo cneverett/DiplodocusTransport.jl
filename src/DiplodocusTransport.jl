@@ -8,6 +8,8 @@ module DiplodocusTransport
     export AbstractBoundaryCondition, Periodic, Open, Closed, Reflective, Escape
     # Modes
     export AbstractMode, Iso, Axi, Ani
+    # Spacetime Grids 
+    export AbstractSpacetimeGrid, SpacetimeGrid, UniformGrid, Log10Grid, StretchGrid
     # Tetrads
     export AbstractTetrad, StationaryObserverTetrad, UniformElectromagneticFieldTetrad, ParabolicForceFreeFieldTetrad
     # Backends
@@ -53,6 +55,7 @@ module DiplodocusTransport
 
     # Phasespace
     include("Spacetime/CoordinateStructs.jl")
+    include("Spacetime/Grids.jl")
     include("Spacetime/Metrics.jl")
     include("Spacetime/Christoffel.jl")
     include("Spacetime/Tetrads.jl")

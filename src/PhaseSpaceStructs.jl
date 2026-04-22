@@ -79,20 +79,13 @@ A struct for storing the space domain of the simulation.
 
     dt0::Float64 = 1.0 # dt used for building flux terms
 
-    x_up::Float64   = getfield(Main,Symbol("x_up"))     
-    x_low::Float64  = getfield(Main,Symbol("x_low"))
-    x_grid::String  = getfield(Main,Symbol("x_grid"))
-    x_num::Int64    = getfield(Main,Symbol("x_num"))
+    x_grid::AbstractSpacetimeGrid  = getfield(Main,Symbol("x_grid"))
+    y_grid::AbstractSpacetimeGrid  = getfield(Main,Symbol("y_grid"))
+    z_grid::AbstractSpacetimeGrid  = getfield(Main,Symbol("z_grid"))
 
-    y_up::Float64   = getfield(Main,Symbol("y_up"))
-    y_low::Float64  = getfield(Main,Symbol("y_low"))
-    y_grid::String  = getfield(Main,Symbol("y_grid"))
-    y_num::Int64    = getfield(Main,Symbol("y_num"))
-
-    z_up::Float64   = getfield(Main,Symbol("z_up")) 
-    z_low::Float64  = getfield(Main,Symbol("z_low"))
-    z_grid::String  = getfield(Main,Symbol("z_grid"))
-    z_num::Int64    = getfield(Main,Symbol("z_num"))
+    x_num::Int64 = x_grid.num
+    y_num::Int64 = y_grid.num
+    z_num::Int64 = z_grid.num
 
 end
 
@@ -182,24 +175,13 @@ A struct for storing the grid values for each particle in the simulation.
 
             self.tr = [0.0,spacetime.dt0] # only first set
 
-            x_up    = spacetime.x_up
-            x_low   = spacetime.x_low
             x_grid  = spacetime.x_grid
-            x_num   = spacetime.x_num
-
-            y_up    = spacetime.y_up
-            y_low   = spacetime.y_low
             y_grid  = spacetime.y_grid
-            y_num   = spacetime.y_num
-
-            z_up    = spacetime.z_up
-            z_low   = spacetime.z_low
             z_grid  = spacetime.z_grid
-            z_num   = spacetime.z_num
 
-            self.xr = bounds(x_low,x_up,x_num,x_grid)
-            self.yr = bounds(y_low,y_up,y_num,y_grid)
-            self.zr = bounds(z_low,z_up,z_num,z_grid)
+            self.xr = SpacetimeGrid(x_grid)
+            self.yr = SpacetimeGrid(y_grid)
+            self.zr = SpacetimeGrid(z_grid)
 
             self.dx = deltaVector(self.xr)
             self.dy = deltaVector(self.yr)
