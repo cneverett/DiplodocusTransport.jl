@@ -1,7 +1,7 @@
 module DiplodocusTransport
 
     # Metrics
-    export AbstractMetric, Minkowski, Schwarzschild, Kerr
+    export AbstractMetric, MetricComponents!, ChristoffelComponents!, Minkowski, Schwarzschild, Kerr
     # Coordinates
     export AbstractCoordinates, Cartesian, Cylindrical, Spherical, ModifiedSpherical, Paraboloidal
     # Boundary Conditions
@@ -11,7 +11,7 @@ module DiplodocusTransport
     # Spacetime Grids 
     export AbstractSpacetimeGrid, SpacetimeGrid, UniformGrid, Log10Grid, StretchGrid
     # Tetrads
-    export AbstractTetrad, StationaryObserverTetrad, UniformElectromagneticFieldTetrad, ParabolicForceFreeFieldTetrad
+    export AbstractTetrad, TetradComponents!, InverseTetradComponents!, RicciRotationComponents!, StationaryObserverTetrad, UniformElectromagneticFieldTetrad, ParabolicForceFreeFieldTetrad
     # Backends
     export AbstractBackend, CPUBackend, CUDABackend
     # Phasespace
