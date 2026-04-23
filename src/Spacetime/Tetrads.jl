@@ -568,13 +568,13 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[1,3] = u*v^2*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 # X components X^α = g^αβX_β
                 e[2,1] = -u*v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
-                e[2,2] = -1/(u*v*sqrt(1 + v^4*Ω(v)^2))
+                e[2,2] = u*v == zero(T) ? T(1) : -1/(u*v*sqrt(1 + v^4*Ω(v)^2))
                 e[2,3] = -v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 # Y components Y^α = g^αβY_β
                 e[3,4] = -1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
-                e[4,2] = -Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
-                e[4,3] = 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                e[4,2] = u == zero(T) ? T(1) : -Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                e[4,3] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
             else
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
@@ -582,13 +582,13 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[1,4] = -u^2*v*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 # X components X^α = g^αβX_β
                 e[2,1] = -u*v*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
-                e[2,2] = -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
+                e[2,2] = u*v == zero(T) ? T(1) : -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
                 e[2,4] = u*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = -1/sqrt(u^2 + v^2)
+                e[3,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : -1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
-                e[4,2] = -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
-                e[4,4] = -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[4,2] = v == zero(T) ? T(1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[4,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
             end
 
             return nothing

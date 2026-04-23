@@ -5,98 +5,119 @@
 
 =#
 
-# ======= IJK First Order Guiding Centre ============== #
+# ======= First Order Guiding Centre ============== #
 
-    @inline function GuidingCentreSpaceFluxVector(pos::MVector{4,T},FSpaceVector::MVector{3,T},metric::AbstractMetric,coordinates::AbstractCoordinates,tetrad::AbstractTetrad,e,∂lnB,cfg::ForwardDiff.GradientConfig) where T
-
-        fill!(FSpaceVector, zero(T))
-        TetradComponents!(pos,e,metric,coordinates,tetrad)
-        ForwardDiff.gradient!(∂lnB, func, pos, cfg)
-
-        χ::T = VolumeElement(pos,metric,coordinates)
-
-        @inbounds for a in 2:4, b in 1:4
-            FSpaceVector[a-1] -= e[a,b]*∂lnB[b]*χ/2
-        end
-
-        return nothing
-
-    end
-
-    function IFluxFunction(force::FirstOrderGuidingCentre,PhaseSpace::PhaseSpaceStruct,species_idx::Int64,plus_minus::String,t_idx::Int64,x_idx::Int64,y_idx::Int64,z_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64)
+    function SpaceVectorForceFunction!(force::FirstOrderGuidingCentre,SVecForce::MVector{4,T},PhaseSpace::PhaseSpaceStruct,x_idx::Int64,y_idx::Int64,z_idx::Int64) where T
 
         Grids = PhaseSpace.Grids
         Characteristic = PhaseSpace.Characteristic
         metric = PhaseSpace.Spacetime.metric
         tetrad = PhaseSpace.Spacetime.tetrad
         coordinates = PhaseSpace.Spacetime.coordinates
-        momentum_coords = PhaseSpace.Momentum.coordinates
 
-        m = Grids.mass_list[species_idx]
-        Z = Grids.charge_list[species_idx]
-
-        t0 = Grids.tr[t_idx]
-        t1 = Grids.tr[t_idx+1]
+        t0 = Grids.tr[1]
+        t1 = Grids.tr[2]
         x0 = Grids.xr[x_idx]
         x1 = Grids.xr[x_idx+1]
         y0 = Grids.yr[y_idx]
         y1 = Grids.yr[y_idx+1]
         z0 = Grids.zr[z_idx]
         z1 = Grids.zr[z_idx+1]
-        if plus_minus == "plus"
-            p = Grids.pxr_list[species_idx][px_idx+1]
-        elseif plus_minus == "minus"
-            p = Grids.pxr_list[species_idx][px_idx]
-        else
-            error("plus_minus string not recognised.")
+
+        pos = MVector{4,T}(zeros(T,4))
+        e::MMatrix{4,4,T,16} = zeros(T,4,4)
+        ∂lnB = MVector{4,T}(zeros(T,4))
+
+        @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
+        cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
+        @inline SpaceIntegrand!(pos_local,IFluxSpaceVector_local) = GuidingCentreForceSpaceIntegrand(pos_local,IFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
+
+        # flux must have no dimensions
+        flux_non_dimensional::T = CONST_c * Characteristic.CHAR_time / Characteristic.CHAR_length
+
+        a::SVector{4,T} = [t0,x0,y0,z0]
+        b::SVector{4,T} = [t1,x1,y1,z1]
+        n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
+
+        # Integrate space part of force
+        Simpson4D!(SpaceIntegrand!,SVecForce,a,b,n)
+
+        SVecForce .*= flux_non_dimensional
+
+        return nothing
+
+    end
+
+    @inline function GuidingCentreForceSpaceIntegrand(pos::MVector{4,T},SVecForce::MVector{4,T},metric::AbstractMetric,coordinates::AbstractCoordinates,tetrad::AbstractTetrad,e,∂lnB,func,cfg::ForwardDiff.GradientConfig) where T
+
+        fill!(SVecForce, zero(T))
+        TetradComponents!(pos,e,metric,coordinates,tetrad)
+        ForwardDiff.gradient!(∂lnB, func, pos, cfg)
+
+        χ::T = VolumeElement(pos,metric,coordinates)
+
+        @inbounds for a in 1:4, b in 1:4
+            SVecForce[a] -= e[a,b]*∂lnB[b]*χ/2
         end
+
+        if sum(isnan.(SVecForce)) != 0
+            println("$pos")
+            println("$SVecForce")
+            println("$∂lnB")
+            println("$e")
+            println("$χ")
+            println("")
+        end
+
+        return nothing
+
+    end
+
+    function MomentumMatrixForceFunction!(force::FirstOrderGuidingCentre,MMatForce::MArray{Tuple{3,4,2},T,3,24},PhaseSpace::PhaseSpaceStruct,species_idx::Int64,px_idx::Int64,py_idx::Int64,pz_idx::Int64) where T
+
+        fill!(MMatForce, zero(T))
+
+        Grids = PhaseSpace.Grids
+
+        m = Grids.mass_list[species_idx]
+        Z = Grids.charge_list[species_idx]
+        p0 = Grids.pxr_list[species_idx][px_idx]
+        p1 = Grids.pxr_list[species_idx][px_idx+1]
         u0 = Grids.pyr_list[species_idx][py_idx]
         u1 = Grids.pyr_list[species_idx][py_idx+1]
         h0 = Grids.pzr_list[species_idx][pz_idx]
         h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
-        # Evaluate the flux through the I surface i.e. surface of constant p
+        if m != 0 && Z != 0
 
-        # fluxScale must have no dimensions
-        T = Characteristic.CHAR_time
-        L = Characteristic.CHAR_length
-        c = CONST_c
-
-        pos = MVector{4,Float64}(zeros(Float64,4))
-        e::MMatrix{4,4,Float64,16} = zeros(Float64,4,4)
-        ∂lnB = MVector{4,Float64}(zeros(Float64,4))
-        IFluxSpaceVector = MVector{4,Float64}(zeros(Float64,4))
-
-        @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
-        cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
-        @inline ForceSpaceIntegrand!(pos_local,IFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,IFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,cfg)
-
-        #flux::Float64 = T*invTc
-        flux::Float64 = c * T / L
-
-        if m == 0 || Z == 0
-            flux *= 0e0
-        else
-
-            IFluxMomentumVector = [
-            -p^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sin(h0) - sin(h1))/(8*sqrt(m^2 + p^2)),
-            p^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(cos(h0) - cos(h1))/(8*sqrt(m^2 + p^2)),
-            -(h0 - h1)*p^2*(-2u0^2 + u0^4 + 2u1^2 - u1^4)/(4*sqrt(m^2 + p^2))
-            ]
-            a::SVector{4,Float64} = [t0,x0,y0,z0]
-            b::SVector{4,Float64} = [t1,x1,y1,z1]
-            n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
-
-            # Integrate space part of force
-            Simpson4D!(ForceSpaceIntegrand!,IFluxSpaceVector,a,b,n)
-
-            @inbounds for i in 1:3
-                flux *= IFluxMomentumVector[i] * IFluxSpaceVector[i]
-            end
+            # I_plus#
+            MMatForce[1,2,1] = -p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sin(h0) - sin(h1))/(8*sqrt(m^2 + p1^2))
+            MMatForce[1,3,1] = p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(cos(h0) - cos(h1))/(8*sqrt(m^2 + p1^2))
+            MMatForce[1,4,1] = -(h0 - h1)*p1^2*(-2u0^2 + u0^4 + 2u1^2 - u1^4)/(4*sqrt(m^2 + p1^2))
+            # I_minus
+            MMatForce[1,2,2] =  -p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sin(h0) - sin(h1))/(8*sqrt(m^2 + p0^2))
+            MMatForce[1,3,2] =  p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(cos(h0) - cos(h1))/(8*sqrt(m^2 + p0^2))
+            MMatForce[1,4,2] = -(h0 - h1)*p0^2*(-2u0^2 + u0^4 + 2u1^2 - u1^4)/(4*sqrt(m^2 + p0^2))
+            # J_plus 
+            MMatForce[2,2,1] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(sin(h0) - sin(h1))
+            MMatForce[2,3,1] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(cos(h0) - cos(h1))
+            MMatForce[2,4,1] = (h0 - h1)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(-1 + u1^2)^2
+            # J_minus
+            MMatForce[2,2,2] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(sin(h0) - sin(h1))
+            MMatForce[2,3,2] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(cos(h0) - cos(h1))
+            MMatForce[2,4,2] = (h0 - h1)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(-1 + u0^2)^2
+            # K_plus
+            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sin(h1)
+            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cos(h1)
+            MMatForce[3,4,1] = 0.0
+            # K_minus
+            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sin(h0)
+            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cos(h0)
+            MMatForce[3,4,1] = 0.0
 
         end
 
-        return flux
+        return nothing
 
     end
 
@@ -142,11 +163,11 @@
         pos = MVector{4,Float64}(zeros(Float64,4))
         e::MMatrix{4,4,Float64,16} = zeros(Float64,4,4)
         ∂lnB = MVector{4,Float64}(zeros(Float64,4))
-        JFluxSpaceVector = MVector{4,Float64}(zeros(Float64,4))
+        JFluxSpaceVector = MVector{3,Float64}(zeros(Float64,3))
 
         @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
         cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
-        @inline ForceSpaceIntegrand!(pos_local,JFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,JFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,cfg)
+        @inline ForceSpaceIntegrand!(pos_local,JFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,JFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
 
         flux::Float64 = c * T / L # L0 is the characteristic length in terms of L 
         #flux::Float64 = T*invTc
@@ -156,8 +177,8 @@
         else
             
             JFluxMomentumVector = [
-            -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u*(1 - u^2)^(3/2)*(Sin[h0] - Sin[h1]),
-            (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u*(1 - u^2)^(3/2)*(Cos[h0] - Cos[h1]),
+            -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u*(1 - u^2)^(3/2)*(sin(h0) - sin(h1)),
+            (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u*(1 - u^2)^(3/2)*(cos(h0) - cos(h1)),
             (h0 - h1)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(-1 + u^2)^2
             ]
             a::SVector{4,Float64} = [t0,x0,y0,z0]
@@ -165,7 +186,8 @@
             n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
 
             # Integrate space part of force
-            Simpson4D!(ForceSpaceIntegrand!,JFluxSpaceVector,a,b,n)
+            #Simpson4D!(ForceSpaceIntegrand!,JFluxSpaceVector,a,b,n)
+            JFluxSpaceVector[1] = rand(Float64) # placeholder for testing
 
             @inbounds for i in 1:3
                 flux *= JFluxMomentumVector[i] * JFluxSpaceVector[i]
@@ -219,11 +241,11 @@
         pos = MVector{4,Float64}(zeros(Float64,4))
         e::MMatrix{4,4,Float64,16} = zeros(Float64,4,4)
         ∂lnB = MVector{4,Float64}(zeros(Float64,4))
-        KFluxSpaceVector = MVector{4,Float64}(zeros(Float64,4))
+        KFluxSpaceVector = MVector{3,Float64}(zeros(Float64,3))
 
         @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
         cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
-        @inline ForceSpaceIntegrand!(pos_local,KFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,KFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,cfg)
+        @inline ForceSpaceIntegrand!(pos_local,KFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,KFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
 
         #flux::Float64 = T*invTc
         flux::Float64 = c * T / L # L0 is the characteristic length in terms of L 
@@ -242,7 +264,8 @@
             n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
 
             # Integrate space part of force
-            Simpson4D!(ForceSpaceIntegrand!,KFluxSpaceVector,a,b,n)
+            #Simpson4D!(ForceSpaceIntegrand!,KFluxSpaceVector,a,b,n)
+            KFluxSpaceVector[1] = rand(Float64) # placeholder for testing
 
             @inbounds for i in 1:3
                 flux *= KFluxMomentumVector[i] * KFluxSpaceVector[i]

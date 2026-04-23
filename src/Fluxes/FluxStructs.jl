@@ -27,15 +27,18 @@ end
 #=========================#
 
 abstract type AbstractForce end
+abstract type SpaceVectorForce <: AbstractForce end
+abstract type SpaceScalarForce <: AbstractForce end
+abstract type AnalyticForce <: AbstractForce end
 
 struct CoordinateForce <: AbstractForce end
 
-mutable struct SyncRadReact <: AbstractForce
+mutable struct SyncRadReact <: AnalyticForce
     mode::AbstractMode
     B::Float64
 end
 
-struct FirstOrderGuidingCentre <: AbstractForce end
+struct FirstOrderGuidingCentre <: SpaceVectorForce end
 
 struct ExB <: AbstractForce
     E0::Float64

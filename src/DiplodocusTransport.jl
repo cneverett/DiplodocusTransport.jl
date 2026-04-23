@@ -17,7 +17,8 @@ module DiplodocusTransport
     # Phasespace
     export PhaseSpaceStruct, MomentumStruct, SpacetimeStruct, TimeStruct, CharacteristicStruct, GridsStruct
     # Forces 
-    export AbstractForce, CoordinateForce, FirstOrderGuidingCentre, SyncRadReact, GradBInvZDecay
+    export AbstractForce, CoordinateForce, AnalyticForce, SpaceVectorForce, SpaceScalarForce
+    export FirstOrderGuidingCentre, SyncRadReact, GradBInvZDecay
     # Fluxes
     export BuildFluxMatrices, VolFunction
     # Collisions

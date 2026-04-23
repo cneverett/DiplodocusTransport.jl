@@ -552,7 +552,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `I_Flux`, `J_Flux`, and `K_Flux` matrices.
 """
-function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+#=function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
     
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -610,6 +610,8 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
     non_dimensional_factor::Float64 = CONST_c * Characteristic.CHAR_time / Characteristic.CHAR_length
 
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+        println("Calculating momentum fluxes for space cell ($x,$y,$z)")
     
         if CoordinateForce() in Forces
 
@@ -629,6 +631,8 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             # Integrate space part of force
             Simpson4D!(CoordinateForceSpaceIntegrand_func!,CFSpaceArray,a,b,n)
 
+            CFSpaceArray .*= non_dimensional_factor
+
         end
             
         for name in 1:length(name_list)
@@ -638,6 +642,8 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             pz_num = pz_num_list[name]
     
             for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                println("Calculating momentum fluxes for momentum cell ($px,$py,$pz)")
 
                 I_plus = 0.0
                 I_minus = 0.0
@@ -659,7 +665,6 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
                                 println("$a,$b,$c,$px,$py,$pz")
                             end
 
-
                             # integration sign introduced here
                             I_plus += CFMomentumArray[a,b,c,1,1] * CFSpaceArray[a,b,c]
                             I_minus -= CFMomentumArray[a,b,c,1,2] * CFSpaceArray[a,b,c]
@@ -669,13 +674,6 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
                             K_minus -= CFMomentumArray[a,b,c,3,2] * CFSpaceArray[a,b,c]
 
                         end
-
-                        I_plus *= non_dimensional_factor
-                        I_minus *= non_dimensional_factor
-                        J_plus *= non_dimensional_factor
-                        J_minus *= non_dimensional_factor
-                        K_plus *= non_dimensional_factor
-                        K_minus *= non_dimensional_factor
                         
                     else 
 
@@ -698,6 +696,198 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             end # momentum  loop
         end # name loop
     end # space loop
+end=#
+
+
+function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+    
+    Spacetime = PhaseSpace.Spacetime
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+    Characteristic = PhaseSpace.Characteristic
+
+    metric = Spacetime.metric
+    coordinates = Spacetime.coordinates
+    tetrad = Spacetime.tetrad
+    momentum_coords = Momentum.coordinates
+    scheme = Momentum.scheme
+
+    BC_pxp = momentum_coords.xp_BC
+    BC_pxm = momentum_coords.xm_BC 
+    #= Boundary Conditions:
+        Flux on I boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    @assert BC_pxp isa Closed || BC_pxm isa Closed "I flux boundaries incorrectly defined, i.e. not closed"
+
+    BC_pyp = momentum_coords.yp_BC
+    BC_pym = momentum_coords.ym_BC
+    #= Boundary Conditions:
+        Flux on J boundaries should always be closed i.e. no particles leave/enter from the domain bound
+    =#
+    @assert (BC_pyp isa Closed) && (BC_pym isa Closed) "J flux boundaries incorrectly defined, i.e. not closed"
+
+    BC_pzp = momentum_coords.zp_BC
+    BC_pzm = momentum_coords.zm_BC
+    #= Boundary Conditions:
+        Flux on K boundaries should always be periodic
+    =#
+    @assert (BC_pzp isa Periodic) && (BC_pzm isa Periodic) "K flux boundaries incorrectly defined, i.e. not periodic"
+
+    name_list = PhaseSpace.name_list
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    # setup for coordinate forces
+    pos = MVector{4,Float64}(zeros(Float64,4))
+    e = MMatrix{4,4,Float64,16}(zeros(Float64,4,4))
+    inve = MMatrix{4,4,Float64,16}(zeros(Float64,4,4))
+    Γ = MArray{Tuple{4,4,4},Float64,3,64}(zeros(Float64,4,4,4))
+    ∂inve = MArray{Tuple{4,4,4},Float64,3,64}(zeros(Float64,4,4,4))
+    CFSpaceArray = MArray{Tuple{4,4,4},Float64,3,64}(zeros(Float64,4,4,4))
+    CFMomentumArray = MArray{Tuple{4,4,4,3,2},Float64,5,384}(zeros(Float64,4,4,4,3,2))
+    @inline inv_tetrad_func!(inve_local,pos_local) = InverseTetradComponents!(pos_local,inve_local,metric,coordinates,tetrad)
+    cfg::ForwardDiff.JacobianConfig = ForwardDiff.JacobianConfig(inv_tetrad_func!,inve,pos)
+    @inline CoordinateForceSpaceIntegrand_func!(pos_local,CFSpaceArray_local) = CoordinateForceSpaceIntegrand!(pos_local,CFSpaceArray_local,metric,coordinates,tetrad,e,inve,Γ,∂inve,inv_tetrad_func!,cfg)
+
+    # setup for space scalar forces
+    MVecForce = MMatrix{3,2,Float64}(zeros(Float64,3,2))
+
+    # setup for space vector forces
+    SVecForce = MVector{4,Float64}(zeros(Float64,4))
+    MMatForce = MArray{Tuple{3,4,2},Float64,3,24}(zeros(Float64,3,4,2))
+
+    # non-dimensional normalisation
+    non_dimensional_factor::Float64 = CONST_c * Characteristic.CHAR_time / Characteristic.CHAR_length
+
+    for name in eachindex(name_list)
+
+        px_num = px_num_list[name]
+        py_num = py_num_list[name]
+        pz_num = pz_num_list[name]
+
+        I_plus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+        I_minus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+        J_plus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+        J_minus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+        K_plus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+        K_minus_array = zeros(Float64,x_num,y_num,z_num,px_num,py_num,pz_num)
+
+        for f in eachindex(Forces)
+
+            println("Assigning force flux for force $(Forces[f]) and species $(name_list[name])")
+
+            if Forces[f] isa CoordinateForce
+
+                for x in 1:x_num, y in 1:y_num, z in 1:z_num
+                    t0 = Grids.tr[1]
+                    t1 = Grids.tr[2]
+                    x0 = Grids.xr[x]
+                    x1 = Grids.xr[x+1]
+                    y0 = Grids.yr[y]
+                    y1 = Grids.yr[y+1]
+                    z0 = Grids.zr[z]
+                    z1 = Grids.zr[z+1]
+
+                    a::SVector{4,Float64} = [t0,x0,y0,z0]
+                    b::SVector{4,Float64} = [t1,x1,y1,z1]
+                    n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
+
+                    # Integrate space part of coordinate force
+                    Simpson4D!(CoordinateForceSpaceIntegrand_func!,CFSpaceArray,a,b,n)
+
+                    CFSpaceArray .*= non_dimensional_factor
+
+                    for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+
+                        # Integrate momentum part of coordinate force
+                        CoordinateForceMomentumIntegral!(CFMomentumArray,PhaseSpace,name,px,py,pz)
+
+                        for a in 1:4, b in 1:4, c in 1:4
+                            # integration sign introduced here
+                            I_plus_array[x,y,z,px,py,pz] += CFMomentumArray[a,b,c,1,1] * CFSpaceArray[a,b,c]
+                            I_minus_array[x,y,z,px,py,pz] -= CFMomentumArray[a,b,c,1,2] * CFSpaceArray[a,b,c]
+                            J_plus_array[x,y,z,px,py,pz] += CFMomentumArray[a,b,c,2,1] * CFSpaceArray[a,b,c]
+                            J_minus_array[x,y,z,px,py,pz] -= CFMomentumArray[a,b,c,2,2] * CFSpaceArray[a,b,c]
+                            K_plus_array[x,y,z,px,py,pz] += CFMomentumArray[a,b,c,3,1] * CFSpaceArray[a,b,c]
+                            K_minus_array[x,y,z,px,py,pz] -= CFMomentumArray[a,b,c,3,2] * CFSpaceArray[a,b,c]
+                        end
+                    end
+                end
+
+            elseif Forces[f] isa SpaceScalarForce
+
+                for x in 1:x_num, y in 1:y_num, z in 1:z_num
+                    SScaForce = SpaceScalarForceFunction(Forces[f],PhaseSpace,x,y,z)
+                    for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+                        MomentumVectorForceFunction!(Forces[f],MVecForce,PhaseSpace,name,px,py,pz)
+                        # M[flux_dir,pm]
+                        # integration sign introduced here
+                        I_plus_array[x,y,z,px,py,pz] += SScaForce * MVecForce[1,1]
+                        I_minus_array[x,y,z,px,py,pz] -= SScaForce * MVecForce[1,2]
+                        J_plus_array[x,y,z,px,py,pz] += SScaForce * MVecForce[2,1]
+                        J_minus_array[x,y,z,px,py,pz] -= SScaForce * MVecForce[2,2]
+                        K_plus_array[x,y,z,px,py,pz] += SScaForce * MVecForce[3,1]
+                        K_minus_array[x,y,z,px,py,pz] -= SScaForce * MVecForce[3,2]
+                    end
+                end
+
+            elseif Forces[f] isa SpaceVectorForce
+
+                for x in 1:x_num, y in 1:y_num, z in 1:z_num
+                    SpaceVectorForceFunction!(Forces[f],SVecForce,PhaseSpace,x,y,z)
+                    for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+                        MomentumMatrixForceFunction!(Forces[f],MMatForce,PhaseSpace,name,px,py,pz)
+                        # M[flux_dir,a,pm]
+                        # integration sign introduced here
+                        for a in 1:4
+                            I_plus_array[x,y,z,px,py,pz] += SVecForce[a] * MMatForce[1,a,1]
+                            I_minus_array[x,y,z,px,py,pz] -= SVecForce[a] * MMatForce[1,a,2]
+                            J_plus_array[x,y,z,px,py,pz] += SVecForce[a] * MMatForce[2,a,1]
+                            J_minus_array[x,y,z,px,py,pz] -= SVecForce[a] * MMatForce[2,a,2]
+                            K_plus_array[x,y,z,px,py,pz] += SVecForce[a] * MMatForce[3,a,1]
+                            K_minus_array[x,y,z,px,py,pz] -= SVecForce[a] * MMatForce[3,a,2]
+                        end
+                    end
+                end
+
+            elseif Forces[f] isa AnalyticForce 
+
+                for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+                    # integration sign introduced here
+                    I_plus_array[x,y,z,px,py,pz] += IFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    I_minus_array[x,y,z,px,py,pz] -= IFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz) 
+                    J_plus_array[x,y,z,px,py,pz] += JFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    J_minus_array[x,y,z,px,py,pz] -= JFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+                    K_plus_array[x,y,z,px,py,pz] += KFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
+                    K_minus_array[x,y,z,px,py,pz] -= KFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+                end
+
+            else
+                error("Unknown force type of $(Forces[f])")
+            end
+        end # force loop
+
+        # assign flux values
+        for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+            I_plus = I_plus_array[x,y,z,px,py,pz]
+            I_minus = I_minus_array[x,y,z,px,py,pz]
+            J_plus = J_plus_array[x,y,z,px,py,pz]
+            J_minus = J_minus_array[x,y,z,px,py,pz]
+            K_plus = K_plus_array[x,y,z,px,py,pz]
+            K_minus = K_minus_array[x,y,z,px,py,pz]
+            AssignFlux!(PhaseSpace,"I",I_Flux_I,I_Flux_J,I_Flux_V,I_plus,I_minus,x,y,z,px,py,pz,name,scheme,BC_pxp,BC_pxm)
+            AssignFlux!(PhaseSpace,"J",J_Flux_I,J_Flux_J,J_Flux_V,J_plus,J_minus,x,y,z,px,py,pz,name,scheme,BC_pyp,BC_pym)
+            AssignFlux!(PhaseSpace,"K",K_Flux_I,K_Flux_J,K_Flux_V,K_plus,K_minus,x,y,z,px,py,pz,name,scheme,BC_pzp,BC_pzm)
+        end
+
+    end # name loop
+
+    
+
 end
 FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V) = FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V,P_Flux_I,P_Flux_J,P_Flux_V,P_Flux_I,P_Flux_J,P_Flux_V)
 
