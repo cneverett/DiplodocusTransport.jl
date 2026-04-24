@@ -58,7 +58,7 @@ function HydroFourVelocity(Nᵃ::AbstractVector{T}) where T
 
 end
 
-function HydroThreeVelocity(Uᵃ::AbstractVector{T})
+function HydroThreeVelocity(Uᵃ::AbstractVector{T}) where T
 
     Vⁱ = zeros(T,3)
 
