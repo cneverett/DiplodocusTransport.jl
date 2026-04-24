@@ -559,9 +559,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             v = pos[4]
             #= See Mathematica notebook for details of how these are derived. T corresponds to the drifting observer with T = γ(n-U⟂) then Y is in E field direction, Z in the B field direction and X orthogonal to T,X,Y
             These directions also depend on the sign of the z=(u^2-v^2)/2 cylindrical coordinate =#
-            signz = sign((u^2-v^2))
             @inline Ω = tetrad.Ω
-            if signz == 1
+            if u>v # z>0
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 e[1,2] = -Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
@@ -575,7 +574,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = u == zero(T) ? T(1) : Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 e[4,3] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
-            else
+            elseif u<v # z<0
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 e[1,2] = -Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
@@ -589,6 +588,19 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = v == zero(T) ? T(-1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 e[4,4] = sqrt(u^2 + v^2) == zero(T) ? T(-1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+            else #u=v, z=0
+                # T components T^α = g^αβT_β
+                e[1,1] = 1/sqrt(1 - v^4*Ω(v)^2)
+                e[1,2] = -Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                # X components X^α = g^αβX_β
+                e[2,1] = v^2*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                e[2,2] = v==zero(T) ? T(-1) : -1/(v^2*sqrt(1 - v^4*Ω(v)^2))
+                # Y components Y^α = g^αβY_β
+                e[3,3] = 1/(2*v)
+                e[3,4] = 1/(2*v)
+                # Z components Z^α = g^αβZ_β
+                e[4,3] = 1/(2*v)
+                e[4,4] = -1/(2*v)
             end
 
             return nothing
@@ -603,9 +615,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             v = pos[4]
             #= See Mathematica notebook for details of how these are derived. T corresponds to the drifting observer with T = γ(n-U⟂) then Y is in E field direction, Z in the B field direction and X orthogonal to T,X,Y
             These directions also depend on the sign of the z=(u^2-v^2)/2 cylindrical coordinate =#
-            signz = sign((u^2-v^2))
             @inline Ω = tetrad.Ω
-            if signz == 1
+            if u>v # z>0
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 inve[2,1] = u^2*v^2*Ω(v)/(sqrt(1 + v^4*Ω(v)^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
@@ -619,7 +630,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z_α = (0, 0, 0, sqrt(u^2+v^2))
                 inve[2,4] = u*v^2*Ω(v)*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
                 inve[3,4] = sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            else
+            elseif u<v # z<0
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 inve[2,1] = u^2*v^2*Ω(u)/(sqrt(1 + u^4*Ω(u)^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
@@ -633,6 +644,19 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z_α = (0, 0, 0, sqrt(u^2+v^2))
                 inve[2,4] = -u^2*v*Ω(u)*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
                 inve[4,4] = -sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
+            else #u=v, z=0
+                # T components T^α = g^αβT_β
+                inve[1,1] = 1/sqrt(1 - v^4*Ω(v)^2)
+                inve[2,1] = v^4/sqrt(1 - v^4*Ω(v)^2)
+                # X components X^α = g^αβX_β
+                inve[1,2] = -v^2*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                inve[2,2] = -v^2/sqrt(1 - v^4*Ω(v)^2)
+                # Y components Y^α = g^αβY_β
+                inve[3,3] = v
+                inve[4,3] = v
+                # Z components Z^α = g^αβZ_β
+                inve[3,4] = v
+                inve[4,4] = -v
             end
 
             return nothing
@@ -643,13 +667,15 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             u = xyzt[2]
             v = xyzt[3]
             Ω = tetrad.Ω
-            signz = sign((u^2-v^2))
-            if signz == 1
+            if u>v # z>0
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 A[2] = u^2*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
-            else
+            elseif u<v # z<0
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 A[2] = u^2*v^2*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
+            else # u=v, z=0
+                A[1] = 2v^4/sqrt(1 - v^4*Ω(v)^2)
+                A[2] = 2v^6*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
             end
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -657,15 +683,17 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             u = yztx[1]
             v = yztx[2]
             Ω = tetrad.Ω
-            signz = sign((u^2-v^2))
-            if signz == 1
+            if u>v # z>0
                 B[1] = -u*v*(u^2 + v^2)*Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + v^4*Ω(v)^2)
                 B[4] = v*(u^2 + v^2)^(3/2)*Ω(v)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            else
+            elseif u<v # z<0
                 B[1] = -u*v*(u^2 + v^2)*Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + u^4*Ω(u)^2)
                 B[4] = -u*(u^2 + v^2)^(3/2)*Ω(u)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
+            else # u=v, z=0
+                B[1] = -2v^4*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                B[2] = -2v^2/sqrt(1 - v^4*Ω(v)^2)
             end
         end
         @inline function CoordinateFluxSpaceCIntegrand!(ztxy::MVector{4,T},C::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -674,15 +702,16 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             u = ztxy[4]
             v = ztxy[1]
             Ω = tetrad.Ω
-            signz = sign((u^2-v^2))
-            if signz == 1
+            if u>v # z>0
                 C[1] = u^2*v^3*(u^2 + v^2)*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 C[2] = u*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 C[4] = u*v*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            else
+            elseif u<v # z<0
                 C[3] = u*v*sqrt(u^2 + v^2)
+            else # u=v, z=0
+                C[3] = v^3
+                C[4] = v^3
             end
-
         end
         @inline function CoordinateFluxSpaceDIntegrand!(txyz::MVector{4,T},D::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
             #= D=D_a=e_a^{~3}χ =#
@@ -690,12 +719,14 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             u = txyz[3]
             v = txyz[4]
             Ω = tetrad.Ω
-            signz = sign((u^2-v^2))
-            if signz == 1
+            if u>v # z>0
                 D[3] = u*v*sqrt(u^2 + v^2)
-            else
+            elseif u<v # z<0
                 D[1] = u^3*v^2*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 D[2] = u^2*v*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 D[4] = -u*v*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
+            else # u=v, z=0
+                D[3] = v^3
+                D[4] = -v^3
             end
         end

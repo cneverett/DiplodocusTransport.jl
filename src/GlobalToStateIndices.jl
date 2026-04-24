@@ -32,7 +32,7 @@ end
 Returns a `view` to the section of the `StateVector` corresponding to the momentum space of `species` at x coordinate `x_idx`, y coordinate `y_idx` and z coordinate `z_idx`. 
 
 """
-function LocationSpeciesToStateVector(StateVector::Vector{F},PhaseSpace::PhaseSpaceStruct;x_idx::Int64=nothing,y_idx::Int64=nothing,z_idx::Int64=nothing,off_space_idx::Int64=nothing,species_index::Int64=0) where F<:AbstractFloat
+function LocationSpeciesToStateVector(StateVector::Vector{F},PhaseSpace::PhaseSpaceStruct;x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,species_index::Int64=0) where F<:AbstractFloat
 
     if iszero(species_index)
         error("Species not defined")
