@@ -3,10 +3,10 @@
 
 Converts the coordinates `pos_from` in the ``from`` coordinate system to the ``to`` coordinate system, storing the result in `pos_to`.
 """
-CoordinateTransform!(pos,from::AbstractCoordinates,to::AbstractCoordinates) = error("Coordinate transform function not defined for coordinates $(typeof(from)) to coordinates $(typeof(to)).")
+CoordinateTransform!(pos_from,pos_to,from::AbstractCoordinates,to::AbstractCoordinates) = error("Coordinate transform function not defined for coordinates $(typeof(from)) to coordinates $(typeof(to)).")
 
 
-function CoordinateTransform(pos_from::AbstractVector{T},pos_to::AbstractVector{T},::Paraboloidal,::Cartesian) where T
+function CoordinateTransform!(pos_from::AbstractVector{T},pos_to::AbstractVector{T},::Paraboloidal,::Cartesian) where T
 
     t = pos_from[1]
     ϕ = pos_from[2]
@@ -26,7 +26,7 @@ function CoordinateTransform(pos_from::AbstractVector{T},pos_to::AbstractVector{
 
 end
 
-function CoordinateTransform(pos_from::AbstractVector{T},pos_to::AbstractVector{T},::Paraboloidal,::Cylindrical) where T
+function CoordinateTransform!(pos_from::AbstractVector{T},pos_to::AbstractVector{T},::Paraboloidal,::Cylindrical) where T
 
     t = pos_from[1]
     ϕ = pos_from[2]
