@@ -31,7 +31,7 @@ module DiplodocusTransport
     export AbstractSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
     export OutputStruct, SolutionFileLoad
     # Utilities
-    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform
+    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!
     # Distribution Moments 
     export FourFlow, HydroFourVelocity, HydroThreeVelocity, ProjectionTensor, StressEnergyTensor, ScalarNumberDensity, ScalarMassDensity, ScalarEnergyDensity, ScalarPressure, ScalarTemperature
 
