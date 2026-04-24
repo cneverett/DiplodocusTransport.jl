@@ -60,15 +60,6 @@
             SVecForce[a] -= e[a,b]*∂lnB[b]*χ/2
         end
 
-        if sum(isnan.(SVecForce)) != 0
-            println("$pos")
-            println("$SVecForce")
-            println("$∂lnB")
-            println("$e")
-            println("$χ")
-            println("")
-        end
-
         return nothing
 
     end

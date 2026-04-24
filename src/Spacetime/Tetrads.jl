@@ -564,31 +564,31 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             if signz == 1
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
-                e[1,2] = Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                e[1,2] = -Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 e[1,3] = u*v^2*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 # X components X^α = g^αβX_β
-                e[2,1] = -u*v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
-                e[2,2] = u*v == zero(T) ? T(1) : -1/(u*v*sqrt(1 + v^4*Ω(v)^2))
-                e[2,3] = -v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
+                e[2,1] = u*v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
+                e[2,2] = u*v == zero(T) ? T(-1) : -1/(u*v*sqrt(1 + v^4*Ω(v)^2))
+                e[2,3] = v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = -1/sqrt(u^2 + v^2)
+                e[3,4] = 1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
-                e[4,2] = u == zero(T) ? T(1) : -Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                e[4,2] = u == zero(T) ? T(1) : Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 e[4,3] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
             else
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
-                e[1,2] = Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
-                e[1,4] = -u^2*v*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[1,2] = -Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[1,4] = u^2*v*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 # X components X^α = g^αβX_β
-                e[2,1] = -u*v*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
-                e[2,2] = u*v == zero(T) ? T(1) : -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
+                e[2,1] = u*v*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
+                e[2,2] = u*v == zero(T) ? T(-1) : -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
                 e[2,4] = u*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : -1/sqrt(u^2 + v^2)
+                e[3,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
-                e[4,2] = v == zero(T) ? T(1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
-                e[4,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[4,2] = v == zero(T) ? T(-1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[4,4] = sqrt(u^2 + v^2) == zero(T) ? T(-1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
             end
 
             return nothing
@@ -608,28 +608,28 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             if signz == 1
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
-                inve[2,1] = -u^2*v^2*Ω(v)/(sqrt(1 + v^4*Ω(v)^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                inve[2,1] = u^2*v^2*Ω(v)/(sqrt(1 + v^4*Ω(v)^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 inve[3,1] = -u*v^2*(u^2 + v^2)*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 # X components X_α = (0, uv, 0, 0)
-                inve[1,2] = u*v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
+                inve[1,2] = -u*v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 inve[2,2] = -u*v/sqrt(1 + v^4*Ω(v)^2)
-                inve[3,2] = -v*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)            
+                inve[3,2] = v*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)            
                 # Y components Y_α = (0, 0, sqrt(u^2+v^2), 0)
-                inve[4,3] = -sqrt(u^2 + v^2)
+                inve[4,3] = sqrt(u^2 + v^2)
                 # Z components Z_α = (0, 0, 0, sqrt(u^2+v^2))
-                inve[2,4] = -u*v^2*Ω(v)*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
+                inve[2,4] = u*v^2*Ω(v)*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
                 inve[3,4] = sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
             else
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
-                inve[2,1] = -u^2*v^2*Ω(u)/(sqrt(1 + u^4*Ω(u)^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
-                inve[4,1] = u^2*v*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                inve[2,1] = u^2*v^2*Ω(u)/(sqrt(1 + u^4*Ω(u)^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                inve[4,1] = -u^2*v*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 # X components X_α = (0, uv, 0, 0)
-                inve[1,2] = u*v*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
+                inve[1,2] = -u*v*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 inve[2,2] = -u*v/sqrt(1 + u^4*Ω(u)^2)
                 inve[4,2] = u*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)            
                 # Y components Y_α = (0, 0, sqrt(u^2+v^2), 0)
-                inve[3,3] = -sqrt(u^2 + v^2)
+                inve[3,3] = sqrt(u^2 + v^2)
                 # Z components Z_α = (0, 0, 0, sqrt(u^2+v^2))
                 inve[2,4] = -u^2*v*Ω(u)*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
                 inve[4,4] = -sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
@@ -646,10 +646,10 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             signz = sign((u^2-v^2))
             if signz == 1
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
-                A[2] = -u^2*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
+                A[2] = u^2*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
             else
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
-                A[2] = -u^2*v^2*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
+                A[2] = u^2*v^2*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
             end
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -659,11 +659,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             Ω = tetrad.Ω
             signz = sign((u^2-v^2))
             if signz == 1
-                B[1] = u*v*(u^2 + v^2)*Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                B[1] = -u*v*(u^2 + v^2)*Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + v^4*Ω(v)^2)
-                B[4] = -v*(u^2 + v^2)^(3/2)*Ω(v)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
+                B[4] = v*(u^2 + v^2)^(3/2)*Ω(v)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
             else
-                B[1] = u*v*(u^2 + v^2)*Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                B[1] = -u*v*(u^2 + v^2)*Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + u^4*Ω(u)^2)
                 B[4] = -u*(u^2 + v^2)^(3/2)*Ω(u)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             end
@@ -677,10 +677,10 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             signz = sign((u^2-v^2))
             if signz == 1
                 C[1] = u^2*v^3*(u^2 + v^2)*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
-                C[2] = -u*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
+                C[2] = u*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 C[4] = u*v*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
             else
-                C[3] = -u*v*sqrt(u^2 + v^2)
+                C[3] = u*v*sqrt(u^2 + v^2)
             end
 
         end
@@ -692,9 +692,9 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             Ω = tetrad.Ω
             signz = sign((u^2-v^2))
             if signz == 1
-                D[3] = -u*v*sqrt(u^2 + v^2)
+                D[3] = u*v*sqrt(u^2 + v^2)
             else
-                D[1] = -u^3*v^2*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                D[1] = u^3*v^2*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 D[2] = u^2*v*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 D[4] = -u*v*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             end

@@ -102,7 +102,7 @@ function CoordinateForceSpaceIntegrand!(pos::MVector{4,Float64},CFSpaceArray::MA
                 tmp += e[b,β]*e[c,γ]*Γ[α,β,γ]*inve[α,a]  
             end
         end
-        CFSpaceArray[a,b,c] = isnan(tmp) ? zero(T) : tmp * χ
+        CFSpaceArray[a,b,c] = isnan(tmp) ? zero(T) : -tmp * χ # -Γ*χ to get the correct sign
     end
 
     return nothing
