@@ -570,10 +570,10 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[2,2] = u*v == zero(T) ? T(-1) : -1/(u*v*sqrt(1 + v^4*Ω(v)^2))
                 e[2,3] = v*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = 1/sqrt(u^2 + v^2)
+                e[3,4] = u^2 + v^2 == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = u == zero(T) ? T(1) : Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
-                e[4,3] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
+                e[4,3] = u^2 + v^2 == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
             elseif u<v # z<0
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
@@ -584,10 +584,10 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[2,2] = u*v == zero(T) ? T(-1) : -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
                 e[2,4] = u*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = sqrt(u^2 + v^2) == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
+                e[3,4] = u^2 + v^2 == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = v == zero(T) ? T(-1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
-                e[4,4] = sqrt(u^2 + v^2) == zero(T) ? T(-1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
+                e[4,4] = u^2 + v^2 == zero(T) ? T(-1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
             else #u=v, z=0
                 # T components T^α = g^αβT_β
                 e[1,1] = 1/sqrt(1 - v^4*Ω(v)^2)
@@ -596,11 +596,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[2,1] = v^2*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
                 e[2,2] = v==zero(T) ? T(-1) : -1/(v^2*sqrt(1 - v^4*Ω(v)^2))
                 # Y components Y^α = g^αβY_β
-                e[3,3] = 1/(2*v)
-                e[3,4] = 1/(2*v)
+                e[3,3] = v == zero(T) ? T(1) : 1/(2*v)
+                e[3,4] = v == zero(T) ? T(1) : 1/(2*v)
                 # Z components Z^α = g^αβZ_β
-                e[4,3] = 1/(2*v)
-                e[4,4] = -1/(2*v)
+                e[4,3] = v == zero(T) ? T(1) : 1/(2*v)
+                e[4,4] = v == zero(T) ? T(-1) : -1/(2*v)
             end
 
             return nothing

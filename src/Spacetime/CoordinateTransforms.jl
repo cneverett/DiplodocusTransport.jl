@@ -44,3 +44,19 @@ function CoordinateTransform!(pos_from::AbstractVector{T},pos_to::AbstractVector
     return nothing
 
 end
+
+function CoordinateTransform!(pos_from::AbstractVector{T},pos_to::AbstractVector{T},::Paraboloidal,::Paraboloidal) where T
+
+    t = pos_from[1]
+    ϕ = pos_from[2]
+    u = pos_from[3]
+    v = pos_from[4]
+
+    pos_to[1] = t 
+    pos_to[2] = ϕ
+    pos_to[3] = u
+    pos_to[4] = v
+
+    return nothing
+
+end
