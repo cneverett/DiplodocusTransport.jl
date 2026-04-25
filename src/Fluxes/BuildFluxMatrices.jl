@@ -794,10 +794,14 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
                     a::SVector{4,Float64} = [t0,x0,y0,z0]
                     b::SVector{4,Float64} = [t1,x1,y1,z1]
-                    n::SVector{4,Int64} = [2,8,8,8] # number of points for integration, can be changed to increase accuracy
+                    n::SVector{4,Int64} = [2,16,16,16] # number of points for integration, can be changed to increase accuracy
 
                     # Integrate space part of coordinate force
                     Simpson4D!(CoordinateForceSpaceIntegrand_func!,CFSpaceArray,a,b,n)
+
+                    # put a tolerance on integration to avoid small numerical errors causing a non-zero flux when the flux should be zero
+                    tolerance::T = 1e-16
+                    CFSpaceArray[abs.(CFSpaceArray) .< tolerance] .= zero(T)
 
                     CFSpaceArray .*= non_dimensional_factor
 
@@ -814,6 +818,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
                             J_minus_array[x,y,z,px,py,pz] -= CFMomentumArray[a,b,c,2,2] * CFSpaceArray[a,b,c]
                             K_plus_array[x,y,z,px,py,pz] += CFMomentumArray[a,b,c,3,1] * CFSpaceArray[a,b,c]
                             K_minus_array[x,y,z,px,py,pz] -= CFMomentumArray[a,b,c,3,2] * CFSpaceArray[a,b,c]
+                            
                         end
                     end
                 end

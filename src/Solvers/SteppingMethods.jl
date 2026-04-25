@@ -92,7 +92,7 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
         dt = dt * 0.5 
         dt_scale = dt / dt0
         adaptive_factor = 0.5
-    elseif Cr < 1e-3 && Cr > 0.0
+    elseif Cr < 1/2^9 && Cr > 0.0
         dt = dt * 2.0
         dt_scale = dt / dt0
         adaptive_factor = 2.0        

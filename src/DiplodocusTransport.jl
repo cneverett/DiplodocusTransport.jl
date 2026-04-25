@@ -48,7 +48,8 @@ module DiplodocusTransport
     using MKLSparse
     using HCubature
     using StaticArrays
-    using ForwardDiff
+    using ForwardDiff, Preferences
+    set_preferences!(ForwardDiff, "nansafe_mode" => true) # safer 
 
     include("Constants.jl")
     include("Backends.jl")

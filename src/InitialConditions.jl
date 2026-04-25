@@ -21,11 +21,11 @@ end
 
 
 """
-    InitialPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Init)
+    InitialPowerLaw!(Initial,PhaseSpace,species,index,pmin,pmax;kwargs...)
 
 Modifies the initial state vector `Initial` with a power law distribution with `index` for `species`. A power-law distribution is typically defined by N(E) ∝ E^(-index). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index) * p/E = pE^(-index-1). Averaging this over a cell gives f(p)_avg = [E^(1-index)/(1-index)]/[p] where [] denote evaluation at the cell bounds.
 """
-function InitialPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::Float64,num_Init::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32)  where F<:AbstractFloat
+function InitialPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32)  where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
@@ -54,7 +54,11 @@ function InitialPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,specie
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -62,11 +66,11 @@ function InitialPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,specie
 end
 
 """
-    InitialPowerLawExpDecay!(Initial,PhaseSpace,species,pmin,pmax,umin,uman,hmin,hmax,index,num_Init)
+    InitialPowerLawExpDecay!(Initial,PhaseSpace,species,index,pmin,pmax;kwargs...)
 
 Modifies the initial state vector `Initial` with a power law distribution with `index` for `species`, with an exponential cut-off. A power-law distribution is typically defined by N(E) ∝ E^(-index)exp(-E/Emax). N(E) = f(E) therefore f(p) for a power-law distribution is given by f(p) = f(E)*dE/dp = E^(-index)exp(-E/Emax) * p/E = pE^(-index-1)exp(-E/Emax).
 """
-function InitialPowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,index::Float64,num_Init::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32)  where F<:AbstractFloat
+function InitialPowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::F=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32)  where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
@@ -95,7 +99,11 @@ function InitialPowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruc
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -103,11 +111,11 @@ function InitialPowerLawExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruc
 end
 
 """
-    InitialBoostedPowerLaw!(Initial,PhaseSpace,species,pmin,pmax,Gamma,index,num_Init)
+    InitialBoostedPowerLaw!(Initial,PhaseSpace,species,Gamma,index,pmin,pmax;kwargs...)
 
 Takes an isotropic power-law distribution, with minimum momentum `pmin`, maximum momentum `pmax` and `index` in some frame propagating with Lorentz factor `Gamma` in the local z-direction and modifies the initial state vector (distribution), with a number density of `num_Init`.
 """
-function InitialBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::Float64,pmax::Float64,Gamma::Float64,index::Float64,num_Init::Float64=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
+function InitialBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,Gamma::Float64,index::Float64,pmin::Float64,pmax::Float64;num_Init::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
 
@@ -177,7 +185,11 @@ function InitialBoostedPowerLaw!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -267,7 +279,7 @@ end
 
 Modeifies the initial state vector `Initial` with a Maxwell-Juttner distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function InitialMaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
+function InitialMaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
@@ -296,7 +308,11 @@ function InitialMaxwellJuttner!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 
@@ -309,7 +325,7 @@ end
 
 Modeifies the initial state vector `Initial` with a Black-Body distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx::Int64=1,y_idx::Int64=1,z_idx::Int64=1,method="hcubature",samples=32) where F<:AbstractFloat
+function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
@@ -330,15 +346,20 @@ function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
     f0_3D_species = zeros(Float64,p_num,u_num,h_num)
 
-    DistributionToDIPIntegration!(f0_3D_species,pr,ur,hr,method,samples,Distribution_BlackBody,T,mass,umin=umin,umax=umax,hmin=hmin,hmax=hmax)
+    DistributionToDIPIntegration!(f0_3D_species,pr,ur,hr,method,samples,Distribution_BlackBody,T,umin=umin,umax=umax,hmin=hmin,hmax=hmax)
     
     # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
+    println("num=$num")
     f0_3D_species .*= num_Init/num
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
 
-    Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
 
     Initial_local .+= convert(typeof(Initial),f0_species)
 

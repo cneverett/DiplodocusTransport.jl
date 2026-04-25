@@ -53,13 +53,22 @@ end
 @inline function LocalParabolicForceFreeBField(txyz::MVector{4,T},::Paraboloidal) where T
     u = txyz[3] 
     v = txyz[4]
-    signz = sign((u^2-v^2))
-    if signz == 1
-        return T(1.0) / u / sqrt(u^2+v^2)
-    elseif signz == -1
-        return T(1.0) / v / sqrt(u^2+v^2)
+    if u isa ForwardDiff.Dual
+        cond1 = u.value > v.value # z>0
+        cond2 = u.value < v.value # z<0
+        cond3 = u.value == v.value # z=0
     else
-        return T(0.0)
+        cond1 = u > v # z>0
+        cond2 = u < v # z<0
+        cond3 = u == v # z=0
+    end
+    if cond1 # z>0
+        return 1.0 / (u*sqrt(u^2+v^2))
+    elseif cond2 # z<0
+        return 1.0 / (v*sqrt(u^2+v^2))
+    else # z=0
+        # TODO update with Omega != 0 
+        return 0.0 #/ (u*v*sqrt(2))
     end
 end
 
@@ -559,8 +568,17 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             v = pos[4]
             #= See Mathematica notebook for details of how these are derived. T corresponds to the drifting observer with T = γ(n-U⟂) then Y is in E field direction, Z in the B field direction and X orthogonal to T,X,Y
             These directions also depend on the sign of the z=(u^2-v^2)/2 cylindrical coordinate =#
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             @inline Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 e[1,2] = -Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
@@ -574,7 +592,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = u == zero(T) ? T(1) : Ω(v)*sqrt(u^2 + v^2)/(u*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 e[4,3] = u^2 + v^2 == zero(T) ? T(1) : 1/(sqrt(u^2 + v^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 # T components T^α = g^αβT_β
                 e[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 e[1,2] = -Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
@@ -584,23 +602,24 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 e[2,2] = u*v == zero(T) ? T(-1) : -1/(u*v*sqrt(1 + u^4*Ω(u)^2))
                 e[2,4] = u*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 # Y components Y^α = g^αβY_β
-                e[3,4] = u^2 + v^2 == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
+                e[3,3] = u^2 + v^2 == zero(T) ? T(1) : 1/sqrt(u^2 + v^2)
                 # Z components Z^α = g^αβZ_β
                 e[4,2] = v == zero(T) ? T(-1) : -Ω(u)*sqrt(u^2 + v^2)/(v*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 e[4,4] = u^2 + v^2 == zero(T) ? T(-1) : -1/(sqrt(u^2 + v^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
             else #u=v, z=0
+                val = sqrt(u*v)
                 # T components T^α = g^αβT_β
-                e[1,1] = 1/sqrt(1 - v^4*Ω(v)^2)
-                e[1,2] = -Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                e[1,1] = 1/sqrt(1 - val^4*Ω(val)^2)
+                e[1,2] = -Ω(val)/sqrt(1 - val^4*Ω(val)^2)
                 # X components X^α = g^αβX_β
-                e[2,1] = v^2*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
-                e[2,2] = v==zero(T) ? T(-1) : -1/(v^2*sqrt(1 - v^4*Ω(v)^2))
+                e[2,1] = val^2*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
+                e[2,2] = val==zero(T) ? T(-1) : -1/(val^2*sqrt(1 - val^4*Ω(val)^2))
                 # Y components Y^α = g^αβY_β
-                e[3,3] = v == zero(T) ? T(1) : 1/(2*v)
-                e[3,4] = v == zero(T) ? T(1) : 1/(2*v)
+                e[3,3] = val == zero(T) ? T(1) : 1/(2*val)
+                e[3,4] = val == zero(T) ? T(1) : 1/(2*val)
                 # Z components Z^α = g^αβZ_β
-                e[4,3] = v == zero(T) ? T(1) : 1/(2*v)
-                e[4,4] = v == zero(T) ? T(-1) : -1/(2*v)
+                e[4,3] = val == zero(T) ? T(1) : 1/(2*val)
+                e[4,4] = val == zero(T) ? T(-1) : -1/(2*val)
             end
 
             return nothing
@@ -615,8 +634,17 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             v = pos[4]
             #= See Mathematica notebook for details of how these are derived. T corresponds to the drifting observer with T = γ(n-U⟂) then Y is in E field direction, Z in the B field direction and X orthogonal to T,X,Y
             These directions also depend on the sign of the z=(u^2-v^2)/2 cylindrical coordinate =#
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             @inline Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 inve[2,1] = u^2*v^2*Ω(v)/(sqrt(1 + v^4*Ω(v)^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
@@ -630,7 +658,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 # Z components Z_α = (0, 0, 0, sqrt(u^2+v^2))
                 inve[2,4] = u*v^2*Ω(v)*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
                 inve[3,4] = sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 # T components -T_α = (1, 0, 0, 0)
                 inve[1,1] = sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 inve[2,1] = u^2*v^2*Ω(u)/(sqrt(1 + u^4*Ω(u)^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
@@ -645,18 +673,19 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 inve[2,4] = -u^2*v*Ω(u)*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
                 inve[4,4] = -sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             else #u=v, z=0
+                val = sqrt(u*v)
                 # T components T^α = g^αβT_β
-                inve[1,1] = 1/sqrt(1 - v^4*Ω(v)^2)
-                inve[2,1] = v^4/sqrt(1 - v^4*Ω(v)^2)
+                inve[1,1] = 1/sqrt(1 - val^4*Ω(val)^2)
+                inve[2,1] = val^4/sqrt(1 - val^4*Ω(val)^2)
                 # X components X^α = g^αβX_β
-                inve[1,2] = -v^2*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
-                inve[2,2] = -v^2/sqrt(1 - v^4*Ω(v)^2)
+                inve[1,2] = -val^2*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
+                inve[2,2] = -val^2/sqrt(1 - val^4*Ω(val)^2)
                 # Y components Y^α = g^αβY_β
-                inve[3,3] = v
-                inve[4,3] = v
+                inve[3,3] = val
+                inve[4,3] = val
                 # Z components Z^α = g^αβZ_β
-                inve[3,4] = v
-                inve[4,4] = -v
+                inve[3,4] = val
+                inve[4,4] = -val
             end
 
             return nothing
@@ -666,34 +695,54 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             #= A=A_a=e_a^{~0}χ =#
             u = xyzt[2]
             v = xyzt[3]
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)/sqrt(1 + v^4*Ω(v)^2)
                 A[2] = u^2*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 A[1] = u*v*(u^2 + v^2)*sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)/sqrt(1 + u^4*Ω(u)^2)
                 A[2] = u^2*v^2*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
             else # u=v, z=0
-                A[1] = 2v^4/sqrt(1 - v^4*Ω(v)^2)
-                A[2] = 2v^6*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
+                val=sqrt(u*v)
+                A[1] = 2val^4/sqrt(1 - val^4*Ω(val)^2)
+                A[2] = 2val^6*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
             end
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
             #= B=B_a=e_a^{~1}χ =#
             u = yztx[1]
             v = yztx[2]
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 B[1] = -u*v*(u^2 + v^2)*Ω(v)/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + v^4*Ω(v)^2)
                 B[4] = v*(u^2 + v^2)^(3/2)*Ω(v)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 B[1] = -u*v*(u^2 + v^2)*Ω(u)/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 B[2] = -(u^2 + v^2)/sqrt(1 + u^4*Ω(u)^2)
                 B[4] = -u*(u^2 + v^2)^(3/2)*Ω(u)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             else # u=v, z=0
-                B[1] = -2v^4*Ω(v)/sqrt(1 - v^4*Ω(v)^2)
-                B[2] = -2v^2/sqrt(1 - v^4*Ω(v)^2)
+                val = sqrt(u*v)
+                B[1] = -2val^4*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
+                B[2] = -2val^2/sqrt(1 - val^4*Ω(val)^2)
             end
         end
         @inline function CoordinateFluxSpaceCIntegrand!(ztxy::MVector{4,T},C::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -701,16 +750,26 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             fill!(C, zero(T)) # needed as components that are non-zero change with sign z
             u = ztxy[4]
             v = ztxy[1]
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 C[1] = u^2*v^3*(u^2 + v^2)*Ω(v)^2/(sqrt(1 + v^4*Ω(v)^2) * sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2))
                 C[2] = u*v^2*(u^2 + v^2)*Ω(v)/sqrt(1 + v^4*Ω(v)^2)
                 C[4] = u*v*sqrt(u^2 + v^2)/sqrt(1 + v^2*(u^2 + v^2)*Ω(v)^2)
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 C[3] = u*v*sqrt(u^2 + v^2)
             else # u=v, z=0
-                C[3] = v^3
-                C[4] = v^3
+                val = sqrt(u*v)
+                C[3] = val^3
+                C[4] = val^3
             end
         end
         @inline function CoordinateFluxSpaceDIntegrand!(txyz::MVector{4,T},D::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -718,15 +777,25 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
             fill!(D, zero(T)) # needed as components that are non-zero change with sign z
             u = txyz[3]
             v = txyz[4]
+            if u isa ForwardDiff.Dual
+                cond1 = u.value > v.value # z>0
+                cond2 = u.value < v.value # z<0
+                cond3 = u.value == v.value # z=0
+            else
+                cond1 = u > v # z>0
+                cond2 = u < v # z<0
+                cond3 = u == v # z=0
+            end
             Ω = tetrad.Ω
-            if u>v # z>0
+            if cond1 # z>0
                 D[3] = u*v*sqrt(u^2 + v^2)
-            elseif u<v # z<0
+            elseif cond2 # z<0
                 D[1] = u^3*v^2*(u^2 + v^2)*Ω(u)^2/(sqrt(1 + u^4*Ω(u)^2) * sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2))
                 D[2] = u^2*v*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
                 D[4] = -u*v*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             else # u=v, z=0
-                D[3] = v^3
-                D[4] = -v^3
+                val = sqrt(u*v)
+                D[3] = val^3
+                D[4] = -val^3
             end
         end

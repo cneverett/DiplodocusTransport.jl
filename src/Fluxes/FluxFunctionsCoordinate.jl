@@ -613,6 +613,8 @@ function CoordinateForceMomentumIntegral!(ForceMomentumArray::MArray{Tuple{4,4,4
     h0 = Grids.pzr_list[species_idx][pz_idx]
     h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
+    fill!(ForceMomentumArray,zero(Float64))
+
     CoordinateForceIFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,1,1),m,p1,u0,u1,h0,h1)
     CoordinateForceIFluxMomentumIntegral!(view(ForceMomentumArray,:,:,:,1,2),m,p0,u0,u1,h0,h1)
 
@@ -626,8 +628,10 @@ end
 
 function CoordinateForceIFluxMomentumIntegral!(ForceMomentumArrayView::AbstractArray{T,3},m::T,p::T,u0::T,u1::T,h0::T,h1::T) where T
 
-    sh0,ch0 = sincos(h0)
-    sh1,ch1 = sincos(h1)
+    h0divpi = h0/pi
+    h1divpi = h1/pi
+    sh0,ch0 = sincospi(h0divpi)
+    sh1,ch1 = sincospi(h1divpi)
 
     M121::T = -(1/4) * sqrt(m^2 + p^2) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (sh0 - sh1)
     M131::T = 1/4 * sqrt(m^2 + p^2) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (ch0 - ch1)
@@ -675,30 +679,34 @@ end
 
 function CoordinateForceJFluxMomentumIntegral!(ForceMomentumArrayView::AbstractArray{T,3},m::T,p0::T,p1::T,u::T,h0::T,h1::T) where T
 
-    sh0,ch0 = sincos(h0)
-    sh1,ch1 = sincos(h1)
+    h0divpi = h0/pi
+    h1divpi = h1/pi
+    sh0,ch0 = sincospi(h0divpi)
+    sh1,ch1 = sincospi(h1divpi)
     sqrt_mp0 = sqrt(m^2 + p0^2)
     sqrt_mp1 = sqrt(m^2 + p1^2)
 
     M121::T = 0.5 * u * sqrt(1 - u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1)) * (sh0 - sh1)
     M131::T = -0.5 * u * sqrt(1 - u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1)) * (ch0 - ch1)
-    M141::T = 0.5 * (h0 - h1) * (-1 + u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1))
+    M141::T = -0.5 * (h0 - h1) * (1 - u^2) * (sqrt_mp0 - sqrt_mp1 - m*asinh(m/p0) + m*asinh(m/p1))
     M241::T = -0.5 * (p0 - p1) * sqrt(1 - u^2) * (sh0 - sh1)
     M341::T = 0.5 * (p0 - p1) * sqrt(1 - u^2) * (ch0 - ch1)
-    M122::T = 0.25 * (-p0 + p1) * u * (-1 + u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
-    M132::T = 0.25 * (p0 - p1) * u * (-1 + u^2) * (ch0^2 - ch1^2)
+
+    M122::T = 0.25 * (p0 - p1) * u * (1 - u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
+    M132::T = -0.25 * (p0 - p1) * u * (1 - u^2) * (ch0^2 - ch1^2)
     M142::T = -0.5 * (p0 - p1) * (1 - u^2)^(3/2) * (sh0 - sh1)
-    M242::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
-    M342::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (ch0^2 - ch1^2)
-    M123::T = M132
-    M133::T = 0.25 * (-p0 + p1) * u * (-1 + u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
+    M242::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (1 - u^2) * (h0 - h1 + ch0 * sh0 - ch1 * sh1)
+    M342::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (1 - u^2) * (ch0^2 - ch1^2)
+
+    M123::T = -0.25 * (p0 - p1) * u * (1 - u^2) * (ch0^2 - ch1^2)
+    M133::T = 0.25 * (p0 - p1) * u * (1 - u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
     M143::T = 0.5 * (p0 - p1) * (1 - u^2)^(3/2) * (ch0 - ch1)
-    M243::T = M342
-    M343::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (-1 + u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
+    M243::T = 0.25 * (sqrt_mp0 - sqrt_mp1) * (1 - u^2) * (ch0^2 - ch1^2)
+    M343::T = -0.25 * (sqrt_mp0 - sqrt_mp1) * (1 - u^2) * (h0 - h1 - ch0 * sh0 + ch1 * sh1)
 
     M124::T = 0.5 * (p0 - p1) * u^2 * sqrt(1 - u^2) * (sh0 - sh1)
-    M134::T = 0.5 * (-p0 + p1) * u^2 * sqrt(1 - u^2) * (ch0 - ch1)
-    M144::T = 0.5 * (h0 - h1) * (p0 - p1) * u * (-1 + u^2)
+    M134::T = -0.5 * (p0 - p1) * u^2 * sqrt(1 - u^2) * (ch0 - ch1)
+    M144::T = -0.5 * (h0 - h1) * (p0 - p1) * u * (1 - u^2)
     M244::T = -0.5 * (sqrt_mp0 - sqrt_mp1) * u * sqrt(1 - u^2) * (sh0 - sh1)
     M344::T = 0.5 * (sqrt_mp0 - sqrt_mp1) * u * sqrt(1 - u^2) * (ch0 - ch1)
 

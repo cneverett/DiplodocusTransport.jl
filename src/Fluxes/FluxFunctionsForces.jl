@@ -28,9 +28,9 @@
         e::MMatrix{4,4,T,16} = zeros(T,4,4)
         ∂lnB = MVector{4,T}(zeros(T,4))
 
-        @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
+        @inline lnB_func(pos_local) = log(tetrad.Bfunction(pos_local,coordinates))
         cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
-        @inline SpaceIntegrand!(pos_local,IFluxSpaceVector_local) = GuidingCentreForceSpaceIntegrand(pos_local,IFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
+        @inline SpaceIntegrand!(pos_local,IFluxSpaceVector_local) = GuidingCentreForceSpaceIntegrand!(pos_local,IFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
 
         # flux must have no dimensions
         flux_non_dimensional::T = CONST_c * Characteristic.CHAR_time / Characteristic.CHAR_length
@@ -42,13 +42,17 @@
         # Integrate space part of force
         Simpson4D!(SpaceIntegrand!,SVecForce,a,b,n)
 
+        # put a tolerance on integration to avoid small numerical errors causing a non-zero flux when the flux should be zero
+        tolerance::T = 1e-16
+        SVecForce[abs.(SVecForce) .< tolerance] .= zero(T)
+
         SVecForce .*= flux_non_dimensional
 
         return nothing
 
     end
 
-    @inline function GuidingCentreForceSpaceIntegrand(pos::MVector{4,T},SVecForce::MVector{4,T},metric::AbstractMetric,coordinates::AbstractCoordinates,tetrad::AbstractTetrad,e,∂lnB,func,cfg::ForwardDiff.GradientConfig) where T
+    @inline function GuidingCentreForceSpaceIntegrand!(pos::MVector{4,T},SVecForce::MVector{4,T},metric::AbstractMetric,coordinates::AbstractCoordinates,tetrad::AbstractTetrad,e,∂lnB,func,cfg::ForwardDiff.GradientConfig) where T
 
         fill!(SVecForce, zero(T))
         TetradComponents!(pos,e,metric,coordinates,tetrad)
@@ -57,7 +61,7 @@
         χ::T = VolumeElement(pos,metric,coordinates)
 
         @inbounds for a in 1:4, b in 1:4
-            SVecForce[a] -= e[a,b]*∂lnB[b]*χ/2
+            SVecForce[a] -= χ == zero(T) ? zero(T) : e[a,b]*∂lnB[b]*χ/2
         end
 
         return nothing
@@ -79,31 +83,36 @@
         h0 = Grids.pzr_list[species_idx][pz_idx]
         h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
+        h0divpi = h0/pi
+        h1divpi = h1/pi
+        sh0, ch0 = sincospi(h0divpi)
+        sh1, ch1 = sincospi(h1divpi)
+
         if m != 0 && Z != 0
 
             # I_plus#
-            MMatForce[1,2,1] = -p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sin(h0) - sin(h1))/(8*sqrt(m^2 + p1^2))
-            MMatForce[1,3,1] = p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(cos(h0) - cos(h1))/(8*sqrt(m^2 + p1^2))
+            MMatForce[1,2,1] = -p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sh0 - sh1)/(8*sqrt(m^2 + p1^2))
+            MMatForce[1,3,1] = p1^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(ch0 - ch1)/(8*sqrt(m^2 + p1^2))
             MMatForce[1,4,1] = -(h0 - h1)*p1^2*(-2u0^2 + u0^4 + 2u1^2 - u1^4)/(4*sqrt(m^2 + p1^2))
             # I_minus
-            MMatForce[1,2,2] =  -p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sin(h0) - sin(h1))/(8*sqrt(m^2 + p0^2))
-            MMatForce[1,3,2] =  p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(cos(h0) - cos(h1))/(8*sqrt(m^2 + p0^2))
+            MMatForce[1,2,2] =  -p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(sh0 - sh1)/(8*sqrt(m^2 + p0^2))
+            MMatForce[1,3,2] =  p0^2*(-5u0*sqrt(1 - u0^2) + 2u0^3*sqrt(1 - u0^2) + 5u1*sqrt(1 - u1^2) - 2u1^3*sqrt(1 - u1^2) + 3acos(u0) - 3acos(u1))*(ch0 - ch1)/(8*sqrt(m^2 + p0^2))
             MMatForce[1,4,2] = -(h0 - h1)*p0^2*(-2u0^2 + u0^4 + 2u1^2 - u1^4)/(4*sqrt(m^2 + p0^2))
             # J_plus 
-            MMatForce[2,2,1] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(sin(h0) - sin(h1))
-            MMatForce[2,3,1] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(cos(h0) - cos(h1))
+            MMatForce[2,2,1] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(sh0 - sh1)
+            MMatForce[2,3,1] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u1*(1 - u1^2)^(3/2)*(ch0 - ch1)
             MMatForce[2,4,1] = (h0 - h1)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(-1 + u1^2)^2
             # J_minus
-            MMatForce[2,2,2] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(sin(h0) - sin(h1))
-            MMatForce[2,3,2] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(cos(h0) - cos(h1))
+            MMatForce[2,2,2] = -(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(sh0 - sh1)
+            MMatForce[2,3,2] = (sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*u0*(1 - u0^2)^(3/2)*(ch0 - ch1)
             MMatForce[2,4,2] = (h0 - h1)*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(-1 + u0^2)^2
             # K_plus
-            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sin(h1)
-            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cos(h1)
+            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sh1
+            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * ch1
             MMatForce[3,4,1] = 0.0
             # K_minus
-            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sin(h0)
-            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * cos(h0)
+            MMatForce[3,2,1] = -0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * sh0
+            MMatForce[3,3,1] = 0.5*(sqrt(m^2 + p0^2) - sqrt(m^2 + p1^2))*(u0 * sqrt(1 - u0^2) - u1 * sqrt(1 - u1^2) - acos(u0) + acos(u1)) * ch0
             MMatForce[3,4,1] = 0.0
 
         end
@@ -156,7 +165,7 @@
         ∂lnB = MVector{4,Float64}(zeros(Float64,4))
         JFluxSpaceVector = MVector{3,Float64}(zeros(Float64,3))
 
-        @inline lnB_func(pos_local) = tetrad.Bfunction(pos_local,coordinates)
+        @inline lnB_func(pos_local) = log(tetrad.Bfunction(pos_local,coordinates))
         cfg::ForwardDiff.GradientConfig = ForwardDiff.GradientConfig(lnB_func,pos)
         @inline ForceSpaceIntegrand!(pos_local,JFluxSpaceVector_local) = GuidingCentreSpaceFluxVector(pos_local,JFluxSpaceVector_local,metric,coordinates,tetrad,e,∂lnB,lnB_func,cfg)
 
