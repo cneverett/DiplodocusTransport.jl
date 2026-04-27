@@ -102,11 +102,16 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
         self.df_tmp = zeros(Backend,Precision,length(Initial))
 
         if !isnothing(ZeroDomain)
-            self.mask = ones(Backend,Precision,length(Initial))
+            mask = ones(Precision,length(Initial))
             for off_space_idx in ZeroDomain
                 for species_idx in eachindex(PhaseSpace.name_list)
-                LocationSpeciesToStateVector(self.mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                LocationSpeciesToStateVector(mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                 end
+            end
+            if Backend isa CUDABackend
+                self.mask = CuArray(mask)
+            else
+                self.mask = mask
             end
         else
             self.mask = nothing

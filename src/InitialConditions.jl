@@ -350,7 +350,6 @@ function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
     
     # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
-    println("num=$num")
     f0_3D_species .*= num_Init/num
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
