@@ -257,7 +257,7 @@ A struct for storing the grid values for each particle in the simulation.
 
             if spacetime.tetrad isa ElectromagneticTetrad
                 # build electromagnetic field grids
-                self.B_field, self.E_field = ElectroMagneticFieldFunction(spacetime,spacetime.tetrad,self)
+                self.B_field, self.E_field = ElectromagneticFieldFunction(spacetime,spacetime.tetrad,self)
             else
                 self.B_field = zeros(Float64,0,0,0)
                 self.E_field = zeros(Float64,0,0,0)
