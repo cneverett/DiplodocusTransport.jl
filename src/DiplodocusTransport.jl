@@ -92,7 +92,7 @@ module DiplodocusTransport
     include("Collisions/EmissionCorrection.jl")
 
     # Solvers
-    include("Solvers/SteppingStructs.jl ")
+    include("Solvers/SteppingStructs.jl")
     include("Solvers/SteppingMethods.jl")
     include("Solvers/Solver.jl")
     include("DataReading.jl")
