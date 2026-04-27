@@ -44,10 +44,10 @@ end
 
 function SpacetimeGrid(grid::StretchGrid) 
     #= stretch spacing
-        |   a    |   a   |    a*r    |     a*r^2     |      a*r^3      |       a*r^4       | 
-       low                    
+        |       |      |           |              |                   |                   | 
+       low    (low+a) (low+a)*r   (low+a)*r^2   (low+a)*r^3         (low+a)*r^4      (low+a)*r^5         
     =#
     @assert grid.ratio != 1.0 "Ratio must be different from 1 for stretch grid"
-    vec = [grid.a + grid.a*(1.0-grid.ratio^(i))/(1.0-grid.ratio) for i in 0:(grid.num-1)]
-    return prepend!(vec, 0.0) .+ grid.low
+    vec = [(grid.a-grid.low)*grid.ratio^i for i in 0:(grid.num-1)]
+    return prepend!(vec, grid.low)
 end
