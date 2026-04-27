@@ -22,7 +22,7 @@ module DiplodocusTransport
     # Fluxes
     export BuildFluxMatrices, VolFunction
     # Collisions
-    export AbstractInteraction, BinaryInteraction, EmissiveInteraction, InteractionDomain
+    export AbstractInteraction, BinaryInteraction, EmissiveInteraction
     export LoadMatrices, BuildBinaryMatrices, BuildEmissionMatrices
     # Initial and Injection Conditions
     export InitialiseInitialCondition, InitialConstant!, InitialMaxwellJuttner!, InitialPowerLaw!, InitialBoostedPowerLaw!, InitialBlackBody!, InitialPowerLawExpDecay!
@@ -31,7 +31,7 @@ module DiplodocusTransport
     export AbstractSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
     export OutputStruct, SolutionFileLoad
     # Utilities
-    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!
+    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!, InclusiveDomainMask, ExclusiveDomainMask
     # Distribution Moments 
     export FourFlow, HydroFourVelocity, HydroThreeVelocity, ProjectionTensor, StressEnergyTensor, ScalarNumberDensity, ScalarMassDensity, ScalarEnergyDensity, ScalarPressure, ScalarTemperature
 
@@ -74,6 +74,7 @@ module DiplodocusTransport
     include("InitialConditions.jl")
     include("InjectionConditions.jl")
     include("GlobalToStateIndices.jl")
+    include("DomainMasks.jl")
 
     # Fluxes
     include("Fluxes/FluxStructs.jl")
@@ -84,7 +85,6 @@ module DiplodocusTransport
 
     # Collisions
     include("Collisions/InteractionStructs.jl")
-    include("Collisions/InteractionDomains.jl")
     include("Collisions/InteractionPhaseSpaceFactors.jl")
     include("Collisions/BuildBinaryMatrices.jl")
     include("Collisions/BuildEmissionMatrices.jl")

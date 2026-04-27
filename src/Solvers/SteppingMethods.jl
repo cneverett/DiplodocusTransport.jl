@@ -37,6 +37,7 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     #println("df: $(method.df)")
 
     @. method.df *= method.invAp_Flux * dt_scale # Assumes Ap_flux is diagonal and stored as a vector
+    # add injection term
     @. method.df += method.df_Inj * dt_scale 
 
     if !isfinite(sum(method.df))
@@ -119,7 +120,10 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     # update state vector f with momentum, space and injection updates
     @. method.f += method.df * adaptive_factor 
 
-    #println("max. f = $(maximum(method.f))")
+    # remove masked off domain regions
+    if !isnothing(method.mask)
+        @. method.f *= method.mask
+    end
 
     # removing negative values (values less than 1f-28 for better stability)
     @. method.f = method.f * (method.f>=method.n_cut) * sign(method.f)

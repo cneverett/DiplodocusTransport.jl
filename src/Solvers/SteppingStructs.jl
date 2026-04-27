@@ -31,9 +31,10 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
     df_Emi::AbstractVector{T}                       # change in distribution function due to emission interactions
     df_Flux::AbstractVector{T}                      # change in distribution function due to fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
-    df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations   
+    df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations
+    mask::Union{AbstractVector{T},Nothing}                         # mask for spatial domain (1 for points in domain, 0 for points outside domain)   
 
-    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,n_cut::Float64=1e-45)
+    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,n_cut::Float64=1e-45,ZeroDomain::Union{Vector{Int64},Nothing}=nothing)
 
         Backend = getfield(Main,Symbol("Backend"))
         Precision = getfield(Main,Symbol("Precision"))
@@ -99,6 +100,17 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
         self.df_Emi = zeros(Backend,Precision,length(Initial))
         self.df_Flux = zeros(Backend,Precision,length(Initial))
         self.df_tmp = zeros(Backend,Precision,length(Initial))
+
+        if !isnothing(ZeroDomain)
+            self.mask = ones(Backend,Precision,length(Initial))
+            for off_space_idx in ZeroDomain
+                for species_idx in eachindex(PhaseSpace.name_list)
+                LocationSpeciesToStateVector(self.mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                end
+            end
+        else
+            self.mask = nothing
+        end
 
         return self
     end
