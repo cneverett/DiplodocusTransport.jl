@@ -36,6 +36,7 @@ const CONST_zSph::Float64 = 0.0;                 # Charge of hard sphere
 
 # Common Length scales
 const CONST_pcs::Float64 = 3.0857e16;           # Parsec in meters [m]
+const CONST_rs_Sun::Float64 = 2.95325e3;        # Schwarzschild radius of the Sun [m]
 
 # Domain bounds
 const CONST_u0::Float64 = -1.0;                 # Lower bound for cos(theta)
