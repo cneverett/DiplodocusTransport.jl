@@ -6,7 +6,7 @@ abstract type AbstractTetrad end
 A `ZeroRicciTetrad` is a tetrad that maps a coordinate system to a fixed set of basis vectors in Minkowski spacetime. By this all Ricci rotation coefficients are zero across the whole spacetime, simplifying the calculation of IJK fluxes.
 """
 abstract type ElectromagneticTetrad <: AbstractTetrad end
-abstract type ForceFreeTetrad <: AbstractTetrad end
+abstract type ForceFreeTetrad <: ElectromagneticTetrad end
 
 """
     StationaryObserverTetrad()
@@ -713,8 +713,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 A[2] = u^2*v^2*(u^2 + v^2)*Ω(u)/sqrt(1 + u^4*Ω(u)^2)
             else # u=v, z=0
                 val=sqrt(u*v)
-                A[1] = 2val^4/sqrt(1 - val^4*Ω(val)^2)
-                A[2] = 2val^6*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
+                A[1] = T(0) #2val^4/sqrt(1 - val^4*Ω(val)^2) # avoid non-zero integral at z=0 for coordinate fluxes due to single non-zero point in Simpson integration
+                A[2] = T(0) #2val^6*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
             end
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -741,8 +741,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 B[4] = -u*(u^2 + v^2)^(3/2)*Ω(u)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             else # u=v, z=0
                 val = sqrt(u*v)
-                B[1] = -2val^4*Ω(val)/sqrt(1 - val^4*Ω(val)^2)
-                B[2] = -2val^2/sqrt(1 - val^4*Ω(val)^2)
+                B[1] = T(0) #-2val^4*Ω(val)/sqrt(1 - val^4*Ω(val)^2) # avoid non-zero integral at z=0 for coordinate fluxes due to single non-zero point in Simpson integration
+                B[2] = T(0) #-2val^2/sqrt(1 - val^4*Ω(val)^2)
             end
         end
         @inline function CoordinateFluxSpaceCIntegrand!(ztxy::MVector{4,T},C::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -768,8 +768,8 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 C[3] = u*v*sqrt(u^2 + v^2)
             else # u=v, z=0
                 val = sqrt(u*v)
-                C[3] = val^3
-                C[4] = val^3
+                C[3] = T(0) #val^3 # avoid non-zero integral at z=0 for coordinate fluxes due to single non-zero point in Simpson integration
+                C[4] = T(0) #val^3
             end
         end
         @inline function CoordinateFluxSpaceDIntegrand!(txyz::MVector{4,T},D::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
@@ -795,7 +795,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 D[4] = -u*v*sqrt(u^2 + v^2)/sqrt(1 + u^2*(u^2 + v^2)*Ω(u)^2)
             else # u=v, z=0
                 val = sqrt(u*v)
-                D[3] = val^3
-                D[4] = -val^3
+                D[3] = T(0) #val^3 # avoid non-zero integral at z=0 for coordinate fluxes due to single non-zero point in Simpson integration
+                D[4] = T(0) #-val^3
             end
         end
