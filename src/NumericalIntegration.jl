@@ -168,11 +168,11 @@ function Simpson2D(f, a::SVector{2,T}, b::SVector{2,T}, n::Vector{Int}) where T
     xy::MVector{2,T} = zeros(T,2)
 
     @inbounds for i in 0:nx
-        x = ax + i * hx
+        xy[1] = ax + i * hx
         wx = (i == 0 || i == nx) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
 
         for j in 0:ny
-            y = ay + j * hy
+            xy[2] = ay + j * hy
             wy = (j == 0 || j == ny) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
 
             total += wx * wy * f(xy)
@@ -219,19 +219,19 @@ function Simpson4D(f, a::SVector{4,T}, b::SVector{4,T}, n::SVector{4,Int64}) whe
     txyz::MVector{4,T} = zeros(T,4)
 
     @inbounds for i in 0:nt
-        t = at + i * ht
+        txyz[1] = at + i * ht
         wt = (i == 0 || i == nt) ? 1.0 : (isodd(i) ? 4.0 : 2.0)
 
         for j in 0:nx
-            x = ax + j * hx
+            txyz[2] = ax + j * hx
             wx = (j == 0 || j == nx) ? 1.0 : (isodd(j) ? 4.0 : 2.0)
 
             for k in 0:ny
-                y = ay + k * hy
+                txyz[3] = ay + k * hy
                 wy = (k == 0 || k == ny) ? 1.0 : (isodd(k) ? 4.0 : 2.0)
 
                 for l in 0:nz
-                    z = az + l * hz
+                    txyz[4] = az + l * hz
                     wz = (l == 0 || l == nz) ? 1.0 : (isodd(l) ? 4.0 : 2.0)
 
                     total += wt * wx * wy * wz * f(txyz)
