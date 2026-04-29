@@ -62,12 +62,12 @@ function ElectromagneticFieldGrid(Spacetime::SpacetimeStruct,tetrad::ParabolicFo
     n::SVector{4,Int64} = [2,2,16,16] 
 
     for ix in 1:x_num, iy in 1:y_num, iz in 1:z_num
-        x0 = Grids.xr[x]
-        x1 = Grids.xr[x+1]
-        y0 = Grids.yr[y]
-        y1 = Grids.yr[y+1]
-        z0 = Grids.zr[z]
-        z1 = Grids.zr[z+1]
+        x0 = Grids.xr[ix]
+        x1 = Grids.xr[ix+1]
+        y0 = Grids.yr[iy]
+        y1 = Grids.yr[iy+1]
+        z0 = Grids.zr[iz]
+        z1 = Grids.zr[iz+1]
         a::SVector{4,Float64} = [t0,x0,y0,z0]
         b::SVector{4,Float64} = [t1,x1,y1,z1]
         B_field[ix,iy,iz] = B0 * Simpson4D(Bfunction,a,b,n) / Simpson4D(Vfunction,a,b,n)
