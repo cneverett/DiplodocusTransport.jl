@@ -349,15 +349,16 @@ function FillTimeFlux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_
                 a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
                 b = a
 
+                Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
+
                 # fill
                 push!(Ap_Flux_I,a)
                 push!(Ap_Flux_J,b)
-                push!(Ap_Flux_V,convert(T,Aplus))
+                push!(Ap_Flux_V,convert(T,Aplus / Norm))
 
                 push!(Am_Flux_I,a)
                 push!(Am_Flux_J,b)
-                push!(Am_Flux_V,convert(T,Aminus))
-
+                push!(Am_Flux_V,convert(T,Aminus / Norm))
             end
         end
     end
@@ -800,8 +801,17 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
                     Simpson4D!(CoordinateForceSpaceIntegrand_func!,CFSpaceArray,a,b,n)
 
                     # put a tolerance on integration to avoid small numerical errors causing a non-zero flux when the flux should be zero
-                    tolerance::T = 1e-16
-                    CFSpaceArray[abs.(CFSpaceArray) .< tolerance] .= zero(T)
+                    pos[1] = (t1+t0)/2
+                    pos[2] = (x1+x0)/2
+                    pos[3] = (y1+y0)/2
+                    pos[4] = (z1+z0)/2
+                    χ = VolumeElement(pos,metric,coordinates)
+                    tolerance::T = 1e-8
+                    for idx in eachindex(CFSpaceArray)
+                         if abs(CFSpaceArray[idx]) < tolerance * χ
+                            CFSpaceArray[idx] = zero(T)
+                        end
+                    end
 
                     CFSpaceArray .*= non_dimensional_factor
 
@@ -943,7 +953,7 @@ function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_F
     @inline CoordinateFluxDIntegrand!(txyz,D) = CoordinateFluxSpaceDIntegrand!(txyz,D,metric,coordinates,tetrad)
 
     non_dimensional_factor::Float64 = CONST_c * Characteristic.CHAR_time / Characteristic.CHAR_length
-    
+
     for x in 1:x_num, y in 1:y_num, z in 1:z_num
 
         t0 = Grids.tr[1]

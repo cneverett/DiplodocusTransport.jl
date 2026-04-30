@@ -324,11 +324,11 @@
         if metric isa Minkowski
             if coordinates isa Cartesian
 
-                vol *= (-t0 + t1) * (-x0 + x1) * (-y0 + y1) * (-z0 + z1)
+                vol *= (t0 - t1) * (x0 - x1) * (y0 - y1) * (z0 - z1)
 
             elseif coordinates isa Cylindrical
 
-                vol *=(-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
+                vol *= (-t0 + t1) * (-x0^2 + x1^2) * (-y0 + y1) * (-z0 + z1) / 2
 
             elseif coordinates isa Spherical
 
@@ -595,10 +595,15 @@ function CoordinateFluxMomentumIntegral!(FluxMomentumArray::MVector{4,Float64},P
     h0 = Grids.pzr_list[species_idx][pz_idx]
     h1 = Grids.pzr_list[species_idx][pz_idx+1]
 
-    FluxMomentumArray[1] = 1.0
-    FluxMomentumArray[2] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (sin(h1) - sin(h0))
-    FluxMomentumArray[3] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (cos(h0) - cos(h1))
-    FluxMomentumArray[4] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h1 - h0)
+    h0divpi = h0/pi
+    h1divpi = h1/pi
+    sh0,ch0 = sincospi(h0divpi)
+    sh1,ch1 = sincospi(h1divpi)
+
+    FluxMomentumArray[1] = (-h0 + h1) * (-p0 + p1) * (-u0 + u1)
+    FluxMomentumArray[2] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (sh0 - sh1)
+    FluxMomentumArray[3] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0*sqrt(1 - u0^2) - u1*sqrt(1 - u1^2) - acos(u0) + acos(u1)) * (ch0 - ch1)
+    FluxMomentumArray[4] = 0.5*(-sqrt(m^2 + p0^2) + sqrt(m^2 + p1^2)) * (u0^2 - u1^2) * (h0 - h1)
 
 end
 
