@@ -15,7 +15,7 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
     # scaling of time stepping
 
-        dt_scale = dt / dt0
+    dt_scale = dt / dt0
 
     # update momentum and space space using f at time t
 
@@ -79,17 +79,19 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
         end   
 
-        if Verbose == 1 && Cr > 1.0
-            println("Cr = $Cr, t=$t_start, dt=$dt, system may be unstable")
-        elseif Verbose == 2
-            println("\rCr = $Cr, t=$t_start, dt=$dt")
-        elseif Verbose == 3
-            println("Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
-        end
     end
 
-    # Basis timestep control based on CFL condition
-    if Cr > 1.0 
+    if Verbose == 1 && Cr > 1.0
+        println("t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3)) system may be unstable")
+    elseif Verbose == 2
+        println("\r t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3))")
+    elseif Verbose == 3
+        println("Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
+    end
+    flush(stdout)
+
+    # Basic timestep control based on CFL condition
+    #=if Cr > 1.0 
         dt = dt * 0.5 
         dt_scale = dt / dt0
         adaptive_factor = 0.5
@@ -99,6 +101,12 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
         adaptive_factor = 2.0        
     else
         adaptive_factor = 1.0
+    end=#
+    # Slightly better timestep control based on CFL condition
+    if Cr != 0.8 
+        dt = dt * 0.8 / Cr
+        dt_scale = dt / dt0
+        adaptive_factor = 0.8 / Cr
     end
 
     # will we reached the next t_save?
@@ -119,6 +127,7 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
     # update state vector f with momentum, space and injection updates
     @. method.f += method.df * adaptive_factor 
+    #@. method.f += (method.df + method.df_Inj * dt_scale) * adaptive_factor # add injection term and apply adaptive factor to total update 
 
     # remove masked off domain regions
     if !isnothing(method.mask)
