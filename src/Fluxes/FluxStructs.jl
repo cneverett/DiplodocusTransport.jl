@@ -33,9 +33,9 @@ abstract type AnalyticForce <: AbstractForce end
 
 struct CoordinateForce <: AbstractForce end
 
-mutable struct SyncRadReact <: AnalyticForce
-    mode::AbstractMode
-    B::Float64
+@kwdef struct SyncRadReact <: AnalyticForce
+    mode::AbstractMode = Ani()
+    B::Union{Float64,Nothing} = nothing
 end
 
 struct FirstOrderGuidingCentre <: SpaceVectorForce end

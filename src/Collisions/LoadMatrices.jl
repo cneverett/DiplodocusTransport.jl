@@ -282,7 +282,7 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
 
                 if type=="Sync" && Force 
                     
-                    force = SyncRadReact(mode,Ext_sampled[Ext_idx])
+                    force = SyncRadReact(mode=mode,B=Ext_sampled[Ext_idx])
                     Fill_I_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
                     Fill_J_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
                     Fill_K_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)

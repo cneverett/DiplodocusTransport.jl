@@ -6,7 +6,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
 
     if type == "Sync"
 
-        force = SyncRadReact(Ani(),Ext)
+        force = SyncRadReact(mode=Ani(),B=Ext)
         Momentum = PhaseSpace.Momentum
         Space = PhaseSpace.Space
         scheme = Momentum.scheme
