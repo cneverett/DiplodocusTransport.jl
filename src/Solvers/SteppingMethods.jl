@@ -382,14 +382,9 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
 
-    n_space = x_num+y_num+z_num
     n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
 
     @assert size(method.M_Bin) == (n_momentum^2,n_momentum) "M_Bin is not the correct size"
-
-    f = method.f
-
-    Vol = method.Vol
 
     Domain = method.Bin_Domain
 
@@ -403,9 +398,11 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
         start_idx = n_momentum*off_space+1
         end_idx = n_momentum*(off_space+1)
 
-        fView = @view f[start_idx:end_idx]
+        fView = @view(method.f[start_idx:end_idx])
 
-        if isnothing(Domain) || in(off_space,Domain) || isnothing(findfirst(!iszero,fView))
+        all_zero = maximum(abs.(fView)) == zero(eltype(fView))
+
+        if isnothing(Domain) || in(off_space,Domain) || !all_zero
 
             df_BinView = @view method.df_Bin[start_idx:end_idx]
             mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
@@ -416,7 +413,7 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
             #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
 
             # multiply by volume element
-            df_BinView .*= view(Vol,off_space+1)
+            df_BinView .*= view(method.Vol,off_space+1)
 
         else
             continue
@@ -436,8 +433,6 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
 end
 
 function update_Big_Emi!(method::AbstractSteppingMethod)
-
-    f = method.f
 
     @assert size(method.M_Emi) == (length(f),length(f)) "M_Emi is not the correct size"
 
@@ -464,7 +459,7 @@ function update_Big_Emi!(method::AbstractSteppingMethod)
         start_idx = n_momentum*off_space+1
         end_idx = n_momentum*(off_space+1)
 
-        fView = @view f[start_idx:end_idx]
+        fView = @view(method.f[start_idx:end_idx])
         df_EmiView = @view method.df_Emi[start_idx:end_idx]
 
         M_EmiView = @view method.M_Emi[start_idx:end_idx,start_idx:end_idx] # TODO: make M_Emi block diagonal to save memory 

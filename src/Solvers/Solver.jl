@@ -56,9 +56,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
         end
 
         # update t and dt and save state after timestep
-        copyto!(f,method.f)
-        #println("$(method.f)")
-        @. output.f[i] = f
+        copyto!(output.f[i],method.f)
         output.t[i] = t_stop
         
         if progress
