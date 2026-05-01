@@ -22,6 +22,8 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
     dt0::T
     n_cut::T
 
+    step::Int64
+
     M_Bin_Mul_Step::AbstractMatrix{T}               # temporary array for matrix multiplication of binary terms
     M_Bin_Mul_Step_reshape::AbstractVector{T}       # temporary array for reshaped matrix multiplication of binary terms
     f_init::AbstractVector{T}                       # initial distribution function (used by solver to define output struct)
@@ -47,6 +49,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
         self.Adaptive = Adaptive
         self.dt0 = convert(Precision,PhaseSpace.Spacetime.dt0)
         self.n_cut = convert(Precision,n_cut)
+        self.step = 0
 
         self.Binary_Interactions = !isempty(BinM.Binary_list)
         self.Emission_Interactions = !isempty(EmiM.Emission_list)

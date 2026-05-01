@@ -11,6 +11,8 @@ dg = \\left[-\\left(\\mathcal{A}^{+}+\\mathcal{A}^{-}+\\mathcal{B}+\\mathcal{C}+
 """
 function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
+    method.step += 1
+
     dt0 = method.dt0
 
     # scaling of time stepping
@@ -82,11 +84,11 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     end
 
     if Verbose == 1 && Cr > 1.0
-        println("t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3)) system may be unstable")
+        println("step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3)) system may be unstable")
     elseif Verbose == 2
-        println("\r t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3))")
+        println("\r step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt,sigdigits=3)), dt_adapted = $(round(dt * 0.8 / Cr,sigdigits=3))")
     elseif Verbose == 3
-        println("Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
+        println("step=$(method.step), Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
     end
     flush(stdout)
 
