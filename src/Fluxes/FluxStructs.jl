@@ -36,6 +36,7 @@ struct CoordinateForce <: AbstractForce end
 @kwdef struct SyncRadReact <: AnalyticForce
     mode::AbstractMode = Ani()
     B::Union{Float64,Nothing} = nothing
+    B_sampled::Union{Vector{Float64},Nothing} = nothing
 end
 
 struct FirstOrderGuidingCentre <: SpaceVectorForce end

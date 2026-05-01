@@ -884,6 +884,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             else
                 error("Unknown force type of $(Forces[f])")
             end
+
         end # force loop
 
         # assign flux values

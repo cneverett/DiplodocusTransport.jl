@@ -8,10 +8,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
 
         force = SyncRadReact(mode=Ani(),B=Ext)
         Momentum = PhaseSpace.Momentum
-        Space = PhaseSpace.Space
         scheme = Momentum.scheme
-        space_coords = Space.space_coordinates
-        momentum_coords = Momentum.momentum_coordinates
         name_list = PhaseSpace.name_list
 
         Grids = PhaseSpace.Grids
@@ -91,7 +88,7 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
                     println("Negative correction factor, check flux calculations, setting correction to zero")
                     Correction = 0.0
                 elseif Correction > 1e2 || Correction < 1e-2 # if outside this range kernel is inaccurate or sync critical frequency out of range.
-                    println("Correction factor may be inaccurate, due to sampling or synchrotron critical frequency out of range")
+                    println("Correction factor $Correction may be inaccurate, due to sampling or synchrotron critical frequency out of range")
                     if pc < pmin
                         println("pmin = $(pmin), pc = $(pc)")
                         println("Critical frequency below minimum momentum, no correction applied")
@@ -101,7 +98,6 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
                         Correction = 0.0
                     end
                 end
-                println("$Correction")
                 @view(GainMatrix3[:,:,:,px,py,pz]) .= Correction * @view(GainMatrix3[:,:,:,px,py,pz])
             end
 

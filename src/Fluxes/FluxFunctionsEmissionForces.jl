@@ -46,8 +46,12 @@
         # Evaluate the flux through the I surface i.e. surface of constant p
 
         mode = force.mode
-        if isnothing(force.B)
+        if isnothing(force.B) && isnothing(force.B_sampled)
             B = Grids.B_field[x_idx,y_idx,z_idx]
+        elseif isnothing(force.B) && !isnothing(force.B_sampled)
+            B_true = Grids.B_field[x_idx,y_idx,z_idx]
+            B_idx = findmin(abs.(force.B_sampled .- B_true))[2]
+            B = force.B_sampled[B_idx]
         else
             B = force.B
         end

@@ -305,13 +305,11 @@ Generates `I_Flux` terms in the Emission matrix `M_Emi` if the emission interact
 """
 function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
-    Space = PhaseSpace.Space
+    Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
-    Characteristic = PhaseSpace.Characteristic
 
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
+    momentum_coords = Momentum.coordinates
     scheme = Momentum.scheme
 
     BCp = momentum_coords.xp_BC
@@ -325,9 +323,9 @@ function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
     is_sparse = isnothing(M_Emi)
 
     name_list = PhaseSpace.name_list
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
@@ -464,13 +462,11 @@ Generates `J_Flux` term in the Emission matrix `M_Emi` if the emission interacti
 """
 function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
-    Space = PhaseSpace.Space
+    Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
-    Characteristic = PhaseSpace.Characteristic
 
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
+    momentum_coords = Momentum.coordinates
     scheme = Momentum.scheme
     offset = PhaseSpace.Grids.momentum_species_offset
 
@@ -484,9 +480,9 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
     is_sparse = isnothing(M_Emi)
 
     name_list = PhaseSpace.name_list
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
@@ -622,13 +618,11 @@ Generates `K_Flux` terms in the Emission matrix `M_Emi` if the emission interact
 """
 function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::Int64,y_idx::Int64,z_idx::Int64,species_idx::Int64;M_Emi::Union{Nothing,Matrix{T}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{T}}=nothing) where T<:Union{Float32,Float64}
 
-    Space = PhaseSpace.Space
+    Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
-    Characteristic = PhaseSpace.Characteristic
 
-    space_coords = Space.space_coordinates
-    momentum_coords = Momentum.momentum_coordinates
+    momentum_coords = Momentum.coordinates
     scheme = Momentum.scheme
     offset = PhaseSpace.Grids.momentum_species_offset
 
@@ -642,9 +636,9 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
     is_sparse = isnothing(M_Emi)
 
     name_list = PhaseSpace.name_list
-    x_num = Space.x_num
-    y_num = Space.y_num
-    z_num = Space.z_num
+    x_num = Spacetime.x_num
+    y_num = Spacetime.y_num
+    z_num = Spacetime.z_num
     px_num_list = Momentum.px_num_list
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
