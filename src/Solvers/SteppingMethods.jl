@@ -42,6 +42,10 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     # add injection term
     @. method.df += method.df_Inj * dt_scale 
 
+    if !isnothing(method.df_mask)
+        @. method.df *= method.df_mask
+    end 
+
     if !isfinite(sum(method.df))
         println("non-finite value in df calculation")
     end
@@ -136,8 +140,8 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     #@. method.f += (method.df + method.df_Inj * dt_scale) * adaptive_factor # add injection term and apply adaptive factor to total update 
 
     # remove masked off domain regions
-    if !isnothing(method.mask)
-        @. method.f *= method.mask
+    if !isnothing(method.f_mask)
+        @. method.f *= method.f_mask
     end
 
     # removing negative values (values less than 1f-28 for better stability)

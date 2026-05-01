@@ -34,9 +34,10 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
     df_Flux::AbstractVector{T}                      # change in distribution function due to fluxes
     df_Inj::AbstractVector{T}                       # change in distribution function due to injection of particles
     df_tmp::AbstractVector{T}                       # temporary array the size of f for CFL calculations
-    mask::Union{AbstractVector{T},Nothing}                         # mask for spatial domain (1 for points in domain, 0 for points outside domain)   
+    f_mask::Union{AbstractVector{T},Nothing}        # mask for spatial domain f (1 for points in domain, 0 for points outside domain) 
+    df_mask::Union{AbstractVector{T},Nothing}       # mask for spatial domain df (1 for points in domain, 0 for points outside domain)  
 
-    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,n_cut::Float64=1e-45,ZeroDomain::Union{Vector{Int64},Nothing}=nothing)
+    function ForwardEulerStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing)
 
         Backend = getfield(Main,Symbol("Backend"))
         Precision = getfield(Main,Symbol("Precision"))
@@ -112,20 +113,36 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat} <: AbstractSteppingMethod
         self.df_Flux = zeros(Backend,Precision,length(Initial))
         self.df_tmp = zeros(Backend,Precision,length(Initial))
 
-        if !isnothing(ZeroDomain)
-            mask = ones(Precision,length(Initial))
-            for off_space_idx in ZeroDomain
+        if !isnothing(DistributionDomainMask)
+            f_mask = ones(Precision,length(Initial))
+            for off_space_idx in DistributionDomainMask
                 for species_idx in eachindex(PhaseSpace.name_list)
-                LocationSpeciesToStateVector(mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                LocationSpeciesToStateVector(f_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                 end
             end
             if Backend isa CUDABackend
-                self.mask = CuArray(mask)
+                self.f_mask = CuArray(f_mask)
             else
-                self.mask = mask
+                self.f_mask = f_mask
             end
         else
-            self.mask = nothing
+            self.f_mask = nothing
+        end
+
+        if !isnothing(DeltaDistributionDomainMask)
+            df_mask = ones(Precision,length(Initial))
+            for off_space_idx in DeltaDistributionDomainMask
+                for species_idx in eachindex(PhaseSpace.name_list)
+                LocationSpeciesToStateVector(df_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                end
+            end
+            if Backend isa CUDABackend
+                self.df_mask = CuArray(df_mask)
+            else
+                self.df_mask = df_mask
+            end
+        else
+            self.df_mask = nothing
         end
 
         return self
