@@ -325,7 +325,7 @@ end
 
 Modeifies the initial state vector `Initial` with a Black-Body distribution for `species` of temperature `T` in Kelvin with a number density of `num_Init` and angular range `umin` to `umax` and `hmin to hmax`. These ranges may be defined as either grid indices or physical values.
 """
-function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::AbstractFloat=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::Union{Nothing,Float64}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
 
     Momentum = PhaseSpace.Momentum
     Grids = PhaseSpace.Grids
@@ -350,6 +350,9 @@ function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
     
     # set values and normalise to initial number density (in m^{-3})
     num = sum(f0_3D_species)
+    if isnothing(num_Init) # standard Blackbody distribution which is optically thin
+        num_Init = 16pi * 1.202 * (2pi*CONST_kB*T/(CONST_hbar*CONST_c))^3 / CHAR_number_density
+    end
     f0_3D_species .*= num_Init/num
 
     f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
