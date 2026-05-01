@@ -50,42 +50,44 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
         println("non-finite value in df calculation")
     end
 
-    if Verbose == 1 || Verbose == 2 || Verbose == 3
+    # Cr (CFL) condition check
+    Cr = 0.0
+    sum_f = sum(method.f)
+    if sum_f != 0.0
 
-        Cr = 0.0
+        @. method.df_tmp = method.df / method.f
+        @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+        Cr = -minimum(method.df_tmp) 
+
+    end
+
+    if Verbose == 3
+
         Cr_Bin = 0.0
         Cr_Emi = 0.0
         Cr_Flux = 0.0
 
-        # Cr (CFL) condition check
-        if sum(method.f) != 0.0
+        sum_f = sum(method.f)
+        if sum_f != 0.0
 
-            if Verbose == 3
-        
-                # Binary CFL
-                if method.Binary_Interactions
-                    @. method.df_tmp = method.df_Bin / method.f 
-                    @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
-                    Cr_Bin = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
-                end
-
-                # Emission CFL
-                if method.Emission_Interactions
-                    @. method.df_tmp = method.df_Emi / method.f 
-                    @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
-                    Cr_Emi = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
-                end
-
-                # Flux CFL
-                @. method.df_tmp = -method.df_Flux / method.f 
+            # Binary CFL
+            if method.Binary_Interactions
+                @. method.df_tmp = method.df_Bin / method.f 
                 @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
-                Cr_Flux = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
-
+                Cr_Bin = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
             end
 
-            @. method.df_tmp = method.df / method.f
+            # Emission CFL
+            if method.Emission_Interactions
+                @. method.df_tmp = method.df_Emi / method.f 
+                @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+                Cr_Emi = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
+            end
+
+            # Flux CFL
+            @. method.df_tmp = -method.df_Flux / method.f 
             @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
-            Cr = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback 
+            Cr_Flux = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
 
         end   
 
@@ -98,7 +100,9 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
     elseif Verbose == 3
         println("step=$(method.step), Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt=$dt")
     end
-    flush(stdout)
+    if Verbose > 0
+        flush(stdout)
+    end
 
     # Basic timestep control based on CFL condition
     #=if Cr > 1.0 
@@ -121,9 +125,10 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
 
     # will we reached the next t_save?
 
-    if isapprox(t_start + dt, t_stop)
+    t_next = t_start + dt
+    if abs(t_next - t_stop) <= eps(max(abs(t_next), abs(t_stop)))
         save = true
-    elseif t_start + dt >= t_stop
+    elseif t_next >= t_stop
         adaptive_factor *= (t_stop - t_start) / dt # adjust adaptive factor for final time step to ensure we end exactly at t_stop 
         dt = t_stop - t_start
         save = true
@@ -393,36 +398,26 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
 
     @assert size(method.M_Bin) == (n_momentum^2,n_momentum) "M_Bin is not the correct size"
 
-    Domain = method.Bin_Domain
-
     # Thanks to Emma Godden for fixing a bug here
     #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
 
-    for x in 1:x_num, y in 1:y_num, z in 1:z_num
-
-        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1 # starts at 0
+    for off_space in method.Bin_Domain
 
         start_idx = n_momentum*off_space+1
         end_idx = n_momentum*(off_space+1)
 
         fView = @view(method.f[start_idx:end_idx])
 
-        if isnothing(Domain) || in(off_space,Domain)
+        df_BinView = @view method.df_Bin[start_idx:end_idx]
+        mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
+        mul!(df_BinView,method.M_Bin_Mul_Step,fView)
 
-            df_BinView = @view method.df_Bin[start_idx:end_idx]
-            mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
-            mul!(df_BinView,method.M_Bin_Mul_Step,fView)
+        #println("M_Bin = $(sum(method.M_Bin))")
+        #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
+        #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
 
-            #println("M_Bin = $(sum(method.M_Bin))")
-            #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
-            #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
-
-            # multiply by volume element
-            df_BinView .*= view(method.Vol,off_space+1)
-
-        else
-            continue
-        end
+        # multiply by volume element
+        df_BinView .*= method.Vol[off_space+1]
 
     end
 

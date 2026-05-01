@@ -1,11 +1,11 @@
-mutable struct OutputStruct
+mutable struct OutputStruct{T<:AbstractFloat,V<:AbstractVector{T}}
     
-    f::Vector{Vector{AbstractFloat}}
-    t::Vector{AbstractFloat}
+    f::Vector{V}
+    t::Vector{T}
 
-    function OutputStruct(f0::Vector{T},n_save::Int64) where T<:Union{Float32,Float64}
+    function OutputStruct(f0::V,n_save::Int64) where {T<:Union{Float32,Float64},V<:AbstractVector{T}}
 
-        self = new()
+        self = new{T,V}()
         self.f = [similar(f0) for _ in 1:n_save]
         self.t = Vector{T}(undef,n_save)
 
@@ -40,6 +40,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
 
     @. method.f = method.f_init # reset f to initial condition at start of each solve (important for multiple solves in same session)
     #println(sum(method.f))
+    method.step = 0
     
     dt = dt_initial
 
