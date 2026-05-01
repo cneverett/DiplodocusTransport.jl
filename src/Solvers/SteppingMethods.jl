@@ -61,18 +61,21 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
                 # Binary CFL
                 if method.Binary_Interactions
                     @. method.df_tmp = method.df_Bin / method.f 
-                    Cr_Bin = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
+                    @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+                    Cr_Bin = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Emission CFL
                 if method.Emission_Interactions
                     @. method.df_tmp = method.df_Emi / method.f 
-                    Cr_Emi = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
+                    @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+                    Cr_Emi = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
                 end
 
                 # Flux CFL
                 @. method.df_tmp = -method.df_Flux / method.f 
-                Cr_Flux = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback
+                @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+                Cr_Flux = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback
 
             end
 
@@ -400,9 +403,7 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
 
         fView = @view(method.f[start_idx:end_idx])
 
-        all_zero = maximum(abs.(fView)) == zero(eltype(fView))
-
-        if isnothing(Domain) || in(off_space,Domain) || !all_zero
+        if isnothing(Domain) || in(off_space,Domain)
 
             df_BinView = @view method.df_Bin[start_idx:end_idx]
             mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
