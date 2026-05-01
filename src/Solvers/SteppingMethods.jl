@@ -77,7 +77,8 @@ function (method::ForwardEulerStruct)(t_start,t_stop,dt,Verbose::Int64)
             end
 
             @. method.df_tmp = method.df / method.f
-            Cr = -mapreduce(x -> isnan(x) ? Inf : x, min, method.df_tmp;init=0.0) # non-allocating and GPU compatible without CPU fallback 
+            @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+            Cr = -minimum(method.df_tmp) # non-allocating and GPU compatible without CPU fallback 
 
         end   
 
