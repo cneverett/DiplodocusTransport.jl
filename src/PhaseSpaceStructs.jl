@@ -27,7 +27,7 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
 
     CHAR_time::Float64 = isdefined(Main,Symbol("CHAR_time")) ? getfield(Main,Symbol("CHAR_time")) : CHAR_length / CHAR_speed 
 
-    CHAR_number_density::Float64 = isdefined(Main,Symbol("CHAR_number_density")) ? getfield(Main,Symbol("CHAR_number_density")) : 1.0e6 # 1 particle per cm^3    
+    CHAR_number_density::Float64 = isdefined(Main,Symbol("CHAR_number_density")) ? getfield(Main,Symbol("CHAR_number_density")) : 1.0 # 1 particle per m^3    
 
     # derived scales (SI units)
     CHAR_momentum::Float64 = CHAR_mass*CHAR_speed
