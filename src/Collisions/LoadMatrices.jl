@@ -45,7 +45,7 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         # Memory optimisation by allowing Ele and Pos populations to be modelled as identical thus only requiring one to be defined
         if !isnothing(findfirst(==("Pos"),[name1,name2,name3,name4])) && isnothing(findfirst(==("Pos"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
             if (name1,name2,name3,name4) == ("Pos","Pho","Pos","Pho") # "Pos" compton scattering
-                return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
+                continue # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             elseif (name1,name2,name3,name4) == ("Ele","Pos","Pho","Pho") # "Ele" "Pos" annihilation
                 GainScale = 1.0/4.0 # ele and pos populations are half the total ele population so scale gain matrix by 1/4
                 LossScale = 1.0/4.0
