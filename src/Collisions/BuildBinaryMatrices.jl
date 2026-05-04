@@ -182,17 +182,24 @@ function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset
                 b = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
                 c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
 
-                # M_Bin terms allocated symmetrically
                 if is_sparse
-                    push!(M_Bin_I,(b-1)*N+(a-1)+1)
+                    # M_Bin terms allocated symmetrically
+                    #=push!(M_Bin_I,(b-1)*N+(a-1)+1)
                     push!(M_Bin_J,c)
                     push!(M_Bin_V,convert(F,val*w/2))
                     push!(M_Bin_I,(c-1)*N+(a-1)+1)
                     push!(M_Bin_J,b)
-                    push!(M_Bin_V,convert(F,val*w/2))
+                    push!(M_Bin_V,convert(F,val*w/2))=#
+                    # M_Bin terms allocated asymmetrically (save memory)
+                    push!(M_Bin_I,(b-1)*N+(a-1)+1)
+                    push!(M_Bin_J,c)
+                    push!(M_Bin_V,convert(F,val*w))
                 else
-                    M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w/2)
-                    M_Bin[(c-1)*N+(a-1)+1,b] += convert(F,val*w/2)
+                    # M_Bin terms allocated symmetrically
+                    #=M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w/2)
+                    M_Bin[(c-1)*N+(a-1)+1,b] += convert(F,val*w/2)=#
+                    # M_Bin terms allocated asymmetrically
+                    M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w)
                 end
 
             end # pz loop
