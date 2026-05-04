@@ -186,9 +186,11 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
         Force::Bool = interaction.Force
         Domain::Union{Vector{Int64},Nothing} = interaction.Domain
 
-        if !isnothing(findfirst(==("Pos"),[name1,name2,name3])) && isnothing(findfirst(==("Pho"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
+        println("Loading emission matrices for $type emission: $(name1) -> $(name2) + $(name3)")
+
+        if !isnothing(findfirst(==("Pos"),[name1,name2,name3])) && isnothing(findfirst(==("Pos"),name_list)) # if "Pos" is in interactions but not in "name_list" ∴ "Ele" population is taken to be "Ele"+"Pos" with identical populations of each particle
             if (name1,name2,name3) == ("Pos","Pos","Pho") # "Pos" synchrotron 
-                return # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
+                continue # skip loading pos compton matrices as this is correctly accounted by ele population including pos population
             end
         end
 
@@ -238,8 +240,6 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
         px1_up::Float64 = px_up_list[name1_loc]
         px2_up::Float64 = px_up_list[name2_loc]
         px3_up::Float64 = px_up_list[name3_loc]
-
-        println("Loading emission matrices for $type emission: $(name1) -> $(name2) + $(name3)")
 
         # build Vector of Emission Gain matrices for each sampled value of Ext
         GainMatrix3_All = Vector{Array{Float64,6}}(undef,length(Ext_sampled))
