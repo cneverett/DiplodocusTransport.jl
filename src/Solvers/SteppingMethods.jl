@@ -383,23 +383,7 @@ end
 
 function update_Big_Bin!(method::AbstractSteppingMethod)
     
-    PhaseSpace = method.PhaseSpace
-    Spacetime = PhaseSpace.Spacetime
-    Momentum = PhaseSpace.Momentum
-
-    x_num = Spacetime.x_num
-    y_num = Spacetime.y_num
-    z_num = Spacetime.z_num
-    px_num_list = Momentum.px_num_list
-    py_num_list = Momentum.py_num_list
-    pz_num_list = Momentum.pz_num_list
-
-    n_momentum = sum(sum(px_num_list.*py_num_list.*pz_num_list))
-
-    @assert size(method.M_Bin) == (n_momentum^2,n_momentum) "M_Bin is not the correct size"
-
-    # Thanks to Emma Godden for fixing a bug here
-    #temp = reshape(method.M_Bin_Mul_Step,length(f)*length(f))
+    n_momentum=size(method.M_Bin,2)
 
     for off_space in method.Bin_Domain
 
@@ -410,14 +394,9 @@ function update_Big_Bin!(method::AbstractSteppingMethod)
 
         df_BinView = @view method.df_Bin[start_idx:end_idx]
         mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fView) # temp is linked to M_Bin_Mul_Step so it gets edited while maintaining is 2D shape
-        mul!(df_BinView,method.M_Bin_Mul_Step,fView)
 
-        #println("M_Bin = $(sum(method.M_Bin))")
-        #println("M_Bin_Mul_Step_reshape = $(sum(method.M_Bin_Mul_Step_reshape))")
-        #println("M_Bin_Mul_Step = $(sum(method.M_Bin_Mul_Step))")
-
-        # multiply by volume element
-        df_BinView .*= method.Vol[off_space+1]
+        @inbounds vol = method.Vol[off_space+1]
+        mul!(df_BinView,method.M_Bin_Mul_Step,fView,vol,zero(eltype(method.df_Bin)))
 
     end
 

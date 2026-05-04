@@ -15,7 +15,7 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:Abs
 
     F_Flux::SMT
     invAp_Flux::VT                  # inv Ap flux for time stepping
-    Vol::VT
+    Vol::Vector{T}
 
     Adaptive::Bool
     Implicit::Bool
@@ -52,7 +52,10 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:Abs
         pz_num_list = Momentum.pz_num_list
 
         n_space = x_num+y_num+z_num
-        n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+        n_momentum = 0
+        for i in eachindex(px_num_list)
+            n_momentum += px_num_list[i]*py_num_list[i]*pz_num_list[i]
+        end
 
         @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
 
@@ -74,17 +77,18 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:Abs
         df_Flux = zeros(Backend,Precision,length(Initial))
         df_tmp = zeros(Backend,Precision,length(Initial))
 
+        Vol = FluxM.Vol
+
         if Backend isa CPUBackend
             f_init = convert(Vector{Precision},Initial)
             M_Bin = BinM.M_Bin
             M_Emi = EmiM.M_Emi
             F_Flux = FluxM.X_Flux + FluxM.P_Flux # sum of space and momentum fluxes
             invAp_Flux = 1 ./ FluxM.Ap_Flux # invert Ap Flux
-            Vol = FluxM.Vol
             f = convert(Vector{Precision},copy(Initial))
             df_Inj = convert(Vector{Precision},copy(Injection))
         elseif Backend isa CUDABackend
-            f_init = CuArray(Initial)
+            f_init = CuArray(convert(Vector{Precision},copy(Initial)))
             if BinM.M_Bin isa AbstractSparseArray
                 M_Bin = CuSparseMatrixCSC(BinM.M_Bin)
             else
@@ -97,9 +101,8 @@ mutable struct ForwardEulerStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:Abs
             end
             F_Flux = CuSparseMatrixCSC(FluxM.X_Flux + FluxM.P_Flux) # sum of space and momentum fluxes
             invAp_Flux = CuArray(1 ./ FluxM.Ap_Flux)
-            Vol = CuArray(FluxM.Vol)
-            f = CuArray(copy(Initial))
-            df_Inj = CuArray(copy(Injection))
+            f = CuArray(convert(Vector{Precision},copy(Initial)))
+            df_Inj = CuArray(convert(Vector{Precision},copy(Injection)))
         else
             error("Backend type not recognized.")
         end
