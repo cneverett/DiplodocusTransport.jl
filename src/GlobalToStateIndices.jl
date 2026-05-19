@@ -51,8 +51,10 @@ function LocationSpeciesToStateVector(StateVector::Vector{F},PhaseSpace::PhaseSp
     pz_num = pz_num_list[species_index]
 
     if !isnothing(off_space_idx)
+        @assert off_space_idx <= x_num*y_num*z_num - 1 "Spatial offset out of bounds (starts at zero)"
         off_space = off_space_idx
     else
+        @assert x_idx <= x_num && y_idx <= y_num && z_idx <= z_num "Spatial indices out of bounds"
         off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
     end
     off_name = offset[species_index]
