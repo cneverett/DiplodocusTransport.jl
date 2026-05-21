@@ -88,11 +88,9 @@ function EmissionCorrection!(PhaseSpace::PhaseSpaceStruct,GainMatrix3::AbstractA
                     println("Negative correction factor, check flux calculations, setting correction to zero")
                     Correction = 0.0
                 elseif Correction > 1e2 || Correction < 1e-2 # if outside this range kernel is inaccurate or sync critical frequency out of range.
-                    println("Correction factor $Correction may be inaccurate, due to sampling or synchrotron critical frequency out of range")
+                    #println("Correction factor $Correction may be inaccurate, due to sampling or synchrotron critical frequency out of range")
                     if pc < pmin
-                        println("pmin = $(pmin), pc = $(pc)")
-                        println("Critical frequency below minimum momentum, no correction applied")
-                        println(Ext)
+                        #println("Critical frequency below minimum momentum, pmin = $(pmin), B= $(Ext), pc = $(pc), no correction applied")
                         continue
                     else
                         Correction = 0.0

@@ -12,11 +12,7 @@ A struct for storing the characteristic scales (in SI units) for the simulation,
     CHAR_magnetic_field::Float64 = 1.0 # 1 Tesla
 
     # user defined scales (SI units)
-    #if isdefined(Main,Symbol("CHAR_time")) && isdefined(Main,Symbol("CHAR_length")) 
-    #    error("Both CHAR_time and CHAR_length are defined. Only one of these should be defined as the other is derived from it using CHAR_speed.")
-    #end
-
-    CHAR_length::Float64 = isdefined(Main,Symbol("CHAR_length")) ? getfield(Main,Symbol("CHAR_length")) : isdefined(Main,Symbol("CHAR_time")) ? getfield(Main,Symbol("CHAR_time")) * CHAR_speed : CONST_pcs
+    CHAR_length::Float64 = (isdefined(Main,Symbol("CHAR_length")) && isdefined(Main,Symbol("CHAR_time"))) ? error("Both CHAR_time and CHAR_length are defined. Only one of these should be defined as the other is derived from it using CHAR_speed.") : isdefined(Main,Symbol("CHAR_length")) ? getfield(Main,Symbol("CHAR_length")) : isdefined(Main,Symbol("CHAR_time")) ? getfield(Main,Symbol("CHAR_time")) * CHAR_speed : CONST_pcs
     #    catch
     #        if isdefined(Main,Symbol("CHAR_time"))
     #            getfield(Main,Symbol("CHAR_time")) * CHAR_speed
