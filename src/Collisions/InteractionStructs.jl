@@ -55,6 +55,15 @@ struct BinaryMatricesStruct{T<:Union{Float32,Float64}}
 
 end
 
+struct BinaryMatricesStructPatankar{T<:Union{Float32,Float64}}
+    
+    Gijk::AbstractMatrix{T}  # gain matrix for binary interactions
+    Liij::AbstractMatrix{T}  # loss matrix for binary interactions
+    Binary_list::Vector{BinaryInteraction} # list of binary interactions
+    Domain::Union{Vector{Int64},Nothing} # domain of the binary interaction in the state vector
+
+end
+
 """
     EmissionMatricesStruct()
 

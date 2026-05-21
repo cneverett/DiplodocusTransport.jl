@@ -41,6 +41,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
     @. method.f = method.f_init # reset f to initial condition at start of each solve (important for multiple solves in same session)
     #println(sum(method.f))
     method.step = 0
+    method.Cr = 0.0
     
     dt = dt_initial
 

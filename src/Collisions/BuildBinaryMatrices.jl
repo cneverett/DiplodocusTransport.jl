@@ -68,6 +68,79 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
 
 end
 
+function BuildBinaryMatricesPatankar(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryInteraction},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;loading_check::Bool=false,Bin_Mode::AbstractMode=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
+
+    Precision::DataType = getfield(Main,Symbol("Precision"))
+
+    @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
+
+    Momentum = PhaseSpace.Momentum
+
+    px_num_list = Momentum.px_num_list
+    py_num_list = Momentum.py_num_list
+    pz_num_list = Momentum.pz_num_list
+
+    n = sum(px_num_list.*py_num_list.*pz_num_list)
+    m = n*n
+
+    size = m*n*sizeof(Precision)
+
+    if size > 1e9
+        println("M_Bin will be approx. $(size/1e9) GB in memory if dense")
+    elseif size > 1e6
+        println("M_Bin will be approx. $(size/1e6) MB in memory if dense")
+    elseif size > 1e3
+        println("M_Bin will be approx. $(size/1e3) KB in memory if dense")
+    else
+        println("M_Bin will be approx. $size bytes in memory if dense")
+    end
+
+    if isempty(Binary_list)
+        if Bin_sparse
+            Gijk = spzeros(Precision,0,0)
+            Liij = spzeros(Precision,0,0)
+        else
+            Gijk = zeros(Precision,0,0)
+            Liij = zeros(Precision,0,0)
+        end 
+    else
+        if Bin_sparse
+            Gijk_I::Vector{Int64} = Int64[]
+            Gijk_J::Vector{Int64} = Int64[]
+            Gijk_V::Vector{Precision} = Precision[]
+            
+            Liij_I::Vector{Int64} = Int64[]
+            Liij_J::Vector{Int64} = Int64[]
+            Liij_V::Vector{Precision} = Precision[]
+            LoadMatrices_BinaryPatankar(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;Gijk_I=Gijk_I,Gijk_J=Gijk_J,Gijk_V=Gijk_V,Liij_I=Liij_I,Liij_J=Liij_J,Liij_V=Liij_V)
+            println("Building sparse Gijk and Liij")
+            Gijk = sparse(Gijk_I,Gijk_J,Gijk_V,m,n)::SparseMatrixCSC{Precision,Int64}
+            Liij = sparse(Liij_I,Liij_J,Liij_V,m,n)::SparseMatrixCSC{Precision,Int64}
+   
+            GC.gc()
+        else
+            Gijk = zeros(Precision,m,n)::Matrix{Precision}
+            Liij = zeros(Precision,m,n)::Matrix{Precision}
+            LoadMatrices_BinaryPatankar(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;Gijk=Gijk,Liij=Liij)
+        end
+    end
+
+    size = Base.summarysize(Gijk)
+
+    if size > 1e9
+        println("Gijk is approx. $(size/1e9) GB in memory")
+    elseif size > 1e6
+        println("Gijk is approx. $(size/1e6) MB in memory")
+    elseif size > 1e3
+        println("Gijk is approx. $(size/1e3) KB in memory")
+    else
+        println("Gijk is approx. $size bytes in memory")
+    end
+
+    return BinaryMatricesStructPatankar{Precision}(Gijk,Liij,Binary_list,Domain)
+
+end
+
 
 """
     Fill_M_Bin!(...,name_locs,PhaseSpace;GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2)
@@ -105,6 +178,39 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
     return nothing
 
 end
+
+function Fill_M_BinPatankar!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::Array{Float64,9},GainMatrix4::Array{Float64,9},LossMatrix1::Array{Float64,6},LossMatrix2::Array{Float64,6},n_momentum::Int64;mode::AbstractMode=Ani(),Gijk::Union{Nothing,Matrix{F}}=nothing,Gijk_I::Union{Nothing,Vector{Int64}}=nothing,Gijk_J::Union{Nothing,Vector{Int64}}=nothing,Gijk_V::Union{Nothing,Vector{F}}=nothing,Liij::Union{Nothing,Matrix{F}}=nothing,Liij_I::Union{Nothing,Vector{Int64}}=nothing,Liij_J::Union{Nothing,Vector{Int64}}=nothing,Liij_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+
+    Grids = PhaseSpace.Grids
+    offset = Grids.momentum_species_offset
+
+    (name1_loc,name2_loc,name3_loc,name4_loc) = name_locs
+
+    dpy1 = Grids.dpy_list[name1_loc]
+    dpy2 = Grids.dpy_list[name2_loc]
+    dpy3 = Grids.dpy_list[name3_loc]
+    dpy4 = Grids.dpy_list[name4_loc]
+    dpz1 = Grids.dpz_list[name1_loc]
+    dpz2 = Grids.dpz_list[name2_loc]
+    dpz3 = Grids.dpz_list[name3_loc]
+    dpz4 = Grids.dpz_list[name4_loc]
+
+    GainMatrix_to_M_Bin!(GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3,n_momentum;M_Bin=Gijk,M_Bin_I=Gijk_I,M_Bin_J=Gijk_J,M_Bin_V=Gijk_V)
+    GainMatrix_to_M_Bin!(GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy4,dpz4,n_momentum;M_Bin=Gijk,M_Bin_I=Gijk_I,M_Bin_J=Gijk_J,M_Bin_V=Gijk_V)
+    LossMatrix_to_M_Bin!(LossMatrix1,offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,n_momentum;M_Bin=Liij,M_Bin_I=Liij_I,M_Bin_J=Liij_J,M_Bin_V=Liij_V)
+    LossMatrix_to_M_Bin!(LossMatrix2,offset[name2_loc],offset[name1_loc],mode,dpy2,dpz2,dpy1,dpz1,n_momentum;M_Bin=Liij,M_Bin_I=Liij_I,M_Bin_J=Liij_J,M_Bin_V=Liij_V)
+
+    GainMatrix3 = nothing
+    GainMatrix4 = nothing
+    LossMatrix1 = nothing
+    LossMatrix2 = nothing
+
+    GC.gc()
+
+    return nothing
+
+end
+
 
 
 function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},dpy3::Vector{Float64},dpz3::Vector{Float64},n_momentum::Int64;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
@@ -162,15 +268,16 @@ function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset
                 if mode isa Ani
 
                     if is_sparse
-                        GainMax = maximum(@view(GainMatrix[:,py3,pz3,px1,py1,pz1,px2,py2,pz2]))
+                        #GainMax = maximum(@view(GainMatrix[:,py3,pz3,px1,py1,pz1,px2,py2,pz2]))
+                        GainMax = maximum(@view(GainMatrix[:,:,:,px1,py1,pz1,px2,py2,pz2]))
                     end
 
                     val = GainMatrix[px3+1,py3,pz3,px1,py1,pz1,px2,py2,pz2]
                     w = 1.0
 
-                    if is_sparse && val < GainMax * 1e-16 # skips values smaller than this value to reduce memory usage
-                        continue
-                    end
+                    #if is_sparse && val*w < eps(GainMax) # skips values smaller than this value to reduce memory usage
+                    #    continue
+                    #end
 
                 end
 
@@ -184,20 +291,20 @@ function GainMatrix_to_M_Bin!(GainMatrix::Array{Float64,9},offset3::Int64,offset
 
                 if is_sparse
                     # M_Bin terms allocated symmetrically
-                    #=push!(M_Bin_I,(b-1)*N+(a-1)+1)
-                    push!(M_Bin_J,c)
-                    push!(M_Bin_V,convert(F,val*w/2))
-                    push!(M_Bin_I,(c-1)*N+(a-1)+1)
-                    push!(M_Bin_J,b)
-                    push!(M_Bin_V,convert(F,val*w/2))=#
-                    # M_Bin terms allocated asymmetrically (save memory)
+                    #push!(M_Bin_I,(b-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,c)
+                    #push!(M_Bin_V,convert(F,val*w/2))
+                    #push!(M_Bin_I,(c-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,b)
+                    #push!(M_Bin_V,convert(F,val*w/2))
+                    # M_Bin terms allocated asymmetrically (save memory and avoids implicit coupling)
                     push!(M_Bin_I,(b-1)*N+(a-1)+1)
                     push!(M_Bin_J,c)
                     push!(M_Bin_V,convert(F,val*w))
                 else
                     # M_Bin terms allocated symmetrically
-                    #=M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w/2)
-                    M_Bin[(c-1)*N+(a-1)+1,b] += convert(F,val*w/2)=#
+                    #M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w/2)
+                    #M_Bin[(c-1)*N+(a-1)+1,b] += convert(F,val*w/2)
                     # M_Bin terms allocated asymmetrically
                     M_Bin[(b-1)*N+(a-1)+1,c] += convert(F,val*w)
                 end
@@ -269,21 +376,42 @@ function LossMatrix_to_M_Bin!(LossMatrix::Array{Float64,6},offset1::Int64,offset
                     continue
                 end
 
+                # Asymmetric: Labc = Laac δab  
+                # Symmetric: (Laac δab + Laab δac) / 2
+                # (Laac δab + Laab δac) fb fc / 2
                 a = (pz1-1)*px1_num*py1_num+(py1-1)*px1_num+px1+offset1
                 b = a
                 c = (pz2-1)*px2_num*py2_num+(py2-1)*px2_num+px2+offset2
 
                 # M_Bin terms allocated symmetrically
                 if is_sparse
+                    # symmetric in b and c
+                    #push!(M_Bin_I,(b-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,c)
+                    #push!(M_Bin_V,-convert(F,val*w/2))
+                    #push!(M_Bin_I,(c-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,b)
+                    #push!(M_Bin_V,-convert(F,val*w/2))
+                    # symmetric in b and c
+                    #push!(M_Bin_I,(b-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,c)
+                    #push!(M_Bin_V,-convert(F,val*w/2 * (a==b)))
+                    #push!(M_Bin_I,(c-1)*N+(a-1)+1)
+                    #push!(M_Bin_J,b)
+                    #push!(M_Bin_V,-convert(F,val*w/2 * (a==c)))
+                    # asymmetric in b and c (save memory and works better with MPE solver)
                     push!(M_Bin_I,(b-1)*N+(a-1)+1)
                     push!(M_Bin_J,c)
-                    push!(M_Bin_V,-convert(F,val*w/2))
-                    push!(M_Bin_I,(c-1)*N+(a-1)+1)
-                    push!(M_Bin_J,b)
-                    push!(M_Bin_V,-convert(F,val*w/2))
+                    push!(M_Bin_V,-convert(F,val*w))
+                    #push!(M_Bin_I,(c-1)*N+(c-1)+1)
+                    #push!(M_Bin_J,a)
+                    #push!(M_Bin_V,-convert(F,val*w/2))
                 else
-                    M_Bin[(b-1)*N+(a-1)+1,c] -= convert(F,val*w/2)
-                    M_Bin[(c-1)*N+(a-1)+1,b] -= convert(F,val*w/2)
+                    # symmetric in b and c
+                    #M_Bin[(b-1)*N+(a-1)+1,c] -= convert(F,val*w/2)
+                    #M_Bin[(c-1)*N+(a-1)+1,b] -= convert(F,val*w/2)
+                    # asymmetric in b and c
+                    M_Bin[(b-1)*N+(a-1)+1,c] -= convert(F,val*w)
                 end
 
             end # pz loop

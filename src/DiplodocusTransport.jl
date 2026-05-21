@@ -28,7 +28,7 @@ module DiplodocusTransport
     export InitialiseInitialCondition, InitialConstant!, InitialMaxwellJuttner!, InitialPowerLaw!, InitialBoostedPowerLaw!, InitialBlackBody!, InitialPowerLawExpDecay!
     export InitialiseInjectionCondition, InjectionConstant!, InjectionMaxwellJuttner!, InjectionPowerLaw!, InjectionBoostedPowerLaw!, InjectionBlackBody!, InjectionPowerLawExpDecay!
     # Solvers 
-    export AbstractSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct
+    export AbstractSteppingMethod, ImplicitSteppingMethod, ExplicitSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct, SymplecticMPEStruct
     export OutputStruct, SolutionFileLoad
     # Utilities
     export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!, InclusiveDomainMask, ExclusiveDomainMask
@@ -50,6 +50,8 @@ module DiplodocusTransport
     using StaticArrays
     using ForwardDiff, Preferences
     set_preferences!(ForwardDiff, "nansafe_mode" => true) # safer 
+    using Krylov
+    using KrylovPreconditioners
 
     include("Constants.jl")
     include("Backends.jl")
