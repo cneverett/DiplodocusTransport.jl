@@ -379,11 +379,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         @inline function TetradComponents!(pos::MVector{4,T},e::MMatrix{4,4,T,16},::Minkowski,::Cartesian,tetrad::UniformElectromagneticFieldTetrad) where T
 
             # B field in Cartesian z direction, E field in Cartesian y direction
-            B = tetrad.B0
-            E = tetrad.E0
+            B0 = tetrad.B0
+            E0 = tetrad.E0
             #=     Y = dy      Z = dz      n = -dt      U_perp = (E/B)dx     T = γ(n-U_perp) = γ(-dt - (E/B)dx)     X = *(T∧Y∧Z) = γ(E/B)dt + γdx    =#
-            γ = sqrt(B^2/(B^2 - E^2))
-            v = E/B
+            γ = sqrt(B0^2/(B0^2 - E0^2))
+            v = E0/B0
             # T components T^α = (γ, -γE/B, 0, 0)
             e[1,1] = γ
             e[1,2] = -γ*v
@@ -401,11 +401,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         @inline function InverseTetradComponents!(pos::MVector{4,T},inve::MMatrix{4,4,T,16},::Minkowski,::Cartesian,tetrad::UniformElectromagneticFieldTetrad) where T
             
             # B field in z direction, E field in y direction
-            B = tetrad.B0
-            E = tetrad.E0
+            B0 = tetrad.B0
+            E0 = tetrad.E0
             #=     Y = dy      Z = dz      n = -dt      U_perp = (E/B)dx     T = γ(n-U_perp) = γ(-dt - (E/B)dx)     X = *(T∧Y∧Z) = γ(E/B)dt + γdx    =#
-            γ = sqrt(B^2/(B^2 - E^2))
-            v = E/B
+            γ = sqrt(B0^2/(B0^2 - E0^2))
+            v = E0/B0
             # T components -T_α = (γ, γE/B, 0, 0)
             inve[1,1] = γ
             inve[2,1] = γ*v
@@ -422,11 +422,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceAIntegrand!(xyzt::MVector{4,T},A::MVector{4,T},::Minkowski,::Cartesian,tetrad::UniformElectromagneticFieldTetrad) where T 
             # B field in Cartesian z direction, E field in Cartesian y direction
-            B = tetrad.B0
-            E = tetrad.E0
+            B0 = tetrad.B0
+            E0 = tetrad.E0
             #=     Y = dy      Z = dz      n = -dt      U_perp = (E/B)dx     T = γ(n-U_perp) = γ(-dt - (E/B)dx)     X = *(T∧Y∧Z) = γ(E/B)dt + γdx    =#
-            γ = sqrt(B^2/(B^2 - E^2))
-            v = E/B
+            γ = sqrt(B0^2/(B0^2 - E0^2))
+            v = E0/B0
 
             A[1] = γ
             A[2] = -γ*v
@@ -434,11 +434,11 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Cartesian,tetrad::UniformElectromagneticFieldTetrad) where T 
             # B field in Cartesian z direction, E field in Cartesian y direction
-            B = tetrad.B0
-            E = tetrad.E0
+            B0 = tetrad.B0
+            E0 = tetrad.E0
             #=     Y = dy      Z = dz      n = -dt      U_perp = (E/B)dx     T = γ(n-U_perp) = γ(-dt - (E/B)dx)     X = *(T∧Y∧Z) = γ(E/B)dt + γdx    =#
-            γ = sqrt(B^2/(B^2 - E^2))
-            v = E/B
+            γ = sqrt(B0^2/(B0^2 - E0^2))
+            v = E0/B0
 
             B[1] = -γ*v
             B[2] = γ 
