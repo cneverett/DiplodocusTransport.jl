@@ -17,7 +17,7 @@ function GlobalIndicesToStateIndex(PhaseSpace::PhaseSpaceStruct,x::Int64,y::Int6
     pz_num = pz_num_list[species_index]
     off_name = PhaseSpace.Grids.momentum_species_offset[species_index]
 
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_momentum = PhaseSpace.Grids.n_momentum
 
     off_space::Int64 = (x-1)*y_num*z_num+(y-1)*z_num+z-1
     off_momentum::Int64 = (pz-1)*px_num*py_num+(py-1)*px_num+px
@@ -50,17 +50,17 @@ function LocationSpeciesToStateVector(StateVector::Vector{F},PhaseSpace::PhaseSp
     py_num = py_num_list[species_index]
     pz_num = pz_num_list[species_index]
 
+    n_space = PhaseSpace.Grids.n_space
+    n_momentum = PhaseSpace.Grids.n_momentum
+
     if !isnothing(off_space_idx)
-        @assert off_space_idx <= x_num*y_num*z_num - 1 "Spatial offset out of bounds (starts at zero)"
+        @assert off_space_idx <= n_space - 1 "Spatial offset out of bounds (starts at zero)"
         off_space = off_space_idx
     else
         @assert x_idx <= x_num && y_idx <= y_num && z_idx <= z_num "Spatial indices out of bounds"
         off_space = (x_idx-1)*y_num*z_num+(y_idx-1)*z_num+z_idx-1
     end
     off_name = offset[species_index]
-
-    n_space = x_num*y_num*z_num
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
 
     start_idx = n_momentum*off_space+off_name+1
     end_idx   = n_momentum*off_space+off_name+px_num*py_num*pz_num

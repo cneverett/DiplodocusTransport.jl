@@ -127,6 +127,9 @@ A struct for storing the grid values for each particle in the simulation.
 """
 @kwdef mutable struct GridsStruct <: Function
 
+    n_space::Int64 
+    n_momentum::Int64
+
     mass_list::Vector{Float64}
     charge_list::Vector{Float64}
 
@@ -166,6 +169,11 @@ A struct for storing the grid values for each particle in the simulation.
     function GridsStruct(name_list,spacetime::SpacetimeStruct,momentum::MomentumStruct)
 
         self = new()
+
+        # number of grid points in space and momentum domains
+
+            self.n_space = spacetime.x_num * spacetime.y_num * spacetime.z_num
+            self.n_momentum = sum(momentum.px_num_list .* momentum.py_num_list .* momentum.pz_num_list)
 
         # spacetime domain
 
