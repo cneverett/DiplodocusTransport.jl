@@ -52,6 +52,7 @@ module DiplodocusTransport
     set_preferences!(ForwardDiff, "nansafe_mode" => true) # safer 
     using Krylov
     using KrylovPreconditioners
+    using ExponentialUtilities
 
     include("Constants.jl")
     include("Backends.jl")

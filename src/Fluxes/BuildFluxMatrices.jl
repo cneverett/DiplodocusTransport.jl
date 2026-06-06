@@ -148,6 +148,9 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
 
         # when values cancel they can still leave a saved zero in arrays
+        # Remove any remaining small values
+        X_Flux.nzval[abs.(X_Flux.nzval) .< eps(eltype(X_Flux.nzval))] .= zero(eltype(X_Flux.nzval))
+        P_Flux.nzval[abs.(P_Flux.nzval) .< eps(eltype(P_Flux.nzval))] .= zero(eltype(P_Flux.nzval))
         dropzeros!(X_Flux)
         dropzeros!(P_Flux)
         
