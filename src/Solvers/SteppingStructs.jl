@@ -1675,6 +1675,10 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             Binary_Interactions::Bool
             Emission_Interactions::Bool
 
+            DistributionDomainMask::Union{Vector{Int64},Nothing}
+            DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}
+            ActiveDomain::Vector{Int64}
+
             M_Bin::MBT
             Bin_Domain::BD
 
@@ -1845,7 +1849,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
                 =#
 
-                ImMP = I - (dt_initial/2)*invA_Flux*(M_Emi - P_Flux)
+                ImMP = I - (dt_initial/2)*invA_Flux*(#=M_Emi=# - P_Flux)
                 invImMP = spzeros(Precision,size(P_Flux))
                 momentum_offset = [momentum_offset_species ; n_momentum]
 
@@ -1916,6 +1920,13 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 self.step = 0
                 self.Binary_Interactions = Binary_Interactions
                 self.Emission_Interactions = Emission_Interactions
+                self.DistributionDomainMask = DistributionDomainMask
+                self.DeltaDistributionDomainMask = DeltaDistributionDomainMask
+                if isnothing(DistributionDomainMask)
+                    self.ActiveDomain = InclusiveDomainMask(PhaseSpace)
+                else
+                    self.ActiveDomain = setdiff(InclusiveDomainMask(PhaseSpace),DistributionDomainMask)
+                end
                 self.PhaseSpace = PhaseSpace
                 self.Bin_Domain = BinM.Domain
                 self.f_init = f_init
