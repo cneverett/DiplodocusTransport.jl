@@ -121,7 +121,7 @@ function InjectionMaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStr
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
-    InitialMaxwellJuttner!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,off_space_idx=off_space_idx,method=method,samples=samples1)
+    InitialMaxwellJuttner!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,off_space_idx=off_space_idx,method=method,samples=samples)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]
@@ -137,13 +137,60 @@ end
 
 Modifies the injection state vector `Injection` with a Black-Body distribution generated using `InitialBlackBody!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionBlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionBlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Union{Nothing,Float64}=nothing,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
     # Add initial conditions to temporary vector
     InitialBlackBody!(tmp,PhaseSpace,species,T;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,off_space_idx=off_space_idx,method=method,samples=samples)
+
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
+    # Scale by rate (rate scaled by dt0 to convert to per time step)
+    @. Injection += rate_Inj * tmp
+
+    println("sum injection: ",sum(rate_Inj * tmp))
+
+    return nothing
+end
+
+"""
+    InjectionKappaExpDecay!(Injection,PhaseSpace,species,κ,T,pmax;kwargs...)
+
+Modifies the injection state vector `Injection` with a kappa distribution generated using `InitialKappaExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
+"""
+function InjectionKappa!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+    
+    # Create temporary vector to hold initial conditions
+    tmp = zeros(eltype(Injection), length(Injection))
+
+    # Add initial conditions to temporary vector
+    InitialKappa!(tmp,PhaseSpace,species,κ,T,pmax;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,off_space_idx=off_space_idx,method="hcubature",samples=32)
+
+    #tr = PhaseSpace.Grids.tr
+    #dt0 = tr[2] - tr[1]
+    # dt0 now taken to be 1.0 by default
+    # Scale by rate (rate scaled by dt0 to convert to per time step)
+    @. Injection += rate_Inj * tmp
+
+    return nothing
+end
+
+
+"""
+    InjectionKappaExpDecay!(Injection,PhaseSpace,species,κ,T,pmax;kwargs...)
+
+Modifies the injection state vector `Injection` with a kappa distribution with exponential cut-off generated using `InitialKappaExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
+"""
+function InjectionKappaExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+    
+    # Create temporary vector to hold initial conditions
+    tmp = zeros(eltype(Injection), length(Injection))
+
+    # Add initial conditions to temporary vector
+    InitialKappaExpDecay!(tmp,PhaseSpace,species,κ,T,pmax;umin=umin,umax=umax,hmin=hmin,hmax=hmax,num_Init=num_Inj,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx,off_space_idx=off_space_idx,method="hcubature",samples=32)
 
     #tr = PhaseSpace.Grids.tr
     #dt0 = tr[2] - tr[1]

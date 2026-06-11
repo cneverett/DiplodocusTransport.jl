@@ -25,8 +25,8 @@ module DiplodocusTransport
     export AbstractInteraction, BinaryInteraction, EmissiveInteraction
     export LoadMatrices, BuildBinaryMatrices, BuildEmissionMatrices
     # Initial and Injection Conditions
-    export InitialiseInitialCondition, InitialConstant!, InitialMaxwellJuttner!, InitialPowerLaw!, InitialBoostedPowerLaw!, InitialBlackBody!, InitialPowerLawExpDecay!
-    export InitialiseInjectionCondition, InjectionConstant!, InjectionMaxwellJuttner!, InjectionPowerLaw!, InjectionBoostedPowerLaw!, InjectionBlackBody!, InjectionPowerLawExpDecay!
+    export InitialiseInitialCondition, InitialConstant!, InitialMaxwellJuttner!, InitialPowerLaw!, InitialBoostedPowerLaw!, InitialBlackBody!, InitialPowerLawExpDecay!, InitialKappa!, InitialKappaExpDecay!
+    export InitialiseInjectionCondition, InjectionConstant!, InjectionMaxwellJuttner!, InjectionPowerLaw!, InjectionBoostedPowerLaw!, InjectionBlackBody!, InjectionPowerLawExpDecay!, InjectionKappa!, InjectionKappaExpDecay!
     # Solvers 
     export AbstractSteppingMethod, ImplicitSteppingMethod, ExplicitSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct, SymplecticMPEStruct
     export OutputStruct, SolutionFileLoad

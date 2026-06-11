@@ -397,4 +397,102 @@ function InitialBlackBody!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,speci
 
 end
 
+"""
+    InitialKappa!(Initial,PhaseSpace,species,κ,T,pmax;kwargs...)
+
+Modifies the initial state vector `Initial` with a kappa distribution with `κ` and temperature `T` for `species`. 
+"""
+function InitialKappa!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::F=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32)  where F<:AbstractFloat
+
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    name_list = PhaseSpace.name_list
+
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
+    species_index = findfirst(==(species),name_list)
+    pr = Grids.pxr_list[species_index]
+    ur = Grids.pyr_list[species_index]
+    hr = Grids.pzr_list[species_index]
+    mass = Grids.mass_list[species_index]
+    p_num = Momentum.px_num_list[species_index]
+    u_num = Momentum.py_num_list[species_index]
+    h_num = Momentum.pz_num_list[species_index]
+
+    f0_3D_species = zeros(Float64,p_num,u_num,h_num)
+
+    DistributionToDIPIntegration!(f0_3D_species,pr,ur,hr,method,samples,Distribution_Kappa,κ,T,pmax,mass,umin=umin,umax=umax,hmin=hmin,hmax=hmax)
+
+    # set values and normalise to initial number density (in m^{-3})
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
+
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
+
+    if isnothing(off_space_idx) && (isnothing(x_idx) || isnothing(y_idx) || isnothing(z_idx))
+        off_space_idx = 0
+    end
+
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
+
+    Initial_local .+= convert(typeof(Initial),f0_species)
+
+    return nothing
+end
+
+"""
+    InitialKappaExpDecay!(Initial,PhaseSpace,species,κ,T,pmax;kwargs...)
+
+Modifies the initial state vector `Initial` with a kappa distribution with `κ` and temperature `T` for `species`, with an exponential cut-off. 
+"""
+function InitialKappaExpDecay!(Initial::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Init::F=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32)  where F<:AbstractFloat
+
+    Momentum = PhaseSpace.Momentum
+    Grids = PhaseSpace.Grids
+
+    name_list = PhaseSpace.name_list
+
+    if species == "Pos" && isnothing(findfirst(==("Pos"),name_list))
+        species = "Ele"
+    end
+    species_index = findfirst(==(species),name_list)
+    pr = Grids.pxr_list[species_index]
+    ur = Grids.pyr_list[species_index]
+    hr = Grids.pzr_list[species_index]
+    mass = Grids.mass_list[species_index]
+    p_num = Momentum.px_num_list[species_index]
+    u_num = Momentum.py_num_list[species_index]
+    h_num = Momentum.pz_num_list[species_index]
+
+    f0_3D_species = zeros(Float64,p_num,u_num,h_num)
+
+    DistributionToDIPIntegration!(f0_3D_species,pr,ur,hr,method,samples,Distribution_KappaExpDecay,κ,T,pmax,mass,umin=umin,umax=umax,hmin=hmin,hmax=hmax)
+
+    # set values and normalise to initial number density (in m^{-3})
+    num = sum(f0_3D_species)
+    f0_3D_species .*= num_Init/num
+
+    f0_species = reshape(f0_3D_species,p_num*u_num*h_num)
+
+    if isnothing(off_space_idx) && (isnothing(x_idx) || isnothing(y_idx) || isnothing(z_idx))
+        off_space_idx = 0
+    end
+
+    if !isnothing(off_space_idx)
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,off_space_idx=off_space_idx)
+    else
+        Initial_local = LocationSpeciesToStateVector(Initial,PhaseSpace,species_index=species_index,x_idx=x_idx,y_idx=y_idx,z_idx=z_idx)
+    end
+
+    Initial_local .+= convert(typeof(Initial),f0_species)
+
+    return nothing
+end
+
 

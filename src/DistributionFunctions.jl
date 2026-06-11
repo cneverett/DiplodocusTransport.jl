@@ -105,6 +105,58 @@ where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``, and f is norm
 
 end
 
+"""
+    Distribution_KappaExpDecay(px,py,pz,κ,p_max,m)
+
+Generates a Kappa distribution with exponential decay f(\vec{p}): 
+```math
+f(\\vec{p})} = \\left(1+\\frac{\\gamma(p)-1}{κθ}\\right)^{-(κ+1)}e^{-E/Emax}
+```
+where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``. 
+"""
+@inline function Distribution_KappaExpDecay(px::Float64,py::Float64,pz::Float64,κ::Float64,T::Float64,p_max::Float64,m::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0)
+
+    mEle = 9.11e-31
+    c = 3e8
+    kb = 1.38e-23
+
+    if px <= p_max*1e2 && (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
+        # added 1e2 above is cut for exponential tail
+        E = sqrt(m^2 + px^2)
+        θ = (kb*T)/(m*mEle*c^2)
+        return (1+(E-1)/(κ*θ))^(-κ-1) * exp(-E/sqrt(m^2+p_max^2)) 
+    end
+
+    return 0.0
+
+end
+
+"""
+    Distribution_Kappa(px,py,pz,κ,p_max,m)
+
+Generates a Kappa distribution f(\vec{p}): 
+```math
+f(\\vec{p})} = \\left(1+\\frac{\\gamma(p)-1}{κθ}\\right)^{-(κ+1)}e^{-E/Emax}
+```
+where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``. 
+"""
+@inline function Distribution_Kappa(px::Float64,py::Float64,pz::Float64,κ::Float64,T::Float64,p_max::Float64,m::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0)
+
+    mEle = 9.11e-31
+    c = 3e8
+    kb = 1.38e-23
+
+    if px <= p_max*1e2 && (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
+        # added 1e2 above is cut for exponential tail
+        E = sqrt(m^2 + px^2)
+        θ = (kb*T)/(m*mEle*c^2)
+        return (1+(E-1)/(κ*θ))^(-κ-1) 
+    end
+
+    return 0.0
+
+end
+
 @inline function Distribution_BlackBody(px::Float64,py::Float64,pz::Float64,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0)
     # Generates the height of the BB distribution at positions of the mean momentum per bin
 
