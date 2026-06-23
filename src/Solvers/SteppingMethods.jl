@@ -1604,51 +1604,35 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
 
     Precision = method.Precision
     
-    n_momentum=method.PhaseSpace.Grids.n_momentum
-    n_space=method.PhaseSpace.Grids.n_space
+    n_momentum = method.PhaseSpace.Grids.n_momentum
+    #n_space = method.PhaseSpace.Grids.n_space
+    momentum_species_offset = method.PhaseSpace.Grids.momentum_species_offset
+    name_list = method.PhaseSpace.name_list
+    num_species = length(name_list)
     
-    fold::Vector{Precision} = zeros(Precision,n_momentum)
-    fout::Vector{Precision} = zeros(Precision,n_momentum)
+    fold = method.fold
+    fout = method.fout
+    Estate::Vector{Precision} = zeros(Precision,n_momentum)
     J = method.J
-    Jtmp = copy(J)
-    F::Vector{Precision} = zeros(Precision,n_momentum)
+    #Jtmp = copy(J)
+    F = method.F
+    fscale = method.fscale #::Vector{Precision} = zeros(Precision,n_momentum)
     J64 = zeros(Float64,n_momentum,n_momentum)
     F64 = zeros(Float64,n_momentum)
-    Ftmp = copy(F)
-    ϕ = zeros(Precision,n_momentum,2) # for storing ϕ functions
-    D = Diagonal(1 ./ method.E)
-    Dinv = Diagonal(method.E)
-    #D.diag .= 1f0
-    #Dinv.diag .= 1f0
-    δ::Vector{Precision} = zeros(Precision,n_momentum)
+    #Ftmp = copy(F)
+    ϕ = method.ϕ #zeros(Precision,n_momentum,2)  
+    D = method.D #Diagonal(ones(Precision,n_momentum)) # 1/E
+    Dinv = method.Dinv #Diagonal(ones(Precision,n_momentum)) # E
+    E = method.E
 
-    m = 100#200#30 # dimension of Krylov subspace for exponential action approximation, can adjust based on problem size and desired accuracy
+    δ = method.δ #::Vector{Precision} = zeros(Precision,n_momentum)
 
-    #Ks64s = KrylovSubspace{Float64}(n_momentum, m)
-    #Ks32s = KrylovSubspace{Float64}(n_momentum, m)
+    m = method.m # dimension of Krylov subspace for exponential action approximation, can adjust based on problem size and desired accuracy
+
+    Ks = method.Ks
+    ϕcache = method.ϕcache
+
     Ks64 = KrylovSubspace{Float64}(n_momentum, m)
-    Ks32 = KrylovSubspace{Float64}(n_momentum, m)
-    #Ks64n = KrylovSubspace{Float64}(n_momentum, m)
-    #Ks32n = KrylovSubspace{Float64}(n_momentum, m)
-
-    ϕcache = ExponentialUtilities.PhivCache(ϕ,m,1)
-
-    ηtarget = 1f-3
-    ϵ = 1f-20
-
-    n_species = length(method.PhaseSpace.name_list)
-
-    M = zeros(Precision,(n_species+1),n_momentum)
-
-    #LinearFlux = zeros(Precision,n_momentum,n_momentum)
-
-    @view(M[1:n_species,:]) .= method.N 
-    @view(M[n_species+1,:]) .= method.E
-
-    #A = [ zeros(Precision,n_momentum,n_momentum) zeros(Precision,n_momentum) ; zeros(Precision,n_momentum)' zero(Precision) ]
-
-    consv = zeros(n_species+1)
-    consv[end] = one(Precision)
 
     for off_space in method.ActiveDomain
 
@@ -1658,7 +1642,9 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
         fstep = @view(method.fstep[start_idx:end_idx])
         df_Inj = @view(method.df_Inj[start_idx:end_idx])
 
-        if sum(df_Inj) == zero(Precision) && sum(fstep) == zero(Precision) 
+        has_injection = sum(df_Inj) > zero(Precision)
+
+        if !has_injection && sum(fstep) == zero(Precision) 
             continue
         end
 
@@ -1666,14 +1652,8 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
         invA_Flux = @view(method.invA_Flux[start_idx:end_idx,start_idx:end_idx])
         A_Flux = @view(method.A_Flux[start_idx:end_idx,start_idx:end_idx])
         M_Emi = @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx])
-        P_Flux = @view(method.P_Flux[start_idx:end_idx,start_idx:end_idx])
         invA = invA_Flux[1,1] # assumes the diagonal is just constant, should be true for a single spacial cell
         A = A_Flux[1,1]
-
-        #LinearFlux .= @view(method.P_Flux[start_idx:end_idx,start_idx:end_idx])
-        #if method.Emission_Interactions
-        #    LinearFlux .-= @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx])
-        #end
 
         if method.Binary_Interactions && off_space in method.Bin_Domain
 
@@ -1686,298 +1666,161 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
 
             dt_local = dt #/ 2 # initial guess for local time step, can adjust based on desired accuracy and problem stiffness
 
+            kE = 1.0
+            kϕ = 1.0
+            k = 1.0
+
             while t < 1.0
+
+                # energy per species based scaling 
+                    #=@. Estate = E * fold
+                    for s in 1:num_species
+                        s_start = momentum_species_offset[s]+1
+                        s_end = s==num_species ? n_momentum : momentum_species_offset[s+1]
+                        E_s = @view(Estate[s_start:s_end])
+                        E_s_total = sum(E_s)
+                        if E_s_total > zero(Precision)
+                            @view(D.diag[s_start:s_end]) .= 1/E_s_total
+                            @view(Dinv.diag[s_start:s_end]) .= E_s_total
+                        else
+                            @view(D.diag[s_start:s_end]) .= one(Precision)
+                            @view(Dinv.diag[s_start:s_end]) .= one(Precision)
+                        end
+                    end
+                    #D.diag .= one(Precision)
+                    #Dinv.diag .= one(Precision)
+                    @. Dinv.diag *= E
+                    maxDinv = sqrt(maximum(Dinv.diag))
+                    @. Dinv.diag /= maxDinv
+                    @. D.diag *= maxDinv / E=#
 
                 dtldt0 = dt_local / method.dt0 # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
+                kold = k 
+                kϕold = kϕ
+                kEold = kE
                 k = 1.0 # time step as a ratio of dt_local to dt_local before adaptive
 
                 # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
 
                     # Form J
                     mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fold,vol,zero(Precision)) 
-                    J .= 2 .* method.M_Bin_Mul_Step 
-                    J .+= M_Emi
+                    @. J = Precision(2) * method.M_Bin_Mul_Step 
+                    @. J += M_Emi
                     #J .-= P_Flux
                     lmul!(dtldt0,J)
                     # Form F
-                    method.M_Bin_Mul_Step .+= M_Emi
+                    @. method.M_Bin_Mul_Step += M_Emi
                     #method.M_Bin_Mul_Step .-= P_Flux
-                    mul!(Ftmp,method.M_Bin_Mul_Step,fold)
-                    Ftmp .+= df_Inj #* dtldt0
-                    lmul!(A*dtldt0,Ftmp)
-                    # remove small changes in J and F 
-                    #threshold_Jrows!(J;rtol = eps(Precision))
-                    #threshold_Jcols!(J;rtol = eps(Precision))
-                    #J[abs.(J) .< 1f-20] .= zero(Precision) # remove small entries in D2 to improve stability of second step
-
-                    #threshold_F!(F,fold,k;rtol=1f-4)
-
-                    # Form Krylov Subspace
-                    #Dn , Jn = balance_similarity(J; maxiter=5, tol=1e-3)
-                    #println("cond Dn: ", cond(Dn))
+                    mul!(F,method.M_Bin_Mul_Step,fold)
+                    @. F += df_Inj #* dtldt0
+                    if norm(F) == zero(Precision) # no change in distribution
+                        break
+                    end
+                    lmul!(A*dtldt0,F)
 
                     #D.diag .= 1f0
-                    mul!(Jtmp,J,D)
-                    mul!(J,Dinv,Jtmp)
+                    rmul!(J,D)
+                    lmul!(Dinv,J)
+                    lmul!(Dinv,F)
+                    #mul!(Jtmp,J,D)
+                    #mul!(J,Dinv,Jtmp)
                     #@time J .= D \ J * D
-                    mul!(F,Dinv,Ftmp)
+                    #mul!(F,Dinv,Ftmp)
                     #@time F .= D \ F
-                    
 
-                    #threshold_Jrows!(J;rtol = eps(Precision))
-                    #threshold_Jcols!(J;rtol = eps(Precision))
-                    #threshold_F!(F,D \ fold,k;rtol=1f-2)
-
-                    #vals = abs.(J)
-
-                    #println("minimum abs(nonzeros(J)): ", minimum(vals[vals .> 0]))
-                    #println("maximum abs(nonzeros(J)): ", maximum(vals))
-
-                    #Jn = Dn \ J * Dn
-                    #Fn = Dn \ F
-
-                    J64 .= Float64.(J)
-                    F64 .= Float64.(F)
-
-                    #F64n = Float64.(Fn)
-                    #J64n = Float64.(Jn)
-                    #println("cond J: ", cond(I -J))
-     
+                    @. J64 = Float64(J)
+                    @. F64 = Float64(F)
                     arnoldi!(Ks64,J64,F64;m=m,reorthogonalize=true)
- 
-                    #arnoldi!(Ks32n, Jn, Fn;m=m)
-                    #arnoldi!(Ks64n, J64n, F64n;m=m)
 
-                    arnoldi!(Ks32, J, F;m=m,reorthogonalize=true)
-                    #arnoldi!(Ks64, J64, F64;m=m)
+                    #arnoldi!(Ks, J, F;m=m,reorthogonalize=true)
 
-                    #V32 = ExponentialUtilities.getV(Ks32)[:,1:end-1]
-                    #H32 = ExponentialUtilities.getH(Ks32)[1:end-1,1:end]
-                    V64 = ExponentialUtilities.getV(Ks64)[:,1:end-1]
-                    H64 = ExponentialUtilities.getH(Ks64)[1:end-1,1:end]
-                    #V32n = ExponentialUtilities.getV(Ks32n)[:,1:end-1]
-                    #H32n = ExponentialUtilities.getH(Ks32n)[1:end-1,1:end]
-                    #V64n = ExponentialUtilities.getV(Ks64n)[:,1:end-1]
-                    #H64n = ExponentialUtilities.getH(Ks64n)[1:end-1,1:end]
+                    #V = ExponentialUtilities.getV(Ks)[:,1:end-1]
+                    #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
+                    V = ExponentialUtilities.getV(Ks64)[:,1:end-1]
+                    H = ExponentialUtilities.getH(Ks64)[1:end-1,1:end]
 
-                    #norm_scaled = norm(V32s' * V32s - I)
-                    norm_unscaled = norm(V64' * V64 - I)
-                    #norm_new = norm(V32n' * V32n - I)
-                    #println("|V'V - I| Float64 scaled: ", norm(V64s' * V64s - I))  # TODO: scale switch between for when norm changes
-                    #println("|V'V - I| Float32 scaled: ", norm_scaled)
-                    #println("|V'V - I| Float64: ", norm(V64' * V64 - I))
-                    println("|V'V - I| Float32: ", norm_unscaled)
-                    #println("|V'V - I| Float64 balanced: ", norm(V64n' * V64n - I))
-                    #println("|V'V - I| Float32 balanced: ", norm_new)
-                    #println("cond((I - dt_scale*H64)) scaled: ", cond((I - dt*H64s)))
-                    #println("cond((I - dt_scale*H32)) scaled: ", cond((I - dt*H32s)))
-                    #println("cond((I - dt_scale*H64)): ", cond((I - dt*H64)))
-                    println("cond((I - dt_scale*H64)): ", cond((I - dt*H64)))
-                    #println("cond((I - dt_scale*H64)) balanced: ", cond((I - dt*H64n)))
-                    #println("cond((I - dt_scale*H32)) balanced: ", cond((I - dt*H32n)))
-
-                    if cond((I - dt*H64)) > 1f8 ||  norm(V64' * V64 - I) > 1f-5 
-                        dt_local = dt_local * 0.5
+                    if #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1f-5 
+                        dt_local *= 0.5
+                        @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), reducing time step to $dt_local"
                         continue
                     end
-                    #cond_scaled = cond((I - dt*H64s))
-                    #cond_unscaled = cond((I - dt*H64))
-
-                    #if cond_scaled < cond_unscaled
-                    #    println("Using scaled Krylov subspace for error estimation")
-                    #    Ks = Ks64s
-                    #    V = V64s
-                    #    H = H64s
-                    #    F = Fs
-                    #    J = Js
-                    #    D = D
-                    #else
-                        #println("Using unscaled Krylov subspace for error estimation")
-                        #V = V64
-                        #H = H64
-                        #F = F
-                        #J = J
-                        #D.diag .= 1.0
-                    #end
-                    #println("size V : ", size(V))
-                    #println("size H : ", size(H))
-
-                    #println(abs(ExponentialUtilities.getH(Ks)[m+1,m]))
-                    #β = norm(F)
-                    #e1 = zeros(Precision,size(V,2))
-                    #e1[1] = one(Precision)
 
                     # Compute φ functions of H
-                    phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=false) # TODO: This allocates
+                    phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true,errest=false) # TODO: This allocates
                     mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
                     #@time δ .= invA_Flux * δ # TODO: this allocates
-                    fout .= fold .+ δ
+                    @. fout = fold + δ
                     
-                    #@. fstar = ifelse(fstar <= method.n_cut, zero(Precision),fstar)
-
-                    #@. fstar = max(fstar, zero(Precision)) # remove negative values before error calculation, can cause issues with error estimation and stability of second step
-
-                    # adaptive time stepping
-
-                        # second step accuracy prediction
-
-                        #=# form D2 with δ only need A(δ,δ)
-                        mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,δ,vol*dtldt0,zero(Precision))
-                        mul!(D2,method.M_Bin_Mul_Step,δ)
-
-                        D2 .= D \ D2
-
-                        D2[abs.(D2) .< eps(Precision)] .= zero(Precision) # remove small entries in D2 to improve stability of second step=#
-
-                        # compute second step ϕ functions
-                        #=Ks2 = KrylovSubspace{Float64}(n_momentum, m)
-                        arnoldi!(Ks2, J, D2;m=m) 
-                        V2 = ExponentialUtilities.getV(Ks2)[:,1:end-1]
-                        H2 = ExponentialUtilities.getH(Ks2)[1:end-1,1:end]
-                        #println("cond((I - dt_old*H2)): ", cond((I - dt_old*H2)))
-                        #println("norm(V2'V2 - I): ", norm(V2' * V2 - I))
-                        β = norm(D2)
-                        e1 = zeros(Precision,size(V2,2))
-                        e1[1] = one(Precision)
-                        ϕ3 = 2 * k * D * V2 * phiv(k,H2,β*e1,3)[:,4]=#
-                        
-                        # combine steps for final solution
-                        
-                        #@. fout = fold + δ #+ ϕ3
-
-                        #@. fout = max(fout, zero(Precision)) # remove negative values before error calculation, can cause issues with error estimation and stability of second step
-
-                        #println(minimum(fout), " ", maximum(fout))
-
-                        #@. fout = max(fout, zero(Precision)) # remove negative values before error calculation, can cause issues with error estimation and stability of second step
                         @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
 
                         # energy error
-                        ΔE = dot(method.E, fout) - dot(method.E, fold .+ df_Inj * k*dtldt0)
-                        Eold = dot(method.E, fold .+ df_Inj * k * dtldt0)
-                        Eerr = abs(dot(method.E, fout) / Eold - one(Precision))
-                        println("Energy error before adaptive: ", Eerr, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-                        #println("Energy in δ: ", dot(method.E, δ), " Energy in ϕ3: ", dot(method.E, ϕ3))
+                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k*dtldt0)
+                        Eold = dot(E, fold .+ df_Inj * k * dtldt0)
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
 
-                        ηE = Eerr
-
-                        @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
-
-
-                        #atol = 1e-5 * maximum(fold)
-                        #rtol = 1e-4
-                        #err = fout .- fstar
-                        #scale = atol .+ rtol .* max.(abs.(fold),abs.(fout))
-
-                        #η = sqrt(mean((err ./ scale).^2))
-                        #println("η for second step: ", norm(η))
-
-                    # Form F with fstar
-                        #mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fstar,vol * dtldt0,zero(Precision))
-                        #J2 = 2 .* method.M_Bin_Mul_Step 
-                        #J2 .+= @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx]) * dtldt0
-                        #threshold_Jcols!(J2;rtol = 1f-7)
-                    # Form F
-                        #method.M_Bin_Mul_Step .+= @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx]) * dtldt0
-                        #mul!(F2,method.M_Bin_Mul_Step,fstar)
-                        #F2 .+= df_Inj * dtldt0
-                        #threshold_F!(F2,fstar,dt_local;rtol=1f-2)
-                        # error calculation for first step and adaptivity
-                        #ηR = norm(fstar - fold -k*F2)/(norm(δ)+eps(Precision)) # want this to be about <10^-3 for accuracy
-                        #ηJ = norm(J2-J)/norm(J)
-                        #ηδ = norm(δ)/norm(fold)
-                        #println("ηR: ", ηR)
-                        #println("ηJ: ", ηJ)
-                        #println("ηδ: ", ηδ)
+                        if !isfinite(ηE)
+                            println("ηE: $ηE, sum(δ): $(sum(δ))")
+                            @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηtarget"
+                            dt_local *= convert(typeof(dt_local), 1/64)
+                            continue
+                        end
 
                         dt_old = dt_local
                         order = 1.0 # energy error is order 1
 
-                        k = (1e-4/(ηE+eps(Float64)))^(1.0/(order+1)) 
+                        ηtarget = 1e-5
+
+                        kE = (1e-4/(ηE+eps(1e-4)))^(1.0/(order+1)) # k from energy error estimate 
+                        kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
+                        kϕ = min(kE,kϕmax) # max k is 2.0
+                        errest = Inf
+                        while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
+                            _, errest = phiv!(ϕ,kϕ,Ks64,1;cache=ϕcache,correct=true,errest=true) # TODO: This allocates
+                            println("ϕv error estimate during: ", errest)
+                            if errest > ηtarget
+                                kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                            end
+                        end
+                        println("ϕv error estimate after: ", errest)
+                        k = min(kE,kϕ,2.0)
+                        println("kE: ", kE, " kϕ: ", kϕ, " errest: ", errest)
+
                         #k = 1.0
                         #println("dt_local: ", dt_local, " k: ", k, " new: ", dt_old*k, " old: ", dt_old)
-                        dt_local = min(1.2*dt_old,k*dt_old)
+                        dt_local = k*dt_old
                         #dt_local = max(dt_local, dt_old/1.01)
                         #println(dt)
                         if t + dt_local/dt > 1.0
                             dt_local = (1.0 - t) * dt
-                            println("space: ", off_space, "t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            println("space: ", off_space," regions: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
                             t = 1.0
                         else
-                            println("space: ", off_space, "t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            println("space: ", off_space," regions: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
                             t += dt_local/dt
                         end
                         k = dt_local / dt_old
-                        #k = 1.0
 
-                        #println("k: ", k)
-
-                        #if dt_local < 1e-5
-                        #    error("small step")
-                        #end
-
-
-                    # second step with adapted dt
-                    #k=0.99
-
-                    #β = norm(F)
-                    #e1 = zeros(Precision,size(V,2))
-                    #e1[1] = one(Precision)
 
                     if k != 1.0
-                        phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=false)
+                        phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true,errest=false) # TODO: This allocates
                         mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
-                        fout .= fold .+ δ
-                        @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
+                        @. fout = fold + δ
+
+                        # energy after correction  
+                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k * dtldt0)
+                        Eold = dot(E, fold .+ df_Inj * k * dtldt0)
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        #println("Energy error after adaption: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
                     end
 
-                    # form D2 with δ only need A(δ,δ)
-                    #=mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,δ,vol*dtldt0,zero(Precision))
-                    mul!(D2,method.M_Bin_Mul_Step,δ)
+                    @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
 
-                    D2 .= D \ D2
 
-                    D2[abs.(D2) .< eps(Precision)] .= zero(Precision) # remove small entries in D2 to improve stability of second step
-
-                    # compute second step ϕ functions
-                    Ks2 = KrylovSubspace{Float64}(n_momentum, m)
-                    arnoldi!(Ks2, J, D2;m=m) 
-                    V2 = ExponentialUtilities.getV(Ks2)[:,1:end-1]
-                    H2 = ExponentialUtilities.getH(Ks2)[1:end-1,1:end]
-
-                    β = norm(D2)
-                    e1 = zeros(Precision,m)
-                    e1[1] = one(Precision)
-                    ϕ3 = 2 * k * D * V2 * phiv(k,H2,β*e1,3)[:,4]=#
-                    
-                    # combine steps for final solution
-                    
-                    #@. fout = fold + δ #+ ϕ3
-
-                    #println(minimum(fout), " ", maximum(fout))
-
-                    #@. fout = max(fout, zero(Precision)) # remove negative values before error calculation, can cause issues with error estimation and stability of second step
-
-                    # energy correction  
-                    #ΔE = dot(method.E, fout) - dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    #Eold = dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    #Eerr = abs(dot(method.E, fout) / Eold - one(Precision))
-                    #println("Energy error: ", Eerr, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-                    #println("Energy in δ: ", dot(method.E, δ), " Energy in ϕ3: ", dot(method.E, ϕ3))
-
-                    #@. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
-                    #@. fout = max(fout, zero(Precision)) # remove negative values after error calculation, can cause issues with stability if negative values are used in next step
-
-                    # energy correction  
-                    ΔE = dot(method.E, fout) - dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    Eold = dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    Eerr = abs(dot(method.E, fout) / Eold - one(Precision))
-                    #println("Energy error: ", Eerr, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-
-                    if Eerr > 1e-4
-                        @warn "Energy error in EXPRB32 step is large $Eerr, may be unstable, consider reducing time step or adjusting ηtarget"
-                    end
+                    #=if ηE > 2e-4
+                        @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
+                    end=#
 
                     #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                     #@. fold = max(fout, zero(Precision))
@@ -1992,7 +1835,7 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
 
         else #
 
-            fold .= @view(method.fstep[start_idx:end_idx]) 
+            fold .= fstep 
 
             #if sum(fold) == Precision(0)
             #    continue
@@ -2001,224 +1844,191 @@ function update_momentum!(method::ExponentialRosenbrockStruct,dt::T) where T
 
             dt_local = dt #/ 2 # initial guess for local time step, can adjust based on desired accuracy and problem stiffness
 
+            kE = 1.0
+            kϕ = 1.0
+            k = 1.0
+
             while t < 1.0
+
+                # energy per species based scaling 
+                    @. Estate = E * fold
+                    for s in 1:num_species
+                        s_start = momentum_species_offset[s]+1
+                        s_end = s==num_species ? n_momentum : momentum_species_offset[s+1]
+                        E_s = @view(Estate[s_start:s_end])
+                        E_s_total = sum(E_s)
+                        if E_s_total > zero(Precision)
+                            @view(D.diag[s_start:s_end]) .= 1/E_s_total
+                            @view(Dinv.diag[s_start:s_end]) .= E_s_total
+                        else
+                            @view(D.diag[s_start:s_end]) .= one(Precision)
+                            @view(Dinv.diag[s_start:s_end]) .= one(Precision)
+                        end
+                    end
+                    #D.diag .= one(Precision)
+                    #Dinv.diag .= one(Precision)
+                    @. D.diag *= 1 / E
+                    @. Dinv.diag *= E
 
                 dtldt0 = dt_local / method.dt0 # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
+                kold = k 
+                kϕold = kϕ
+                kEold = kE
                 k = 1.0 # time step as a ratio of dt_local to dt_local before adaptive
 
                 # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
 
                     # Form J
-                    J .= M_Emi
+                    @. J = M_Emi
                     #J .-= P_Flux
                     lmul!(dtldt0,J)
                     # Form F
-                    mul!(Ftmp,J,fold)
-                    Ftmp .+= df_Inj
-                    lmul!(A * dtldt0,Ftmp)
-                    # remove small changes in J and F 
-                    #threshold_Jrows!(J;rtol = eps(Precision))
-                    #threshold_Jcols!(J;rtol = eps(Precision))
-                    #J[abs.(J) .< 1f-20] .= zero(Precision) # remove small entries in D2 to improve stability of second step
+                    mul!(F,J,fold)
+                    @. F += df_Inj * dtldt0 # needed as unlike binary case dtldt0 Ftmp is calculated from J which already includes dtldt0
+                    if norm(F) == zero(Precision) # no change in distribution
+                        break
+                    end
+                    lmul!(A,F)
 
-                    println("max J: ", maximum(J), " min J: ", minimum(J))
-                    println("max F: ", maximum(Ftmp), " min F: ", minimum(Ftmp))
-                    println("max fold: ", maximum(fold), " min fold: ", minimum(fold))
-
-                    #threshold_F!(F,fold,k;rtol=1f-4)
-
-                    # Form Krylov Subspace
-                    #Dn , Jn = balance_similarity(J; maxiter=5, tol=1e-3)
-                    #println("cond Dn: ", cond(Dn))
-
+                    rmul!(J,D)
+                    lmul!(Dinv,J)
+                    lmul!(Dinv,F)
                     #D.diag .= 1f0
-                    mul!(Jtmp,J,D)
-                    mul!(J,Dinv,Jtmp)
+                    #mul!(Jtmp,J,D)
+                    #mul!(J,Dinv,Jtmp)
                     #@time J .= D \ J * D
-                    mul!(F,Dinv,Ftmp)
+                    #mul!(F,Dinv,Ftmp)
                     #@time F .= D \ F
 
-                    #threshold_Jrows!(J;rtol = eps(Precision))
-                    #threshold_Jcols!(J;rtol = eps(Precision))
-                    #threshold_F!(F,D \ fold,k;rtol=1f-2)
+                    @. J64 = Float64(J)
 
-                    #vals = abs.(J)
+                    if has_injection 
+                        @. F64 = Float64(F)
+                        arnoldi!(Ks64,J64,F64;m=m,reorthogonalize=true)
+                        #arnoldi!(Ks,J,F;m=m,reorthogonalize=true)
+                    else # no injection, just linear Jacobian so use exp over phi
+                        f64 = Float64.(Dinv * fold)
+                        arnoldi!(Ks64,J64,f64;m=m,reorthogonalize=true)
+                        #mul!(fscale,Dinv,fold)
+                        #arnoldi!(Ks,J,fscale;m=m,reorthogonalize=true)
+                    end
 
-                    #println("minimum abs(nonzeros(J)): ", minimum(vals[vals .> 0]))
-                    #println("maximum abs(nonzeros(J)): ", maximum(vals))
+                    #V = ExponentialUtilities.getV(Ks)[:,1:end-1]
+                    #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
+                    
+                    V = ExponentialUtilities.getV(Ks64)[:,1:end-1]
+                    H = ExponentialUtilities.getH(Ks64)[1:end-1,1:end]
 
-                    #Jn = Dn \ J * Dn
-                    #Fn = Dn \ F
-
-                    #J64 = Float64.(J)
-                    #F64 = Float64.(F)
-
-                    #F64n = Float64.(Fn)
-                    #J64n = Float64.(Jn)
-                    #println("cond J: ", cond(I -J))
-     
-                    arnoldi!(Ks64,J,F;m=m,reorthogonalize=true)
- 
-                    #arnoldi!(Ks32n, Jn, Fn;m=m)
-                    #arnoldi!(Ks64n, J64n, F64n;m=m)
-
-                    arnoldi!(Ks32, J, F;m=m,reorthogonalize=true)
-                    #arnoldi!(Ks64, J64, F64;m=m)
-
-                    #V32 = ExponentialUtilities.getV(Ks32)[:,1:end-1]
-                    #H32 = ExponentialUtilities.getH(Ks32)[1:end-1,1:end]
-                    V64 = ExponentialUtilities.getV(Ks64)[:,1:end-1]
-                    H64 = ExponentialUtilities.getH(Ks64)[1:end-1,1:end]
-                    #V32n = ExponentialUtilities.getV(Ks32n)[:,1:end-1]
-                    #H32n = ExponentialUtilities.getH(Ks32n)[1:end-1,1:end]
-                    #V64n = ExponentialUtilities.getV(Ks64n)[:,1:end-1]
-                    #H64n = ExponentialUtilities.getH(Ks64n)[1:end-1,1:end]
-
-                    #norm_scaled = norm(V32s' * V32s - I)
-                    norm_unscaled = norm(V64' * V64 - I)
+                    norm_unscaled = norm(V' * V - I)
                     if isnan(norm_unscaled) # no J or F means no Krylov subspace generated, so just accept step as is and move on,
                         break
                     end
-                    #norm_new = norm(V32n' * V32n - I)
-                    #println("|V'V - I| Float64 scaled: ", norm(V64s' * V64s - I))  # TODO: scale switch between for when norm changes
-                    #println("|V'V - I| Float32 scaled: ", norm_scaled)
-                    #println("|V'V - I| Float64: ", norm(V64' * V64 - I))
-                    println("|V'V - I| Float32: ", norm_unscaled)
-                    #println("|V'V - I| Float64 balanced: ", norm(V64n' * V64n - I))
-                    #println("|V'V - I| Float32 balanced: ", norm_new)
-                    #println("cond((I - dt_scale*H64)) scaled: ", cond((I - dt*H64s)))
-                    #println("cond((I - dt_scale*H32)) scaled: ", cond((I - dt*H32s)))
-                    #println("cond((I - dt_scale*H64)): ", cond((I - dt*H64)))
-                    println("cond((I - dt_scale*H64)): ", cond((I - dt*H64)))
-                    #println("cond((I - dt_scale*H64)) balanced: ", cond((I - dt*H64n)))
-                    #println("cond((I - dt_scale*H32)) balanced: ", cond((I - dt*H32n)))
 
-                    if cond((I - dt*H64)) > 1f8 ||  norm(V64' * V64 - I) > 1f-5 
+                    if #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1f-5 
                         dt_local = dt_local * 0.5
+                        @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), reducing time step to $dt_local"
                         continue
                     end
-                    #cond_scaled = cond((I - dt*H64s))
-                    #cond_unscaled = cond((I - dt*H64))
-
-                    #if cond_scaled < cond_unscaled
-                    #    println("Using scaled Krylov subspace for error estimation")
-                    #    Ks = Ks64s
-                    #    V = V64s
-                    #    H = H64s
-                    #    F = Fs
-                    #    J = Js
-                    #    D = D
-                    #else
-                        #println("Using unscaled Krylov subspace for error estimation")
-                        #V = V64
-                        #H = H64
-                        #F = F
-                        #J = J
-                        #D.diag .= 1.0
-                    #end
-                    #println("size V : ", size(V))
-                    #println("size H : ", size(H))
-
-                    #println(abs(ExponentialUtilities.getH(Ks)[m+1,m]))
-                    #β = norm(F)
-                    #e1 = zeros(Precision,size(V,2))
-                    #e1[1] = one(Precision)
 
                     # Compute φ functions of H
-                    phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true) # TODO: This allocates
-                    mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
-                    #@time δ .= invA_Flux * δ # TODO: this allocates
-                    fout .= fold .+ δ
+                    if has_injection 
+                        phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true,errest=false) # TODO: This allocates
+                        mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
+                        @. fout = fold + δ
+                    else # no injection, just linear Jacobian so use exp over phi
+                        expv!(δ,k,Ks64)
+                        @. fout = D.diag * δ
+                    end
+
 
                     # adaptive time stepping
 
-                        @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
+                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
 
                         # energy error
-                        ΔE = dot(method.E, fout) - dot(method.E, fold .+ df_Inj * k*dtldt0)
-                        Eold = dot(method.E, fold .+ df_Inj * k * dtldt0)
-                        Eerr = abs(dot(method.E, fout) / Eold - one(Precision))
-                        println("Energy error before adaptive: ", Eerr, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-                        #println("Energy in δ: ", dot(method.E, δ), " Energy in ϕ3: ", dot(method.E, ϕ3))
+                        if has_injection
+                            ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * dtldt0)
+                            Eold = dot(E, fold .+ df_Inj * dtldt0)
+                        else
+                            ΔE = dot(E, fout) - dot(E, fold)
+                            Eold = dot(E, fold)
+                        end
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
 
-                        ηE = Eerr
-
-                        #atol = 1e-5 * maximum(fold)
-                        #rtol = 1e-4
-                        #err = fout .- fstar
-                        #scale = atol .+ rtol .* max.(abs.(fold),abs.(fout))
-
-                        #η = sqrt(mean((err ./ scale).^2))
-                        #println("η for second step: ", norm(η))
-
-                    # Form F with fstar
-                        #mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fstar,vol * dtldt0,zero(Precision))
-                        #J2 = 2 .* method.M_Bin_Mul_Step 
-                        #J2 .+= @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx]) * dtldt0
-                        #threshold_Jcols!(J2;rtol = 1f-7)
-                    # Form F
-                        #method.M_Bin_Mul_Step .+= @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx]) * dtldt0
-                        #mul!(F2,method.M_Bin_Mul_Step,fstar)
-                        #F2 .+= df_Inj * dtldt0
-                        #threshold_F!(F2,fstar,dt_local;rtol=1f-2)
-                        # error calculation for first step and adaptivity
-                        #ηR = norm(fstar - fold -k*F2)/(norm(δ)+eps(Precision)) # want this to be about <10^-3 for accuracy
-                        #ηJ = norm(J2-J)/norm(J)
-                        #ηδ = norm(δ)/norm(fold)
-                        #println("ηR: ", ηR)
-                        #println("ηJ: ", ηJ)
-                        #println("ηδ: ", ηδ)
+                        if isinf(ηE)
+                            @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηtarget"
+                            dt_local *= convert(typeof(dt_local), 1/64)
+                            continue
+                        end
 
                         dt_old = dt_local
                         order = 1.0 # energy error is order 1
 
-                        k = (1e-5/(ηE+eps(Float64)))^(1.0/(order+1)) 
-                        k = 1.0
+                        ηtarget = 1e-5
+
+                        kE = (1e-4/(ηE+eps(1e-4)))^(1.0/(order+1)) # k from energy error estimate
+                        if has_injection
+                            kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
+                            kϕ = min(kE,kϕmax) # max k is 2.0
+                            errest = Inf
+                            while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
+                                _, errest = phiv!(ϕ,kϕ,Ks64,1;cache=ϕcache,correct=true,errest=true) # TODO: This allocates
+                                println("ϕv error estimate during: ", errest)
+                                if errest > ηtarget
+                                    kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                                end
+                            end
+                            println("ϕv error estimate after: ", errest)
+                            k = min(kE,kϕ,2.0)
+                            println("kE: ", kE, " kϕ: ", kϕ, " errest: ", errest)
+                        else
+                            k = min(kE,2.0)
+                        end
+                        #k = 1.0
                         #println("dt_local: ", dt_local, " k: ", k, " new: ", dt_old*k, " old: ", dt_old)
-                        #dt_local = min(1.1*dt_old,k*dt_old)
+                        dt_local = k*dt_old
                         #dt_local = max(dt_local, dt_old/1.01)
                         #println(dt)
                         if t + dt_local/dt > 1.0
                             dt_local = (1.0 - t) * dt
-                            println("space: ", off_space, "t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            println("space: ", off_space," regions: Linear", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
                             t = 1.0
                         else
-                            println("space: ", off_space, "t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            println("space: ", off_space," regions: Linear", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
                             t += dt_local/dt
                         end
                         k = dt_local / dt_old
 
-                        #println("k: ", k)
-
-                        #if dt_local < 1e-5
-                        #    error("small step")
-                        #end
-
-
-                    # second step with adapted dt
-                    #k=0.99
-
-                    #β = norm(F)
-                    #e1 = zeros(Precision,size(V,2))
-                    #e1[1] = one(Precision)
-
                     if k != 1.0
-                        phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true)
-                        mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
-                        fout .= fold .+ δ
-                        @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
+                        if has_injection 
+                            phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true)
+                            mul!(δ,D,@view(ϕ[:,2]),k*invA,zero(Precision))
+                            @. fout = fold + δ
+                        else # no injection, just linear Jacobian so use exp over phi
+                            expv!(δ,k,Ks64)
+                            @. fout = D.diag * δ
+                        end
+
+                        # energy after correction  
+                        if has_injection 
+                            ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k * dtldt0)
+                            Eold = dot(E, fold .+ df_Inj * k * dtldt0)
+                        else
+                            ΔE = dot(E, fout) - dot(E, fold)
+                            Eold = dot(E, fold)
+                        end
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        #println("Energy error: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
+
+                        #=if ηE > 2e-4
+                            @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
+                        end=#
+                        
                     end
 
-                    # energy correction  
-                    ΔE = dot(method.E, fout) - dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    Eold = dot(method.E, fold .+ df_Inj * k * dtldt0)
-                    Eerr = abs(dot(method.E, fout) / Eold - one(Precision))
-                    #println("Energy error: ", Eerr, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-
-                    if Eerr > 1e-4
-                        @warn "Energy error in EXPRB32 step is large $Eerr, may be unstable, consider reducing time step or adjusting ηtarget"
-                    end
+                    @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
 
                     #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                     #@. fold = max(fout, zero(Precision))

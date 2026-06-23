@@ -63,7 +63,6 @@ end
         return Ω0
 end
 @inline function ΩBHPlusDisk(ρ0;ΩH=0.1)
-    
         if ρ0 <= 1.0
             return ΩH/2 # ΩF = ΩH/2 for field lines threading the horizon in the force-free limit 
         else

@@ -1715,12 +1715,23 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             df_mask::DFD                   # mask for spatial domain df (1 for points in domain, 0 for points outside domain)  
 
             F::VT                          # vector for implicit solve residuals
-            J::MT                          # Jacobian matrix for implicit solve   
+            J::MT                          # Jacobian matrix for implicit solve 
+            D::Diagonal{T,VT}              # Diagonal scaling matrix
+            Dinv::Diagonal{T,VT}           # Inverse of diagonal scaling matrix
+            ϕ::MT                          # matrix of ϕ functions for exponential Rosenbrock method
+
+            fold::VT                        # local distribution function from previous step 
+            fout::VT                        # local distribution function from current step
+            fscale::VT                      # scaling vector for exponential Rosenbrock method
+            δ::VT                          # temporary vector for exponential Rosenbrock method
+
+            Ks::KrylovSubspace{T,T,T,MT,MT}      # Krylov subspace for exponential Rosenbrock method
+            m::Int64                        # dimension of Krylov subspace
+            ϕcache::ExponentialUtilities.PhivCache{useview,T} where useview # cache for ϕ functions
 
             E::VT                           # energy vector for correcting step 
-            N::MT                           # matrix of number densities for each species for correcting step [N1, N2, ...]
 
-            function ExponentialRosenbrockStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,dt_initial::Float64=1.0,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing)
+            function ExponentialRosenbrockStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,dt_initial::Float64=1.0,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,m::Int64=128)
 
                 Backend = getfield(Main,Symbol("Backend"))
                 Precision = getfield(Main,Symbol("Precision"))
@@ -1740,7 +1751,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 momentum_offset_species = PhaseSpace.Grids.momentum_species_offset
 
                 E = zeros(Backend,Precision,n_momentum)
-                N = zeros(Backend,Precision,length(PhaseSpace.name_list),n_momentum)
                 for species in eachindex(PhaseSpace.name_list)
                     px_num = px_num_list[species]
                     py_num = py_num_list[species]
@@ -1751,7 +1761,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                             for pz in 1:pz_num
                                 idx = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pz,species)
                                 E[idx] = Precision(dE[px])
-                                N[species,idx] = Precision(1.0)
                             end
                         end
                     end
@@ -1780,6 +1789,21 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 fstep = zeros(Backend,Precision,length(Initial))
                 F = zeros(Backend,Precision,n_momentum)
                 J = zeros(Backend,Precision,n_momentum,n_momentum)
+                fold = zeros(Backend,Precision,n_momentum)
+                fout = zeros(Backend,Precision,n_momentum)
+                fscale = zeros(Backend,Precision,n_momentum)
+                δ = zeros(Backend,Precision,n_momentum)
+                ϕ = zeros(Backend,Precision,n_momentum,2)
+                ϕcache = ExponentialUtilities.PhivCache(ϕ,m,1)
+
+                D = Diagonal(one(Precision) ./ copy(E))
+                Dinv = Diagonal(copy(E))
+
+                if Backend isa CUDABackend
+                    Ks = KrylovSubspace{Precision,Precision,CuArray{Precision,2}}(n_momentum,m)
+                else
+                    Ks = KrylovSubspace{Precision,Precision,Array{Precision,2}}(n_momentum,m)
+                end
 
                 Vol = FluxM.Vol
 
@@ -1952,9 +1976,18 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
                 self.F = F
                 self.J = J
+                self.D = D 
+                self.Dinv = Dinv 
+                self.fold = fold
+                self.fout = fout
+                self.fscale = fscale
+                self.δ = δ
+                self.Ks = Ks
+                self.ϕ = ϕ
+                self.ϕcache = ϕcache
+                self.m = m
 
                 self.E = E
-                self.N = N
 
                 self.invImMP = invImMP
 

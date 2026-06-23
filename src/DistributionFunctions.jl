@@ -146,7 +146,7 @@ where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``.
     c = 3e8
     kb = 1.38e-23
 
-    if px <= p_max*1e2 && (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
+    if px <= p_max && (py >= umin && py <= umax) && (pz >= hmin*pi && pz <= hmax*pi)
         # added 1e2 above is cut for exponential tail
         E = sqrt(m^2 + px^2)
         θ = (kb*T)/(m*mEle*c^2)

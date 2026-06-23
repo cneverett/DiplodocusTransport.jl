@@ -25,7 +25,11 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution generated using `InitialPowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -48,7 +52,11 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution with exponential cut-off generated using `InitialPowerLawExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionPowerLawExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionPowerLawExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,index::Float64,pmin::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -70,7 +78,11 @@ end
 
 Modifies the injection state vector `Injection` with a power law distribution generated using `InitialBoostedPowerLaw!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionBoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,Gamma::Float64,index::Float64,pmin::Float64,pmax::Float64;num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionBoostedPowerLaw!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,Gamma::Float64,index::Float64,pmin::Float64,pmax::Float64;num_Inj::Float64=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
 
      # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -93,7 +105,11 @@ end
 
 Modifies the injection state vector `Injection` with a constant distribution generated using `InitialConstant!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionConstant!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::T,pmax::T,umin::T,umax::T,hmin::T,hmax::T,num_Inj::AbstractFloat=1.0,rate_Inj::AbstractFloat=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing) where T <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+function InjectionConstant!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String;pmin::T,pmax::T,umin::T,umax::T,hmin::T,hmax::T,num_Inj::AbstractFloat=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing) where T <: Union{Float32,Float64,Int64} where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -115,7 +131,11 @@ end
 
 Modifies the injection state vector `Injection` with a Maxwell-Juttner distribution generated using `InitialMaxwellJuttner!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionMaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionMaxwellJuttner!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Float64=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -137,7 +157,11 @@ end
 
 Modifies the injection state vector `Injection` with a Black-Body distribution generated using `InitialBlackBody!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionBlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Union{Nothing,Float64}=nothing,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionBlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,T::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::Union{Nothing,Float64}=nothing,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
 
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -161,7 +185,11 @@ end
 
 Modifies the injection state vector `Injection` with a kappa distribution generated using `InitialKappaExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionKappa!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionKappa!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
     
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
@@ -184,8 +212,12 @@ end
 
 Modifies the injection state vector `Injection` with a kappa distribution with exponential cut-off generated using `InitialKappaExpDecay!` scaled by the rate of injection `rate_Inj`. Such that particles with that distribution and number density `num_Init` are injected at a rate of `rate_Inj`.
 """
-function InjectionKappaExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Float64=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
+function InjectionKappaExpDecay!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,species::String,κ::Float64,T::Float64,pmax::Float64;umin::Float64=-1.0,umax::Float64=1.0,hmin::Float64=0.0,hmax::Float64=2.0,num_Inj::AbstractFloat=1.0,rate_Inj::Union{Float64,Vector{Float64}}=1.0,x_idx=nothing,y_idx=nothing,z_idx=nothing,off_space_idx=nothing,method="hcubature",samples=32) where F<:AbstractFloat
     
+    if rate_Inj isa Vector{Float64}
+        @assert length(rate_Inj) == length(Injection) "rate_Inj and Injection must have the same length if rate_Inj is a vector"
+    end
+
     # Create temporary vector to hold initial conditions
     tmp = zeros(eltype(Injection), length(Injection))
 
