@@ -572,9 +572,13 @@ function LoadMatrices_BinaryPatankarSymmetric(Binary_list::Vector{BinaryInteract
 end
 
 
-function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,Emi_corrected::Bool=true;M_Emi::Union{Nothing,Matrix{F}}=nothing,M_Emi_I::Union{Nothing,Vector{Int64}}=nothing,M_Emi_J::Union{Nothing,Vector{Int64}}=nothing,M_Emi_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
+function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F}}},Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,BinM::BinaryMatricesStruct;Emi_corrected::Bool=true) where F<:AbstractFloat
 
     Emi_Norm = PhaseSpace.Characteristic.Emi_Norm
+
+    # to define if MEmi should be sparse or dense for each spatial cell
+    Binary_Domain = BinM.Domain
+    Binary_list = BinM.Binary_list
     
     name_list = PhaseSpace.name_list
     Momentum = PhaseSpace.Momentum
@@ -598,6 +602,13 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
     x_num = Spacetime.x_num
     y_num = Spacetime.y_num
     z_num = Spacetime.z_num
+
+    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+
+    M_Emi_D = zeros(F,n_momentum,n_momentum)
+    M_Emi_I::Vector{Int64} = Int64[]
+    M_Emi_J::Vector{Int64} = Int64[]
+    M_Emi_V::Vector{F} = F[]
 
     for i in eachindex(Emission_list)
 
@@ -699,7 +710,18 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
 
             off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
 
+            in_Binary = !isempty(Binary_list) && (isnothing(Binary_Domain) || in(off_space,Binary_Domain)) 
+
             if isnothing(Domain) || in(off_space,Domain)
+
+                # reset temporary arrays
+                if in_Binary 
+                    fill!(M_Emi_D,zero(F))
+                else
+                    empty!(M_Emi_I)
+                    empty!(M_Emi_J)
+                    empty!(M_Emi_V)
+                end
 
                 B_field = PhaseSpace.Grids.B_field[x,y,z]
                 Ext_idx = findmin(abs.(Ext_sampled .- B_field))[2]
@@ -709,16 +731,42 @@ function LoadMatrices_Emi(Emission_list::Vector{EmissiveInteraction},DataDirecto
                 if type=="Sync" && Force 
                     
                     force = SyncRadReact(mode=mode,B=Ext_sampled[Ext_idx])
-                    Fill_I_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
-                    Fill_J_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
-                    Fill_K_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+
+                    if in_Binary
+                    Fill_I_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi_D)
+                    Fill_J_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi_D)
+                    Fill_K_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi=M_Emi_D)
+                    else
+                    Fill_I_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                    Fill_J_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                    Fill_K_Emi!(PhaseSpace,force,x,y,z,name1_loc;M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                    end
 
                 end
 
                 GainMatrix3 = GainMatrix3_All[Ext_idx]
 
                 # Fill_M_Emi! is called for each spatial grid point as the emission correction is dependent on space through the electromagnetic fields
-                Fill_M_Emi!(PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode,M_Emi=M_Emi,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                if in_Binary
+                    Fill_M_Emi!(PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode,M_Emi=M_Emi_D)
+                else
+                    Fill_M_Emi!(PhaseSpace,name_locs,x,y,z;GainMatrix3=GainMatrix3,mode=mode,M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
+                end
+
+                # add values to Vector of Matrices for each spatial grid point
+                if isassigned(M_Emi,off_space+1)
+                    if in_Binary
+                        M_Emi[off_space+1] += M_Emi_D
+                    else
+                        M_Emi[off_space+1] += sparse(M_Emi_I,M_Emi_J,M_Emi_V,n_momentum,n_momentum)
+                    end
+                else
+                    if in_Binary
+                        M_Emi[off_space+1] = copy(M_Emi_D)
+                    else
+                        M_Emi[off_space+1] = sparse(M_Emi_I,M_Emi_J,M_Emi_V,n_momentum,n_momentum)
+                    end
+                end
 
             else
                 continue

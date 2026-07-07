@@ -2,8 +2,10 @@
     BuildEmissionMatrices(PhaseSpace,DataDirectory;loading_check)
 
 Function that builds the emission matrices associated with emissive interactions and their corresponding reaction forces if applicable. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `EmissionMatricesStruct`.
+
+For spatial indices within `Binary_Domain` (if set to `nothing` all cells are in the Binary_Domain) the emission matrices will be defined as dense matrices for compatibility with GPU `copyto!`. Otherwise they will be defined as sparse matrices.
 """
-function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vector{EmissiveInteraction},DataDirectory::String;loading_check::Bool=false,Emi_corrected::Bool=true,Emi_sparse::Bool=false)
+function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vector{EmissiveInteraction},DataDirectory::String,BinM::BinaryMatricesStruct;Emi_corrected::Bool=true)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
@@ -21,28 +23,12 @@ function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vecto
 
     n = n_momentum*n_space
 
+    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision}}}(undef,length(n_space))
+
     size = (n)^2*sizeof(Precision)
 
-    if isempty(Emission_list)
-
-        if Emi_sparse
-            M_Emi = spzeros(Precision,0,0)
-        else
-            M_Emi = zeros(Precision,0,0)
-        end 
-    else
-        if Emi_sparse
-            M_Emi_I::Vector{Int64} = Int64[]
-            M_Emi_J::Vector{Int64} = Int64[]
-            M_Emi_V::Vector{Precision} = Precision[]
-            LoadMatrices_Emi(Emission_list,DataDirectory,PhaseSpace,Emi_corrected;M_Emi_I=M_Emi_I,M_Emi_J=M_Emi_J,M_Emi_V=M_Emi_V)
-            M_Emi = sparse(M_Emi_I,M_Emi_J,M_Emi_V,n,n)::SparseMatrixCSC{Precision,Int64}
- 
-            GC.gc()
-        else
-            M_Emi = zeros(Precision,n,n)
-            LoadMatrices_Emi(Emission_list,DataDirectory,PhaseSpace,Emi_corrected;M_Emi=M_Emi)
-        end  
+    if !isempty(Emission_list)
+        LoadMatrices_Emi!(M_Emi,Emission_list,DataDirectory,PhaseSpace,BinM;Emi_corrected=Emi_corrected)
     end
 
     size = Base.summarysize(M_Emi)
