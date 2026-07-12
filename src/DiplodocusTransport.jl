@@ -53,6 +53,9 @@ module DiplodocusTransport
     using Krylov
     using KrylovPreconditioners
     using ExponentialUtilities
+    using KernelAbstractions
+    using KernelAbstractions.Extras: @unroll
+    using Atomix: @atomic
 
     include("Constants.jl")
     include("Backends.jl")
@@ -95,6 +98,8 @@ module DiplodocusTransport
     include("Collisions/EmissionCorrection.jl")
 
     # Solvers
+    include("Solvers/KIOPSnoview.jl")
+    include("Solvers/KIOPS.jl")
     include("Solvers/SteppingStructs.jl")
     include("Solvers/SteppingMethods.jl")
     include("Solvers/Solver.jl")

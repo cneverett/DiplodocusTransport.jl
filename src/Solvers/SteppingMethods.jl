@@ -1721,7 +1721,9 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
                     mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fold,vol,zero(Precision))
                     # Form J
-                    @. J = Precision(2) * method.M_Bin_Mul_Step 
+                    @. J = Precision(2) * method.M_Bin_Mul_Step
+                    #fill!(J,zero(Precision))
+                    #fill!(method.M_Bin_Mul_Step,zero(Precision)) 
                     if EmiTrue
                         @. J += M_Emi
                         @. method.M_Bin_Mul_Step += M_Emi
@@ -1746,6 +1748,10 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     F .*= Dinv # left mul
                     Finj_perp .*= Dinv # left mul
 
+                    println("max J: ", maximum(J), " min J : ", minimum(J))
+                    println("max F: ", maximum(F), " min F : ", minimum(F))
+                    println("max fold: ", maximum(Dinv .* fold), " min fold : ", minimum(Dinv .* fold))
+
                     α = sum(Finj_perp) / length(Finj_perp)
 
                     Finj_para .= α .* onevec
@@ -1760,7 +1766,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     #@. J64 = Float64(J)
                     #@. F64 = Float64(F)
                     #arnoldi!(Ks64,J64,F64;m=m,reorthogonalize=true)
-                    arnoldi!(Ks, J, F;m=m,reorthogonalize=true,remove_drift=false,tol=1e-16)
+                    arnoldi!(Ks, J, F;m=m,reorthogonalize=true,remove_drift=false,tol=1e-7)
                     #arnoldi!(Ksconsv, J, Fconsv;m=m,reorthogonalize=true,remove_drift=false,tol=1e-12)
                     #arnoldi!(Ksinj, J, Finj_para;m=m,reorthogonalize=true,remove_drift=false,tol=1e-12)
                     #arnoldi!(Kscombined, J, Fconsv + Finj_para;m=m,reorthogonalize=true,remove_drift=false,tol=1e-12)
@@ -1770,15 +1776,15 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     #V = ExponentialUtilities.getV(Ks64)[:,1:end-1]
                     #H = ExponentialUtilities.getH(Ks64)[1:end-1,1:end]
 
-                    Jproj_err = norm(J' * onevec) / (norm(J)*norm(onevec))
+                    #Jproj_err = norm(J' * onevec) / (norm(J)*norm(onevec))
 
-                    Fproj_err =abs(dot(onevec,F)) / (norm(onevec)*norm(F))
+                    #Fproj_err =abs(dot(onevec,F)) / (norm(onevec)*norm(F))
 
-                    println(typeof(H))
+                    #println(typeof(H))
 
-                    res = J * V - V * H
-                    consv_projection_error = norm((onevec' * res)') / (norm(onevec) * norm(res))
-                    println("Conservation projection error: ", consv_projection_error, " Jproj_err: ", Jproj_err, " Fproj_err: ", Fproj_err)
+                    #res = J * V - V * H
+                    #consv_projection_error = norm((onevec' * res)') / (norm(onevec) * norm(res))
+                    #println("Conservation projection error: ", consv_projection_error, " Jproj_err: ", Jproj_err, " Fproj_err: ", Fproj_err)
 
                     if #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1f-5 
                         dt_local *= 0.5
@@ -2093,6 +2099,464 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
             end # while not accurate
 
             @. fstep = fold
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    ExpRBKIOPS(dg,g,t,dt)
+
+2nd order Expontial integration time-stepping method for the transport equation. Using the KIOPS algorithm for the exponential action approximation. 
+
+"""
+function (method::ExpRBKIOPSStruct)(t_start,t_stop,dt,Verbose::Int64)
+
+    method.step += 1
+
+    dt0 = method.dt0
+
+    # will we reached the next t_save?
+
+    t_next = t_start + dt
+    if abs(t_next - t_stop) <= eps(t_stop) * 10 #eps(max(abs(t_next), abs(t_stop)))
+        save = true
+    elseif t_next >= t_stop
+        adaptive_factor *= (t_stop - t_start) / dt # adjust adaptive factor for final time step to ensure we end exactly at t_stop 
+        dt = t_stop - t_start
+        save = true
+    else
+        save = false
+    end
+
+    if dt < 0.0
+        error("Negative time step calculated, something went wrong with the CFL condition calculation")
+    end
+
+    # scaling of time stepping
+
+    dt_scale = method.Precision(dt / dt0)
+
+    ftmp = similar(method.f)
+
+    # set fstep to intial value
+
+        @. method.fstep = method.f
+
+    # half space update
+
+        mul!(method.df,method.X_Flux,method.fstep)
+        method.df .= - method.invA_Flux * method.df .* dt_scale/2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
+
+        # mask of df regions
+
+        if !isnothing(method.df_mask)
+            @. method.df *= method.df_mask
+        end 
+
+        @. method.fstep += method.df
+
+    # half momentum update
+
+        mul!(ftmp,method.invImMP,method.fstep) 
+
+        if !isnothing(method.df_mask)
+            @. method.fstep = ftmp * method.df_mask + method.fstep * (1-method.df_mask)
+        else
+            @. method.fstep = ftmp
+        end 
+
+    # binary update
+
+        update_momentum!(method,dt_scale)
+
+    # half momentum update
+
+        mul!(ftmp,method.invImMP,method.fstep) 
+
+        if !isnothing(method.df_mask)
+            @. method.fstep = ftmp * method.df_mask + method.fstep * (1-method.df_mask)
+        else
+            @. method.fstep = ftmp
+        end
+
+    # half space update
+
+        mul!(method.df,method.X_Flux,method.fstep)
+        method.df .= - method.invA_Flux * method.df .* dt_scale/2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
+
+        if !isnothing(method.df_mask)
+            @. method.df *= method.df_mask
+        end 
+
+        @. method.fstep += method.df
+    
+    # removing negative values
+
+        @. method.fstep = ifelse(method.fstep<=method.n_cut,zero(eltype(method.fstep)),method.fstep)
+
+
+    Cr = 0.0
+    sum_f = sum(method.f)
+    if sum_f != 0.0
+
+        #@. method.df_tmp = ifelse(method.f + method.df < method.n_cut, zero(eltype(method.df)), method.df)
+        #@. method.df_tmp = method.df_tmp / method.f
+        @. method.df = method.fstep-method.f
+        @. method.df_tmp = method.df / method.f
+        @. method.df_tmp = ifelse(isnan(method.df_tmp), Inf, method.df_tmp)
+        Cr = -minimum(method.df_tmp) 
+
+    end
+
+    if Verbose == 1 && Cr > 1.0
+        println("step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt_old,sigdigits=3)), dt_adapted = $(round(dt,sigdigits=3)) system may be unstable")
+    elseif Verbose == 2
+        println("\r step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3))")
+    elseif Verbose == 3
+        println("step=$(method.step), Cr = $(round(Cr,sigdigits=3)),Cr_Bin = $(round(Cr_Bin,sigdigits=3)), Cr_Emi = $(round(Cr_Emi,sigdigits=3)), Cr_Flux = $(round(Cr_Flux,sigdigits=3)), t=$t_start, t_save =$t_stop, dt_attempted=$(round(dt_old,sigdigits=3)), dt_adapted = $(round(dt,sigdigits=3))")
+    end
+    if Verbose > 0
+        flush(stdout)
+    end
+
+    method.f .= method.fstep
+
+    # remove masked off domain regions
+
+    if !isnothing(method.f_mask)
+        @. method.f *= method.f_mask
+    end
+
+    return dt,save
+
+end
+
+function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
+
+    Precision = method.Precision
+    
+    n_momentum = method.PhaseSpace.Grids.n_momentum
+    #n_space = method.PhaseSpace.Grids.n_space
+    momentum_species_offset = method.PhaseSpace.Grids.momentum_species_offset
+    name_list = method.PhaseSpace.name_list
+    num_species = length(name_list)
+    
+    fold = method.fold
+    fout = method.fout
+    J = method.J
+    F = method.F
+    g = method.g
+    fscale = method.fscale #::Vector{Precision} = zeros(Precision,n_momentum)
+    onevec = copy(F)
+    fill!(onevec,one(Precision))
+    D = method.D #Diagonal(ones(Precision,n_momentum)) # 1/E
+    Dinv = method.Dinv #Diagonal(ones(Precision,n_momentum)) # E
+    E = method.E
+
+    δ = method.δ #::Vector{Precision} = zeros(Precision,n_momentum)
+
+    EmiTrue::Bool = true
+
+    KIOPS_workspace = method.KIOPS_workspace
+    mmax = KIOPS_workspace.mmax
+    mmin = KIOPS_workspace.mmin
+
+    for off_space in method.ActiveDomain
+
+        start_idx = n_momentum*off_space+1
+        end_idx = n_momentum*(off_space+1)
+
+        fstep = @view(method.fstep[start_idx:end_idx])
+        df_Inj = @view(method.df_Inj[start_idx:end_idx])
+
+        has_injection = sum(df_Inj) > zero(Precision)
+
+        if !has_injection && sum(fstep) == zero(Precision) 
+            continue
+        end
+
+        @inbounds vol = method.Vol[off_space+1]
+        @inbounds invA = method.invA[off_space+1]
+        @inbounds dt_guess = method.dt_guess[off_space+1]
+
+        if method.Binary_Interactions && off_space in method.Bin_Domain
+
+            if isassigned(method.M_Emi, off_space+1)
+                EmiTrue = true
+                @inbounds M_Emi = method.M_Emi[off_space+1]
+            else
+                EmiTrue = false
+            end
+
+            fold .= fstep 
+
+            #if sum(fold) == Precision(0)
+            #    continue
+            #end
+            t = 0.0
+
+            dt_local = dt_guess # initial guess for local time step, can adjust based on desired accuracy and problem stiffness
+            # TODO: have each cell its own dt initial guess that can then be updated each completed timestep.
+            dt_next = dt_local 
+
+            kE = 1.0
+            kϕ = 1.0
+            k = 1.0
+
+            while t < 1.0
+
+                #dt_local = dt_next
+
+                dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
+
+                kold = k 
+                kϕold = kϕ
+                kEold = kE
+                k = 1.0 # time step as a ratio of dt_local to dt_local before adaptive
+                dt_old = dt_local
+
+                # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
+
+                    mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fold,vol,zero(Precision))
+                    # Form J
+                    @. J = Precision(2) * method.M_Bin_Mul_Step
+                    if EmiTrue
+                        @. J += M_Emi
+                        @. method.M_Bin_Mul_Step += M_Emi
+                    end
+
+                    println("max M_Emi: $(maximum(M_Emi)), max M_Bin: $(maximum(method.M_Bin_Mul_Step)), off_space: $off_space, dt_local: $dt_local, dtscale: $dtscale, vol: $vol, invA: $invA")
+
+                    J .*= dtscale * invA
+                    # Form F
+                    mul!(F,method.M_Bin_Mul_Step,fold)
+                    F *= invA
+                    @. F += #=A *=# df_Inj #* dtldt0
+                    #res = sum(abs, F)
+                    #display(F)
+                    if all(iszero, F) # no change in distribution
+                        break
+                    end
+                    lmul!(dtscale,F)
+
+                    
+                    # get residuals 
+                    mul!(g,J,fold)
+                    println("norm g: $(norm(g)), norm J: $(norm(J))")
+                    LinearAlgebra.axpby!(Precision(1),F,Precision(-1),g)
+
+
+                    # Diagonal scaling of J and g to improve conditioning for Krylov subspace approximation
+                    J .*= (D)' # right mul
+                    J .*= (Dinv) # left mul
+                    g .*= (Dinv) # left mul
+
+                    # form U
+                    fscale .= (Dinv) .* fold
+                    # KIOPS 
+
+                        tau = one(Precision)
+                        #_, stats = kiops_roe!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        _, stats = kiops_roe_noview!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        #_, stats = kiops_roe_panel!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        #_, stats = kiops_roe_panel_new!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        
+                        if stats.m_final >= 17 #mmax+1
+                            # reject step and reduce time step
+                            println("KIOPS subspace dimension is large $(stats.m_final), reducing time step by 0.5")
+                            dt_local = ldexp(dt_local, -1)
+                            continue
+                        end
+
+                        println("KIOPS stats: ", stats)
+
+                        fout .= (D) .* KIOPS_workspace.w
+
+                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
+
+                    # direct matrix exponential for testing
+                        #=Atilde = KIOPS_workspace.Atilde
+                        # form augmented matrix Atilde = [A u_phi; 0 0] for Rosenbrock-Euler
+                        @views copyto!(Atilde[1:n_momentum, 1:n_momentum], J)
+                        @views copyto!(Atilde[1:n_momentum, end], g)
+                        expm_kiops_pade!(KIOPS_workspace.F, Atilde, KIOPS_workspace)
+                        mul!(fout,@view(KIOPS_workspace.F[1:n_momentum, 1:n_momentum]),fscale)
+                        fout .+= @view(KIOPS_workspace.F[1:n_momentum,end])
+                        fout .= (D) .* fout # right mul
+                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)=#
+
+                    # time step adaption based on energy error 
+                        # energy error
+                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * dtscale)
+                        Eold = dot(E, fold .+ df_Inj * k * dtscale)
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout), " inj E: ", dot(E, df_Inj * dtscale))
+                        
+                        if isnan(ηE) || ηE > 1e-4
+                            # reject step and reduce time step
+                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5, $kE")
+                            dt_local = ldexp(dt_local, -1)
+                            continue
+                        end
+
+                        if t + dt_local/dt > 1.0
+                            dt_local = (1.0 - t) * dt
+                            println("space: ", off_space," region: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            t = 1.0
+                        else
+                            println("space: ", off_space," region: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            t += dt_local/dt
+                        end
+                        k = dt_local / dt_old
+
+                    @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
+
+                    @. fold = fout
+
+                    if ηE < 1e-5 #= (ηE < 5e-5 && stats.m_final <= mmax / 2) || stats.m_final == 10=#
+                        #println("KIOPS good $(stats.m_final), increasing time step by 2")
+                        dt_next = ldexp(dt_old, 1)
+                    else
+                        dt_next = dt_old
+                    end
+
+            end # while not accurate
+
+            @. fstep = fold
+
+            @inbounds method.dt_guess[off_space+1] = dt_next
+
+        else #
+
+            if isassigned(method.M_Emi, off_space+1)
+                @inbounds M_Emi = method.M_Emi[off_space+1]
+            else
+                EmiTrue = false
+            end
+
+            fold .= fstep 
+
+            #if sum(fold) == Precision(0)
+            #    continue
+            #end
+            t = 0.0
+
+            dt_local = dt_guess #/ 2 # initial guess for local time step, can adjust based on desired accuracy and problem stiffnes
+            dt_next = dt_local
+
+            kE = 1.0
+            kϕ = 1.0
+            k = 1.0
+
+            while t < 1.0
+
+                dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
+
+                kold = k 
+                kϕold = kϕ
+                kEold = kE
+                k = 1.0 # time step as a ratio of dt_local to dt_local before adaptive
+                dt_old = dt_local
+
+                # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
+
+                    # Form J
+                    if EmiTrue
+                        copyto!(Jsparse,M_Emi)
+                        Jsparse *= dtscale * invA
+                    else
+                        fill!(Jsparse,zero(Precision))
+                        dropzeros!(Jsparse)
+                    end
+
+                    # Form F
+                    mul!(F,Jsparse,fold)
+                    @. F += #=A *=# df_Inj * dtscale
+                    if all(iszero, F) # no change in distribution
+                        break
+                    end
+
+                    # get residuals 
+                    mul!(g,J,fold)
+                    LinearAlgebra.axpby!(Precision(1),F,Precision(-1),g)
+
+                    Jsparse .*= D' # right mul
+                    Jsparse .*= Dinv # left mul
+                    g .*= Dinv # left mul
+
+                    # form U
+                    fscale .= (Dinv) .* fold
+
+                    tau = one(Precision)
+                    #_, stats = kiops_roe!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                    #_, stats = kiops_roe_noview!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                    #_, stats = kiops_roe_panel!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                    _, stats = kiops_roe_panel_new!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+
+                    if stats.m_final >= 17 #mmax+1
+                        # reject step and reduce time step
+                        println("KIOPS subspace dimension is large $(stats.m_final), reducing time step by 0.5")
+                        dt_local = ldexp(dt_local, -1)
+                        continue
+                    end
+
+                    println("KIOPS stats: ", stats)
+
+                    fout .= (D) .* KIOPS_workspace.w
+
+                    # adaptive time stepping
+
+                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
+
+                        # energy error
+                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * dtscale)
+                        Eold = dot(E, fold .+ df_Inj * k * dtscale)
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout), " inj E: ", dot(E, df_Inj * dtscale))
+                        
+                        if isnan(ηE) || ηE > 1e-4
+                            # reject step and reduce time step
+                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5, $kE")
+                            dt_local = ldexp(dt_local, -1)
+                            continue
+                        end
+
+                       if t + dt_local/dt > 1.0
+                            dt_local = (1.0 - t) * dt
+                            println("space: ", off_space," region: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            t = 1.0
+                        else
+                            println("space: ", off_space," region: Binary", " t: ", t, " dt: ", dt, " dt_local: ", dt_local)
+                            t += dt_local/dt
+                        end
+                        k = dt_local / dt_old
+
+                    @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
+
+                    #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
+                    #@. fold = max(fout, zero(Precision))
+
+                    #println(minimum(fold), " ", maximum(fold))
+
+                    @. fold = fout
+
+                    if ηE < 1e-5 #= (ηE < 5e-5 && stats.m_final <= mmax / 2) || stats.m_final == 10=#
+                        #println("KIOPS good $(stats.m_final), increasing time step by 2")
+                        dt_next = ldexp(dt_old, 1)
+                    else
+                        dt_next = dt_old
+                    end
+
+            end # while not accurate
+
+            @. fstep = fold
+
+            @inbounds method.dt_guess[off_space+1] = dt_next
 
         end
 

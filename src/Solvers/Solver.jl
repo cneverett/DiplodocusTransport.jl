@@ -45,6 +45,10 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
     
     dt = dt_initial
 
+    if method isa ExpRBKIOPSStruct 
+        fill!(method.dt_guess,ldexp(dt_initial, -4)) # initial guess for dt is 1/64 of the initial dt
+    end
+
     for i in 2:n_save # start at 2 since initial state already saved
 
         t_start = t_save[i-1]

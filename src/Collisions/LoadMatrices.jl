@@ -762,7 +762,7 @@ function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F}}},Em
                     end
                 else
                     if in_Binary
-                        M_Emi[off_space+1] = copy(M_Emi_D)
+                        copyto!(M_Emi[off_space+1], M_Emi_D)
                     else
                         M_Emi[off_space+1] = sparse(M_Emi_I,M_Emi_J,M_Emi_V,n_momentum,n_momentum)
                     end

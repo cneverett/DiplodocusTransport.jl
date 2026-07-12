@@ -23,7 +23,7 @@ function BuildEmissionMatrices(PhaseSpace::PhaseSpaceStruct,Emission_list::Vecto
 
     n = n_momentum*n_space
 
-    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision}}}(undef,length(n_space))
+    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision}}}(undef,n_space)
 
     size = (n)^2*sizeof(Precision)
 
@@ -181,8 +181,8 @@ function GainMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,GainMatrix::AbstractA
                     w = 1.0
                 end
 
-                a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px2,py2,pz2,name2)
-                b = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px1,py1,pz1,name1)
+                a = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px2,py2,pz2,name2) # M_Emi now stored in vector of M_Emi for each location
+                b = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px1,py1,pz1,name1)
 
                 if val == 0.0
                     continue
@@ -260,7 +260,7 @@ function LossMatrix_to_M_Emi!(PhaseSpace::PhaseSpaceStruct,LossMatrix::Array{Flo
 
                 end
 
-                a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px1,py1,pz1,name1)
+                a = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px1,py1,pz1,name1) # M_Emi now stored in vector of M_Emi for each location
                 b = a
 
                 if val == 0.0 
@@ -327,7 +327,7 @@ function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
 
     for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-        a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
+        a = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pz,name) # M_Emi now stored in vector of M_Emi for each location
         b = a 
         pxp = px+1
         pxm = px-1
@@ -346,8 +346,8 @@ function Fill_I_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
             end
         end
 
-        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxp,py,pz,name)
-        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,pxm,py,pz,name)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,pxp,py,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,pxm,py,pz,name)
 
         # integration sign introduced here, opposite sign compared to IFluxFunction as I_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
         I_plus = -IFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
@@ -484,7 +484,7 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
 
     for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-        a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
+        a = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pz,name) # M_Emi now stored in vector of M_Emi for each location
         b = a 
         pyp = py+1
         pym = py-1
@@ -503,8 +503,8 @@ function Fill_J_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
             end
         end
 
-        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pyp,pz,name)
-        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,pym,pz,name)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,pyp,pz,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,pym,pz,name)
 
         # integration sign introduced here, opposite sign compared to JFluxFunction as J_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
         J_plus = -JFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
@@ -640,7 +640,7 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
 
     for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
 
-        a = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pz,name)
+        a = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pz,name) # M_Emi now stored in vector of M_Emi for each location
         b = a 
         pzp = pz+1
         pzm = pz-1
@@ -659,8 +659,8 @@ function Fill_K_Emi!(PhaseSpace::PhaseSpaceStruct,Force::AbstractForce,x_idx::In
             end
         end
 
-        bp = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzp,name)
-        bm = GlobalIndicesToStateIndex(PhaseSpace,x,y,z,px,py,pzm,name)
+        bp = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pzp,name)
+        bm = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pzm,name)
 
         # integration sign introduced here, opposite sign compared to KFluxFunction as K_Flux is on left hand side of transport equation but M_Emi is on the right hand side.
         K_plus = -KFluxFunction(Force,PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
