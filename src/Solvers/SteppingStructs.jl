@@ -2433,7 +2433,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
     end
 
-    mutable struct ExponentialRosenbrockEulerLejaStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:AbstractMatrix{T},MBT<:AbstractMatrix{T},MET<:AbstractMatrix{T},SMT<:AbstractSparseArray{T,<:Integer,2},BD<:Union{Vector{Int64},Nothing},FD<:Union{VT,Nothing},DFD<:Union{VT,Nothing}} <: ImplicitSteppingMethod
+    mutable struct ExponentialRosenbrockEulerLejaStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:AbstractMatrix{T},MBT<:AbstractMatrix{T},SMT<:AbstractSparseArray{T,<:Integer,2},BD<:Union{Vector{Int64},Nothing},FD<:Union{VT,Nothing},DFD<:Union{VT,Nothing}} <: ImplicitSteppingMethod
 
             PhaseSpace::PhaseSpaceStruct
             Precision::Type{T}
@@ -2448,7 +2448,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             M_Bin::MBT
             Bin_Domain::BD
 
-            M_Emi::MET
+            M_Emi::Vector{Union{MT,SMT}}
             A_Flux::SMT
             invA_Flux::SMT                  # inv Ap flux for time stepping
             X_Flux::SMT
@@ -2494,6 +2494,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             Ks::KrylovSubspace{T,T,T,MT,MT}      # Krylov subspace for exponential Rosenbrock method
             m::Int64                        # dimension of Krylov subspace
             ϕcache::ExponentialUtilities.PhivCache{useview,T} where useview # cache for ϕ functions
+
+            Leja_nodes::Vector{T}                 # Leja nodes for exponential Rosenbrock method
 
             E::VT                           # energy vector for correcting step 
 
@@ -2575,7 +2577,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
                 f_init = convert(Vector{Precision},Initial)
                 M_Bin = Precision.(BinM.M_Bin)
-                M_Emi = Precision.(EmiM.M_Emi)
                 X_Flux = Precision.(FluxM.X_Flux)
                 P_Flux = Precision.(FluxM.P_Flux)
                 A_Flux = Precision.(spdiagm(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
@@ -2692,13 +2693,32 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     end
                 end
 
+                # Build new MEmi
+                if Backend isa CPUBackend
+                    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision,Int64}}}(undef,n_space)
+                    for off_space in 1:n_space
+                        if isassigned(EmiM.M_Emi,off_space)
+                            M_Emi[off_space] = Precision.(EmiM.M_Emi[off_space])
+                        end
+                    end
+                elseif Backend isa CUDABackend
+                    M_Emi = Vector{Union{CuMatrix{Precision},CuSparseMatrixCSC{Precision,Int32}}}(undef,n_space)
+                    for off_space in 1:n_space
+                        if isassigned(EmiM.M_Emi,off_space)
+                            M_Emi[off_space] = cu(EmiM.M_Emi[off_space])
+                        end
+                    end
+                end
+
+                Leja_nodes = leja_nodes_interval(m; a=-2.0, b=2.0)
+
                 # cut initial values that are smaller than n_cut 
                     @. f_init = ifelse(f_init<=n_cut,zero(eltype(f_init)),f_init)
                     @. f = ifelse(f<=n_cut,zero(eltype(f)),f)
 
                 ###### Actually Build the Struct with Concrete Types ######
 
-                self = new{Precision,typeof(f),typeof(M_Bin_Mul_Step),typeof(M_Bin),typeof(M_Emi),typeof(X_Flux),typeof(Bin_Domain),typeof(f_mask),typeof(df_mask)}()
+                self = new{Precision,typeof(f),typeof(M_Bin_Mul_Step),typeof(M_Bin),typeof(X_Flux),typeof(Bin_Domain),typeof(f_mask),typeof(df_mask)}()
 
                 self.PhaseSpace = PhaseSpace
                 self.Implicit = true
@@ -2752,6 +2772,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 self.ϕ = ϕ
                 self.ϕcache = ϕcache
                 self.m = m
+
+                self.Leja_nodes = Leja_nodes
 
                 self.E = E
 

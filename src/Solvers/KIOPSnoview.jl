@@ -461,12 +461,14 @@ function kiops_roe_noview!(ws::KIOPSRosenbrockWorkspace{T}, tau_out::Real,
         ws.Hexp .= H
         ws.Hexp .*= T(sgn * tau)
 
-        #display(H)
+        display(H)
         #error("stop")
 
         expm_kiops_pade!(ws.F, ws.Hexp, ws)
         exps += 1
         #_set_one_entry!(H, j + 1, j, T(nrm))
+
+        display(ws.F)
 
         nrm = Float64(_host_scalar(normtmp))
 

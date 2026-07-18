@@ -1729,10 +1729,15 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         @. method.M_Bin_Mul_Step += M_Emi
                     end
 
-                    J *= dtscale * invA
+                    @. J *= dtscale * invA
                     # Form F
                     mul!(F,method.M_Bin_Mul_Step,fold)
-                    F *= invA
+                    @. F *= invA
+
+                    # Energy error estimate using F 
+                    ηEest = abs(dot(E,F) * dtscale) / dot(E,fold)
+                    println("Energy error estimate: ", ηEest)
+
                     @. F += #=A *=# df_Inj #* dtldt0
                     fill!(Finj_para,zero(Precision))
                     @. Finj_para += df_Inj
@@ -1816,10 +1821,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         ηE = abs(dot(E, fout) / Eold - one(Precision))
                         println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout), " inj E: ", dot(E, df_Inj * k * dtscale))
 
-                        if !isfinite(ηE)
-                            println("ηE: $ηE, sum(δ): $(sum(δ))")
-                            @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηtarget"
-                            dt_local *= convert(typeof(dt_local), 1/64)
+                        if isnan(ηE) || ηE > 1e-2
+
+                            # reject step and reduce time step
+                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5")
+                            dt_local = ldexp(dt_local, -8)
                             continue
                         end
 
@@ -1865,10 +1871,10 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         @. fout = fold + δ
 
                         # energy after correction  
-                        #=ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k * dtscale)
+                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k * dtscale)
                         Eold = dot(E, fold .+ df_Inj * k * dtscale)
                         ηE = abs(dot(E, fout) / Eold - one(Precision))
-                        println("Energy error after adaption: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))=#
+                        println("Energy error after adaption: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
                     end
 
                     @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
@@ -2071,15 +2077,15 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         end
 
                         # energy after correction  
-                        #=if has_injection 
+                        if has_injection 
                             ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k * dtscale)
                             Eold = dot(E, fold .+ df_Inj * k * dtscale)
                         else
                             ΔE = dot(E, fout) - dot(E, fold)
                             Eold = dot(E, fold)
                         end
-                        ηE = abs(dot(E, fout) / Eold - one(Precision))=#
-                        #println("Energy error: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
+                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        println("Energy error after adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
 
                         #=if ηE > 2e-4
                             @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
@@ -2336,6 +2342,11 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
                     # Form F
                     mul!(F,method.M_Bin_Mul_Step,fold)
                     F *= invA
+
+                    # Energy error estimate from F
+                    ηEest = abs(dot(E,F)) * dtscale / dot(E,fold)
+                    println("Energy error estimate from F: ", ηEest)
+
                     @. F += #=A *=# df_Inj #* dtldt0
                     #res = sum(abs, F)
                     #display(F)
@@ -2354,6 +2365,7 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
                     # Diagonal scaling of J and g to improve conditioning for Krylov subspace approximation
                     J .*= (D)' # right mul
                     J .*= (Dinv) # left mul
+                    F .*= (Dinv) # left mul
                     g .*= (Dinv) # left mul
 
                     # form U
@@ -2362,11 +2374,11 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
 
                         tau = one(Precision)
                         #_, stats = kiops_roe!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
-                        _, stats = kiops_roe_noview!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        _, stats = kiops_roe_noview!(KIOPS_workspace,tau,J,fscale,F;tol=1e-16)
                         #_, stats = kiops_roe_panel!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
-                        #_, stats = kiops_roe_panel_new!(KIOPS_workspace,tau,J,fscale,g;tol=1e-7)
+                        #_, stats = kiops_roe_panel_new!(KIOPS_workspace,tau,J,fscale,F;tol=1e-7)
                         
-                        if stats.m_final >= 17 #mmax+1
+                        if stats.m_final >= mmax+1
                             # reject step and reduce time step
                             println("KIOPS subspace dimension is large $(stats.m_final), reducing time step by 0.5")
                             dt_local = ldexp(dt_local, -1)
@@ -2375,7 +2387,9 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
 
                         println("KIOPS stats: ", stats)
 
-                        fout .= (D) .* KIOPS_workspace.w
+                        println("sum w: ", sum(D .* KIOPS_workspace.w), " norm w: ", norm(D .* KIOPS_workspace.w), " max w: ", maximum(D .* KIOPS_workspace.w), " min w: ", minimum(D .* KIOPS_workspace.w), "dtscale:", dtscale)
+
+                        fout .= fold .+ (D) .* KIOPS_workspace.w
 
                         @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
 
@@ -2399,7 +2413,7 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
                         
                         if isnan(ηE) || ηE > 1e-4
                             # reject step and reduce time step
-                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5, $kE")
+                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5")
                             dt_local = ldexp(dt_local, -1)
                             continue
                         end
@@ -2421,6 +2435,7 @@ function update_momentum!(method::ExpRBKIOPSStruct,dt::T) where T
                     if ηE < 1e-5 #= (ηE < 5e-5 && stats.m_final <= mmax / 2) || stats.m_final == 10=#
                         #println("KIOPS good $(stats.m_final), increasing time step by 2")
                         dt_next = ldexp(dt_old, 1)
+                        dt_local = ldexp(dt_local, 1)
                     else
                         dt_next = dt_old
                     end
@@ -2722,6 +2737,9 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
 
     m = method.m # dimension of Krylov subspace for exponential action approximation, can adjust based on problem size and desired accuracy
 
+    maxdeg = method.m # maximum degree of polynomial interpolation for exponential action approximation, can adjust based on problem size and desired accuracy
+    Leja_nodes = method.Leja_nodes # precomputed Leja nodes for polynomial interpolation, can adjust based on problem size and desired accuracy
+
     Ks = method.Ks
     ϕcache = method.ϕcache
 
@@ -2744,11 +2762,17 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
         @inbounds vol = method.Vol[off_space+1]
         invA_Flux = @view(method.invA_Flux[start_idx:end_idx,start_idx:end_idx])
         A_Flux = @view(method.A_Flux[start_idx:end_idx,start_idx:end_idx])
-        M_Emi = @view(method.M_Emi[start_idx:end_idx,start_idx:end_idx])
         invA = invA_Flux[1,1] # assumes the diagonal is just constant, should be true for a single spacial cell
         A = A_Flux[1,1]
 
         if method.Binary_Interactions && off_space in method.Bin_Domain
+
+            if isassigned(method.M_Emi, off_space+1)
+                EmiTrue = true
+                @inbounds M_Emi = method.M_Emi[off_space+1]
+            else
+                EmiTrue = false
+            end
 
             fold .= fstep 
 
@@ -2784,6 +2808,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                     @. method.M_Bin_Mul_Step += M_Emi
                     mul!(F,method.M_Bin_Mul_Step,fold)
                     @. F *= invA
+
+                    # Energy error estimate from F
+                    ηEest = abs(dot(E,F)) * dtscale / dot(E,fold)
+                    println("Energy error estimate from F: ", ηEest)
+
                     @. F += df_Inj 
                     if norm(F) == zero(Precision) # no change in distribution
                         break
@@ -2795,7 +2824,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                     lmul!(Dinv,J)
                     lmul!(Dinv,F)
 
-                    ϕ1Av, info = phi1_leja_dense(J,F;dt = k,gamma = 1.5,maxdeg = 200,tol = 1e-8,use_directional_mu = false,use_dense_mu2 = false)
+                    ϕ1Av, info = phi1_leja_dense(J,F,Leja_nodes;dt = k,gamma = 1.5,maxdeg = maxdeg,tol = 1e-6,use_directional_mu = true,use_dense_mu2 = false)
 
                     println("ϕ1Av info: ", info)
 
@@ -2820,13 +2849,23 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                             continue
                         end
 
+                        if info.err_est > 1e-6 || ηE > 1e-5
+                            @warn "ϕ1Av error estimate $(info.err_est) is large, may be unstable, consider reducing time step or adjusting ηtarget"
+                            dt_local = ldexp(dt_local, -1)
+                            continue
+                        elseif info.err_est < 1e-7 && ηE < 1e-6
+                            @warn "ϕ1Av error estimate $(info.err_est) is small, may be inefficient, consider increasing #time step or adjusting ηtarget"
+                            dt_local = ldexp(dt_local, 1)
+                            continue
+                        end
+
                         dt_old = dt_local
                         order = 1.0 # energy error is order 1
 
                         ηtarget = 1e-16
 
-                        kE = (1e-4/(ηE+eps(1e-4)))^(1.0/(order+1)) # k from energy error estimate 
-                        kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
+                        #kE = (1e-4/(ηE+eps(1e-4)))^(1.0/(order+1)) # k from energy error estimate 
+                        #kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         #kϕ = min(kE,kϕmax) # max k is 2.0
                         #errest = Inf
                         #while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
@@ -2837,7 +2876,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                         #    end
                         #end
                         #println("ϕv error estimate after: ", errest)
-                        k = min(kE,2.0)
+                        #k = min(kE,2.0)
                         #println("kE: ", kE, " kϕ: ", kϕ, " errest: ", errest)
 
                         #k = 1.0
@@ -2856,9 +2895,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                         k = dt_local / dt_old
 
 
-                    if k != 1.0
+                    #=if k != 1.0
 
-                        ϕ1Av, info = phi1_leja_dense(J,F;dt = k,gamma = 1.5,maxdeg = 200,tol = 1e-8,use_directional_mu = false,use_dense_mu2 = false)
+                        println("here")
+
+                        ϕ1Av, info = phi1_leja_dense(J,F,Leja_nodes;dt = k,gamma = 1.5,maxdeg = maxdeg,tol = 1e-6,use_directional_mu = false,use_dense_mu2 = false)
                         mul!(δ,D,ϕ1Av,k#=*invA=#,zero(Precision))
 
                         #phiv!(ϕ,k,Ks64,1;cache=ϕcache,correct=true,errest=false) # TODO: This allocates
@@ -2870,7 +2911,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerLejaStruct,dt::T) wh
                         Eold = dot(E, fold .+ df_Inj * k * dtscale)
                         ηE = abs(dot(E, fout) / Eold - one(Precision))
                         println("Energy error after adaption: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
-                    end
+                    end=#
 
                     @. fout = ifelse(fout <= method.n_cut, zero(Precision),fout)
 
@@ -3190,133 +3231,7 @@ function divided_differences(z, f)
     return c
 end
 
-# ----------------------------
-# Main Leja routine
-#
-# Computes phi_1(dt*A)*v
-# ----------------------------
-function phi1_leja_dense(
-    A,
-    v;
-    dt,
-    tau_min = nothing,
-    mu_est = nothing,
-    gamma = 1.5,
-    maxdeg = 80,
-    tol = 1e-10,
-    use_dense_mu2 = false,
-    use_directional_mu = true,
-)
 
-    n = size(A, 1)
-    @assert size(A, 2) == n
-    @assert length(v) == n
-
-    # 1. Estimate tau_min if not provided
-    if tau_min === nothing
-        tau_min = estimate_tau_min_from_diag(A)
-    end
-
-    # 2. Estimate positive growth endpoint
-    if mu_est === nothing
-        if use_dense_mu2
-            # More reliable, but costs eigmax of symmetric dense matrix
-            mu_est = estimate_mu2_dense(A)
-        elseif use_directional_mu
-            # Cheap and vector-specific
-            mu_est = estimate_mu_from_v(A, v)
-        else
-            # No positive extension
-            mu_est = 0.0
-        end
-    end
-
-    # 3. Build interval for z = dt*lambda
-    a = -gamma * dt / tau_min
-    b = max(0.0, dt * mu_est)
-
-    if !(b > a)
-        error("Invalid Leja interval: [$a, $b]")
-    end
-
-    # 4. Shift and scale interval [a,b] to [-2,2]
-    #
-    # z = q + theta*xi
-    #
-    q = (a + b) / 2
-    theta = (b - a) / 4
-
-    # Bhat = (dt*A - q*I)/theta
-    # We do not need to form I explicitly for the recurrence,
-    # but for dense A this is fine either way.
-    I_n = Matrix{eltype(A)}(I, n, n)
-    Bhat = (dt .* A .- q .* I_n) ./ theta
-
-    # 5. Leja nodes xi on [-2,2]
-    xi = leja_nodes_interval(maxdeg; a=-2.0, b=2.0)
-
-    # 6. Interpolate g(xi) = phi_1(q + theta*xi)
-    gvals = [phi1_scalar(q + theta * x) for x in xi]
-
-    # Divided differences with respect to xi, not z
-    coeffs = divided_differences(xi, gvals)
-
-    # 7. Newton recurrence applied to Bhat
-    #
-    # p_m(Bhat)v =
-    # c_1 v
-    # + c_2 (Bhat - xi_1 I)v
-    # + c_3 (Bhat - xi_2 I)(Bhat - xi_1 I)v
-    # + ...
-    #
-    y = coeffs[1] .* v
-    w = copy(v)
-
-    last_inc_norm = Inf
-    err_est = Inf
-    degree_used = 0
-
-    for m in 2:maxdeg
-        # w <- (Bhat - xi[m-1] I) w
-        w = Bhat * w .- xi[m-1] .* w
-
-        inc = coeffs[m] .* w
-        y_new = y .+ inc
-
-        inc_norm = norm(inc)
-
-        # Cheap heuristic Leja error indicator.
-        # max of last two increments is slightly safer than one increment.
-        err_est = max(inc_norm, last_inc_norm) / max(norm(y_new), 1.0)
-
-        y = y_new
-        last_inc_norm = inc_norm
-        degree_used = m - 1
-
-        if err_est < tol
-            return y, (
-                err_est = err_est,
-                degree_used = degree_used,
-                interval = (a, b),
-                tau_min = tau_min,
-                mu_est = mu_est,
-                q = q,
-                theta = theta,
-            )
-        end
-    end
-
-    return y, (
-        err_est = err_est,
-        degree_used = degree_used,
-        interval = (a, b),
-        tau_min = tau_min,
-        mu_est = mu_est,
-        q = q,
-        theta = theta,
-        warning = "maximum degree reached before tolerance",
-    )
-end
 
 @inline function arnoldi_orthogonalize!(
     y,

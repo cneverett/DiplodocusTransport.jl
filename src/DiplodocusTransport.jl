@@ -100,8 +100,12 @@ module DiplodocusTransport
     # Solvers
     include("Solvers/KIOPSnoview.jl")
     include("Solvers/KIOPS.jl")
+    include("Solvers/Leja.jl")
+    include("Solvers/PadeExpm.jl")
+    include("Solvers/Arnoldi.jl")
     include("Solvers/SteppingStructs.jl")
     include("Solvers/SteppingMethods.jl")
+    include("Solvers/Krylov.jl")
     include("Solvers/Solver.jl")
     include("DataReading.jl")
 
