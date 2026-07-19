@@ -1834,7 +1834,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
                         ηtarget = 1e-16
 
-                        kE = (1e-4/(ηE+eps(1e-4)))^(1.0/(order+1)) # k from energy error estimate 
+                        kE = (1e-5/(ηE+eps(1e-5)))^(1.0/(order+1)) # k from energy error estimate 
                         kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf

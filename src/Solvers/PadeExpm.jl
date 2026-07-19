@@ -1,19 +1,19 @@
 mutable struct PadeExpWorkspaceStruct{T}
-    dtA::Matrix{T}
-    A2::Matrix{T}
-    A4::Matrix{T}
-    A6::Matrix{T}
-    A8::Matrix{T}
-    Umat::Matrix{T}
-    Vmat::Matrix{T}
-    lhs::Matrix{T}
-    rhs::Matrix{T}
-    tmp1::Matrix{T}
-    tmp2::Matrix{T}
-    Id::Matrix{T}
+    dtA::AbstractMatrix{T}
+    A2::AbstractMatrix{T}
+    A4::AbstractMatrix{T}
+    A6::AbstractMatrix{T}
+    A8::AbstractMatrix{T}
+    Umat::AbstractMatrix{T}
+    Vmat::AbstractMatrix{T}
+    lhs::AbstractMatrix{T}
+    rhs::AbstractMatrix{T}
+    tmp1::AbstractMatrix{T}
+    tmp2::AbstractMatrix{T}
+    Id::Union{Diagonal{T, Vector{T}},Diagonal{T, CuArray{T, 1, CUDACore.DeviceMemory}}}
 end
 
-function PadeExpWorkspaceStruct{T}(A::AbstractMatrix{T}) where {T}
+function PadeExpWorkspaceStruct{T}(A::AbstractArray{T}) where {T}
     m = size(A,1)
 
     mat(r, c) = begin
@@ -33,8 +33,12 @@ function PadeExpWorkspaceStruct{T}(A::AbstractMatrix{T}) where {T}
     rhs = mat(m, m)
     tmp1 = mat(m, m)
     tmp2 = mat(m, m)
-    Id = mat(m, m)
-    #Id .= I
+    
+    if A isa CuArray 
+        Id = Diagonal(ones(CUDABackend(),T,m))
+    else 
+        Id = Diagonal(ones(T,m))
+    end
 
     return PadeExpWorkspaceStruct{T}(dtA,A2,A4,A6,A8,Umat,Vmat,lhs,rhs,tmp1,tmp2,Id)
 end
@@ -44,12 +48,13 @@ end
 # In-place Padé scaling-and-squaring exponential on the active k x k block only.
 # This keeps the original full-matrix exp(dt*H) path, not the e1-action variant.
 # -----------------------------------------------------------------------------
-function expm_pade!(dt::T, F::M, A::M,ws::PadeExpWorkspaceStruct{T}) where {T,M<:AbstractMatrix{T}}
+function expm_pade!(dt::T, F::M, A::AbstractMatrix{T2},ws::PadeExpWorkspaceStruct{T}) where {T,T2,M<:AbstractMatrix{T}}
     
     #nrm = _matrix_one_norm!(ws, A)
 
     dtA = ws.dtA 
-    @. dtA = dt * A
+    copyto!(dtA, A)
+    @. dtA *= dt
 
     nrm = norm(dtA,1)
     #println("nrm = $nrm, 1-norm: $(norm(dtA,1))")
@@ -101,12 +106,18 @@ function expm_pade!(dt::T, F::M, A::M,ws::PadeExpWorkspaceStruct{T}) where {T,M<
             return _pade9!(F, dtA, ws)
         else
             s = max(0, ceil(Int, log2(nrm / theta13)))
-            println("nrm = $nrm, theta13 = $theta13, s = $s")
+            if isodd(s) # force s to be even to allow mul step below to always give F without need for mem copies
+                s += 1
+            end
             @. dtA /= T(2)^s
             _pade13!(F, dtA, ws)
-            for _ in 1:s
-                mul!(ws.tmp1, F, F)
-                @. F = ws.tmp1
+            T1 = ws.tmp1
+            for sv in 1:s
+                if isodd(sv)
+                    mul!(T1, F, F)
+                else
+                    mul!(F, T1, T1)
+                end
             end
             return F
         end
@@ -121,7 +132,7 @@ function _finish_pade!(F::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstract
     #ldiv!(R, lu!(L),R)
     luL = lu(L)
     ldiv!(R,luL,R)
-    F .= R + I
+    F .= R .+ ws.Id
     return F
 end
 
@@ -130,10 +141,10 @@ function _pade3!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstract
     U = ws.Umat
     V = ws.Vmat
     mul!(A2, A, A)
-    U .= T(1) .* A2 + T(60) * I
+    @. U = T(1) * A2 + T(60) * ws.Id
     mul!(ws.tmp1, A, U)
     @. U = ws.tmp1
-    V .= T(12) .* A2 + T(120) * I
+    @. V = T(12) * A2 + T(120) * ws.Id
     return _finish_pade!(F, ws)
 end
 
@@ -144,10 +155,10 @@ function _pade5!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstract
     V = ws.Vmat
     mul!(A2, A, A)
     mul!(A4, A2, A2)
-    U .= T(1) .* A4 + T(420) * A2 + T(15120) * I
+    @. U = T(1) * A4 + T(420) * A2 + T(15120) * ws.Id
     mul!(ws.tmp1, A, U)
     @. U = ws.tmp1
-    V .= T(30) .* A4 + T(3360) * A2 + T(30240) * I
+    @. V = T(30) * A4 + T(3360) * A2 + T(30240) * ws.Id
     return _finish_pade!(F, ws)
 end
 
@@ -163,10 +174,10 @@ function _pade7!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstract
     mul!(A2, A, A)
     mul!(A4, A2, A2)
     mul!(A6, A2, A4)
-    U .= T(1) .* A6 + T(1512) * A4 + T(277200) * A2 + T(8648640) * I
+    @. U = T(1) * A6 + T(1512) * A4 + T(277200) * A2 + T(8648640) * ws.Id
     mul!(T1, A, U)
-    U .= T1
-    V .= T(56) .* A6 + T(25200) * A4 + T(1995840) * A2 + T(17297280) * I
+    @. U = T1
+    @. V = T(56) * A6 + T(25200) * A4 + T(1995840) * A2 + T(17297280) * ws.Id
 
     return _finish_pade!(F, ws)
 end
@@ -182,10 +193,10 @@ function _pade9!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstract
     mul!(A4, A2, A2)
     mul!(A6, A2, A4)
     mul!(A8, A4, A4)
-    U .= T(1) .* A8 + T(3960) * A6 + T(2162160) * A4 + T(302702400) * A2 + T(8821612800) * I
+    @. U = T(1) * A8 + T(3960) * A6 + T(2162160) * A4 + T(302702400) * A2 + T(8821612800) * ws.Id
     mul!(ws.tmp1, A, U)
-    U .= ws.tmp1
-    V .= T(90) .* A8 + T(110880) * A6 + T(30270240) * A4 + T(2075673600) * A2 + T(17643225600) * I
+    @. U = ws.tmp1
+    @. V = T(90) * A8 + T(110880) * A6 + T(30270240) * A4 + T(2075673600) * A2 + T(17643225600) * ws.Id
     return _finish_pade!(F, ws)
 end
 
@@ -198,7 +209,7 @@ function _pade13!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstrac
         V = ws.Vmat
         tmp1 = ws.tmp1
         tmp2 = ws.tmp2
-        Ik = ws.Id
+        Id = ws.Id
 
         mul!(A2, A, A)
         mul!(A4, A2, A2)
@@ -206,12 +217,12 @@ function _pade13!(F::M, A::M, ws::PadeExpWorkspaceStruct{T}) where {T,M<:Abstrac
 
         @. tmp1 = T(1) * A6 + T(16380) * A4 + T(40840800) * A2
         mul!(tmp2, A6, tmp1)
-        tmp1 .= tmp2 .+ T(33522128640) .* A6 .+ T(10559470521600) .* A4 + T(1187353796428800) .* A2 + T(32382376266240000) * I
+        @. tmp1 = tmp2 + T(33522128640) * A6 + T(10559470521600) * A4 + T(1187353796428800) * A2 + T(32382376266240000) * Id
         mul!(U, A, tmp1)
 
         @. tmp1 = T(182) * A6 + T(960960) * A4 + T(1323241920) * A2
         mul!(tmp2, A6, tmp1)
-        @. V = tmp2 .+ T(670442572800) .* A6 .+ T(129060195264000) .* A4 .+ T(7771770303897600) .* A2 .+ T(64764752532480000) * I
+        @. V = tmp2 + T(670442572800) * A6 + T(129060195264000) * A4 + T(7771770303897600) * A2 + T(64764752532480000) * Id
 
     return _finish_pade!(F, ws)
 end

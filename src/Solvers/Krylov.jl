@@ -60,24 +60,21 @@
 
             E::VT                           # energy vector for correcting step 
 
-            # Kyrlov Subspace specific caches
+            # Kyrlov Subspace specific caches these will be Float64 precision
             m::Int64                        # dimension of Krylov subspace
-            V::MT                           # Krylov subspace basis vectors
-            Aaug::MT                        # augmented matrix for Krylov subspace methods
-            e_np1::VT                       # unit vector for augmented matrix [0,0,...,1]^T size n+1
-            Hs::MT                          # Hessenberg matrix for scalar Arnoldi
-            Hsexp::MT                       # exponential of Hessenberg matrix for scalar Arnoldi
-            w::VT                           # temporary vector for scalar Arnoldi
-            e_mp1::VT                       # unit vector for scalar Arnoldi [0,0,...,1]^T size m+1
-            Hb::MT                          # Hessenberg matrix for block Arnoldi
-            Hbexp::MT                       # exponential of Hessenberg matrix for block Arnoldi
-            W::MT                           # temporary matrix for block Arnoldi
-            R0::MT                          # matrix for first block residual for block Arnoldi
-            Hmmp1::MT                       # Hessenberg matrix for block Arnoldi with last residual block
+            V::AbstractMatrix{Float64}                           # Krylov subspace basis vectors
+            Hs::AbstractMatrix{Float64}                          # Hessenberg matrix for scalar Arnoldi
+            Hsexp::AbstractMatrix{Float64}                       # exponential of Hessenberg matrix for scalar Arnoldi
+            w::AbstractVector{Float64}                          # temporary vector for scalar Arnoldi
+            Hb::AbstractMatrix{Float64}                          # Hessenberg matrix for block Arnoldi
+            Hbexp::AbstractMatrix{Float64}                       # exponential of Hessenberg matrix for block Arnoldi
+            W::AbstractMatrix{Float64}                           # temporary matrix for block Arnoldi
+            R0::AbstractMatrix{Float64}                          # matrix for first block residual for block Arnoldi
+            Hmmp1::AbstractMatrix{Float64}                       # Hessenberg matrix for block Arnoldi with last residual block
 
             # Pade Exponential workspace 
-            PadeExpWorkspace_s::PadeExpWorkspaceStruct{T} # for scalar Arnoldi
-            PadeExpWorkspace_b::PadeExpWorkspaceStruct{T} # for block Arnoldi
+            PadeExpWorkspace_s::PadeExpWorkspaceStruct{Float64} # for scalar Arnoldi
+            PadeExpWorkspace_b::PadeExpWorkspaceStruct{Float64} # for block Arnoldi
 
 
             dt_guess::Vector{T}             # vector of dt guesses for adaptive time stepping
@@ -155,25 +152,20 @@
 
                 # Krylov Subspace specific caches 
                 # Common 
-                V = zeros(Backend,Precision,n_momentum+1,m+1)
-                Aaug = zeros(Backend,Precision,n_momentum+1,n_momentum+1)
-                e_np1 = zeros(Backend,Precision,n_momentum+1)
-                e_np1[n_momentum+1] = one(Precision)
+                V = zeros(Backend,Float64,n_momentum,m+1)
                 # Scalar Arnoldi 
-                Hs = zeros(Backend,Precision,m+1,m+1)
-                Hsexp = zeros(Backend,Precision,m+1,m+1)
-                w = zeros(Backend,Precision,n_momentum+1)
-                e_mp1 = zeros(Backend,Precision,m+1)
-                e_mp1[m+1] = one(Precision)
+                Hs = zeros(Backend,Float64,m+1,m+1)
+                Hsexp = zeros(Backend,Float64,m+1,m+1)
+                w = zeros(Backend,Float64,n_momentum)
                 # Block Arnoldi
-                Hb = zeros(Backend,Precision,m+4,m+4)
-                Hbexp = zeros(Backend,Precision,m+4,m+4)
-                W = zeros(Backend,Precision,n_momentum,4)
-                R0 = zeros(Backend,Precision,4,4)
-                Hmmp1 = zeros(Backend,Precision,4,4)
+                Hb = zeros(Backend,Float64,m+1,m+1)
+                Hbexp = zeros(Backend,Float64,m+1,m+1)
+                W = zeros(Backend,Float64,n_momentum,4)
+                R0 = zeros(Backend,Float64,4,4)
+                Hmmp1 = zeros(Backend,Float64,4,4)
 
-                PadeExpWorkspace_s = PadeExpWorkspaceStruct{Precision}(Hs)
-                PadeExpWorkspace_b = PadeExpWorkspaceStruct{Precision}(Hb)
+                PadeExpWorkspace_s = PadeExpWorkspaceStruct{Float64}(Hsexp)
+                PadeExpWorkspace_b = PadeExpWorkspaceStruct{Float64}(Hbexp)
                 
 
                 Vol = FluxM.Vol
@@ -303,7 +295,7 @@
                     @. f = ifelse(f<=n_cut,zero(eltype(f)),f)
 
                 dt_guess = zeros(Precision, n_space)
-                fill!(dt_guess,ldexp(dt_initial, -1)) # initial guess for dt is 1/64 of the initial dt
+                fill!(dt_guess,ldexp(dt_initial, -4)) # initial guess for dt is 1/64 of the initial dt
 
                 ###### Actually Build the Struct with Concrete Types ######
 
@@ -366,12 +358,9 @@
                 self.invImMP = invImMP
 
                 self.V = V
-                self.Aaug = Aaug
-                self.e_np1 = e_np1
                 self.Hs = Hs
                 self.Hsexp = Hsexp
                 self.w = w
-                self.e_mp1 = e_mp1
                 self.Hb = Hb
                 self.Hbexp = Hbexp
                 self.W = W
@@ -441,6 +430,10 @@ function (method::ERBEKrylovStruct)(t_start,t_stop,dt,Verbose::Int64)
 
         @. method.fstep += method.df
 
+    # Half injection 
+
+        @. method.fstep += method.df_Inj * dt_scale / 2
+
     # half momentum update
 
         mul!(ftmp,method.invImMP,method.fstep) 
@@ -464,6 +457,10 @@ function (method::ERBEKrylovStruct)(t_start,t_stop,dt,Verbose::Int64)
         else
             @. method.fstep = ftmp
         end
+
+    # half injection 
+
+        @. method.fstep += method.df_Inj * dt_scale / 2
 
     # half space update
 
@@ -618,30 +615,31 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     ηEest = abs(dot(E,F) * dtscale) / dot(E,fold)
                     println("Energy error estimate: ", ηEest)
 
-                    @. F += #=A *=# df_Inj #* dtldt0
+                    #@. F += #=A *=# df_Inj #* dtldt0
                     if norm(F) == zero(Precision) # no change in distribution
                         break
                     end
                     lmul!(dtscale,F)
 
                     # Diagonal scaling of J and F to improve conditioning for Krylov subspace approximation
-                    J .*= D' # right mul
-                    J .*= Dinv # left mul
-                    F .*= Dinv # left mul
+                    J .*= (D)' # right mul
+                    J .*= (Dinv) # left mul
+                    F .*= (Dinv) # left mul
 
                     # TODO: define J and F as views of Aaug to avoid copying data
-                    Aaug = method.Aaug
-                    fill!(Aaug,zero(Precision))
-                    @view(Aaug[1:n_momentum,1:n_momentum]) .= J
-                    @view(Aaug[1:n_momentum,n_momentum+1]) .= F
+                    #Aaug = method.Aaug
+                    #fill!(Aaug,zero(Precision))
+                    #@view(Aaug[1:n_momentum,1:n_momentum]) .= J
+                    #@view(Aaug[1:n_momentum,n_momentum+1]) .= F
 
-                    _, hmp1m = arnoldi_scalar!(Aaug,method.e_np1,method.V,method.Hs,method.w;reorth=true)
-
-                    println("hmp1m: ", hmp1m)
+                    # scalar
+                        #_, hmp1m, β = arnoldi_scalar!(J,F,method.V,method.Hs,method.w;reorth=false)
+                    # block
+                        Rlast = arnoldi_block4!(J,F,method.V,method.Hb,method.W,method.R0;reorth=false)
 
                     order = 1.0 # energy error is order 1
-                    ηHtarget = 1e-16
-                    ηEtarget = 1e-6
+                    ηHtarget = 1e-8
+                    ηEtarget = 1e-5
                     k = min(1.0,(1.0-t)*dt/dt_local) # initial guess for k, limited to not overshoot final time 
                     k_old = 1.0
                     k_next = 1.0
@@ -652,25 +650,30 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     substeps = 0
                     ηE = Inf 
                     ηH = Inf
+                    non_finite = false
 
-                    while ηE > ηEtarget || ηH > 1.4ηHtarget 
+                    while (!isfinite(ηE) || !isfinite(ηH)) || (ηE > ηEtarget || ηH > 1.4ηHtarget) 
 
-                        expm_pade!(Precision(k), method.Hsexp, method.Hs, method.PadeExpWorkspace_s)
-                        ferr = method.Hsexp[m,m+1]
-                        #display(method.Hs)
-                        #display(method.Hsexp)
+                        # scalar
+                            #expm_pade!(k, method.Hsexp, method.Hs, method.PadeExpWorkspace_s)
+                            #ferr = method.Hsexp[m,m+1]
+                            #ηH = abs(k * dtscale * β * hmp1m * ferr) # error estimate from Krylov subspace approximation of exponential action
+                            #@views mul!(δ, method.V[1:n_momentum, 1:m], method.Hsexp[1:m, m+1],β*k,zero(Precision)) # δ is energy change
+                            #δ .*= D # scale δ back to original space
+                        # block
+                            expm_pade!(k, method.Hbexp, method.Hb, method.PadeExpWorkspace_s)
+                            ferr = @view(method.Hbexp[m-3:m,m+1])
+                            ηH = k * norm(Rlast * ferr)
+                            @views mul!(δ, method.V[1:n_momentum, 1:m], method.Hbexp[1:m, m+1],one(Precision),zero(Precision)) # δ is energy change
+                            δ .*= D # scale δ back to original space
 
-                        println("ferr: ", ferr, " m,1: ",method.Hsexp[m,1])
-
-                        ηH = abs(dtscale * hmp1m * ferr) # error estimate from Krylov subspace approximation of exponential action
-
-                        @views mul!(δ, method.V[1:n_momentum, 1:m], method.Hsexp[1:m, 1]) # δ is energy change
-                        δ .*= D # scale δ back to original space
+                            #display(method.Hb)
+                            #display(method.Hbexp)
 
                         @. fout = fold + δ
-                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
+                        #@. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
 
-                        Eold = dot(E, fold .+ df_Inj * k * dtscale)
+                        Eold = dot(E, fold #=.+ df_Inj * k * dtscale=#)
                         ηE = abs(dot(E, fout) / Eold - one(Precision))
 
                         # KIOPS adaptive time 
@@ -683,28 +686,33 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                         end
 
                         kE = k*(ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate 
-                        kH = k*(γ/((ηH+eps(ηHtarget))/ηHtarget))^(1/q) #(0.77 * 0.5(tanh(log10(ηH/ηHtarget)+1)+1)) # TODO: update this with a more specific method
+                        kH = k*(k*γ/((ηH+eps(ηHtarget))/ηHtarget))^(1/q) #(0.77 * 0.5(tanh(log10(ηH/ηHtarget)+1)+1)) # TODO: update this with a more specific method
 
                         k_old = k
 
-                        println("ηE: ", ηE, " ηH: ", ηH, " k: ", k, " kE: ", kE, " kH: ", kH, " t: ", t, " dt_local: ", dt_local)
-
                         if !isfinite(ηE) || !isfinite(ηH)
-                            @warn("Rejecting step due to non-finite error estimate: ηE: ", ηE, " ηH: ", ηH, " reducing time step by 0.5")
+                            @warn "Rejecting step due to non-finite error estimate: ηE: $ηE, ηH: $ηH reducing time step by 0.5"
                             k *= 0.5
+                            non_finite = true
+                            break
                         elseif ηE < ηEtarget && ηH < 1.4ηHtarget # good step
                             # define how large to guess the next step can be
-                            k_next = min(kE,kH,2.0) # max k is 2.0 or 1.0-t to avoid overshooting final time
+                            k_next = min(sqrt(kE),sqrt(kH),1.5) # max k is 2.0 or 1.0-t to avoid overshooting final time
                             println("Accepting step with k: ", k, " k_next: ", k_next, " t: ", t, " dt_local: ", dt_local," ηE: ", ηE, " ηH: ", ηH)
                             break
                         else # 
-                            k = min(kE,kH)
+                            k = min(0.9*kE,kH)
                             k = max(k,0.5*k_old)
                             println("Rejecting step with k: ", k, " t: ", t, " dt_local: ", dt_local," ηE: ", ηE, " ηH: ", ηH)
                         end
 
                         substeps += 1
 
+                    end
+
+                    if non_finite
+                        dt_local = 0.5*dt_local
+                        continue # skip to next spatial point if non-finite error estimate
                     end
 
                     t += k*dt_local / dt

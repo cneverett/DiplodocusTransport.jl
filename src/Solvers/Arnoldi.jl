@@ -2,8 +2,8 @@ using LinearAlgebra
 
 
 # A is the augmented matrix A = [J u; 0 0] 
-function arnoldi_scalar!(A, u, V, H, w; reorth::Bool = true)
-    T = eltype(V)
+function arnoldi_scalar!(A::MT1, u::VT1, V::MT2, H::MT2, w::VT2; reorth::Bool = true) where {T1,T2,MT1<:AbstractMatrix{T1},VT1<:AbstractVector{T1},MT2<:AbstractMatrix{T2},VT2<:AbstractVector{T2}}
+
     n = length(u)
     m = size(H, 2) - 1
 
@@ -12,13 +12,16 @@ function arnoldi_scalar!(A, u, V, H, w; reorth::Bool = true)
     @assert size(H, 1) >= m + 1
     @assert length(w) == n
 
-    β0 = norm(u)
+    fill!(H, zero(T2))
+    fill!(V, zero(T2))
+
+    β0::T2 = norm(u)
     iszero(β0) && throw(ArgumentError("Initial vector u has zero norm"))
 
     copyto!(@view(V[:, 1]), u)
     rmul!(@view(V[:, 1]), inv(β0)) # TODO: not needed if u is [0,0,0,0 ... 1]
 
-    hkp1k = zero(T)
+    hkp1k = zero(T2)
 
     @inbounds for k in 1:m
         Vk  = @view V[:, 1:k]
@@ -26,103 +29,122 @@ function arnoldi_scalar!(A, u, V, H, w; reorth::Bool = true)
         vkp = @view V[:, k+1]
         hk  = @view H[1:k, k]
 
-        mul!(w, A, vk)
-        mul!(hk, adjoint(Vk), w)
-        mul!(w, Vk, hk, -one(T), one(T))
+        mul!(vkp, A, vk)
+        mul!(hk, adjoint(Vk), vkp)
+        mul!(vkp, Vk, hk, -one(T2), one(T2))
+
+        #println("norm(w): ", norm(vkp))
+        #println("hk: ", hk)
 
         if reorth
-            mul!(hk, adjoint(Vk), w)
-            mul!(w, Vk, hk, -one(T), one(T))
+            mul!(hk, adjoint(Vk), vkp)
+            mul!(vkp, Vk, hk, -one(T2), one(T2))
         end
+        
+        #println("norm(w): ", norm(vkp))
+        #println("hk: ", hk)
 
-        hkp1k = norm(w)
+        hkp1k = norm(vkp)
 
         if iszero(hkp1k)
             println("happy")
-            fill!(vkp, zero(T))
-            # fill last entry for error estimate 
-            fill!(@view(H[1, m+1]), one(T))
+            fill!(vkp, zero(T2))
             break
         end
 
         fill!(@view(H[k+1, k]), hkp1k)
 
-        copyto!(vkp, w)
         rmul!(vkp, inv(hkp1k))
 
     end
 
     # fill last entry for error estimate 
-    fill!(@view(H[1, m+1]), one(T))
+    fill!(@view(H[1, m+1]), one(T2))
     # remove last residual for error estimate form 
-    fill!(@view(H[m+1, m]), zero(T))
+    fill!(@view(H[m+1, m]), zero(T2))
 
-    return m, hkp1k
+    return m, hkp1k, β0
 end
 
-function arnoldi_block4!(A, v, V, H, W, R; reorth::Bool = true)
+function arnoldi_block4!(A::MT1, v::VT1, V::MT2, H::MT2, W::MT2, R::MT2; reorth::Bool = true) where {T1,T2,MT1<:AbstractMatrix{T1},VT1<:AbstractVector{T1},MT2<:AbstractMatrix{T2}}
+
     T = eltype(V)
     n = length(v)
-    @assert size(W, 2) == 4
-    @assert size(R, 1) == 4 && size(R, 2) == 4
-    @assert size(V, 1) == n
-    @assert size(H, 2) % 4 == 0
+    s = 4
 
-    nblocks = size(H, 2) ÷ 4
-    @assert size(V, 2) >= 4 * (nblocks + 1)
-    @assert size(H, 1) >= 4 * (nblocks + 1)
+    #@assert size(W, 1) == n && size(W, 2) == s
+    #@assert size(R1, 1) == s && size(R1, 2) == s
+    #@assert size(V, 1) == n
+    #@assert size(V, 2) % s == 0
+    #@assert size(H, 1) == size(H, 2) == size(V, 2)
 
-    fill!(H, zero(T))
+    nb = (size(V, 2)-1) ÷ s   # total number of 4-column basis block
 
+    # Initial block: [v, Av, A^2v, A^3v]
     @views begin
         copyto!(W[:, 1], v)
-        mul!(W[:, 2], A, W[:, 1])
-        mul!(W[:, 3], A, W[:, 2])
-        mul!(W[:, 4], A, W[:, 3])
+        for j in 2:s
+            mul!(W[:, j], A, W[:, j-1])
+        end
     end
 
     F0 = qr!(W)
-    copyto!(W, Matrix(F0.Q))
-    copyto!(R, Matrix(F0.R))
-    copyto!(@view(H[1:4, 1:4]), R)
-    copyto!(@view(V[:, 1:4]), W)
+    if W isa Matrix 
+        Q = Matrix(F0.Q)
+    elseif W isa CuArray
+        Q = CuArray(F0.Q)
+    else
+        error("Unsupported array type for W")
+    end
+    @views V[:, 1:s] .= Q
 
-    @inbounds for s in 1:nblocks
-        c1 = 4 * (s - 1) + 1
-        c2 = 4 * s
+    # last column for error estimate
+    @views H[1:s, end] .= F0.R[:, 1]
+
+    # first block of H
+    @views mul!(W, A, V[:, 1:s])
+    @views mul!(H[1:s, 1:s], adjoint(V[:, 1:s]), W)
+
+    # Generate remaining blocks
+    for j in 1:nb-1
+        c1 = (j - 1) * s + 1
+        c2 = j * s
         n1 = c2 + 1
-        n2 = 4 * (s + 1)
+        n2 = (j + 1) * s
 
-        @views begin
-            mul!(W[:, 1], A, V[:, c2])
-            mul!(W[:, 2], A, W[:, 1])
-            mul!(W[:, 3], A, W[:, 2])
-            mul!(W[:, 4], A, W[:, 3])
+        Vprev = @view V[:, 1:c2]
+        Vj    = @view V[:, c1:c2]
 
-            Vprev = V[:, 1:c2]
-            Hproj = H[1:c2, c1:c2]
+        # W = A * current block (all 4 columns)
+        mul!(W, A, Vj)
 
+        # Orthogonalize against all previous basis vectors
+        Hproj = @view H[1:c2, c1:c2]
+        mul!(Hproj, adjoint(Vprev), W)
+        mul!(W, Vprev, Hproj, -one(T), one(T))
+
+        if reorth
             mul!(Hproj, adjoint(Vprev), W)
             mul!(W, Vprev, Hproj, -one(T), one(T))
-
-            if reorth
-                mul!(Hproj, adjoint(Vprev), W)
-                mul!(W, Vprev, Hproj, -one(T), one(T))
-            end
         end
 
         Fs = qr!(W)
-        copyto!(W, Matrix(Fs.Q))
-        copyto!(R, Matrix(Fs.R))
+        if W isa Matrix 
+            Q = Matrix(Fs.Q)
+        elseif W isa CuArray
+            Q = CuArray(Fs.Q)
+        else
+            error("Unsupported array type for W")
+        end
 
-        copyto!(@view(V[:, n1:n2]), W)
+        @views V[:, n1:n2] .= Q
+        @views H[n1:n2, c1:c2] .= Fs.R
 
-        if s < nblocks # write residual block to H
-            copyto!(@view(H[n1:n2, c1:c2]), R)
+        if j == nb - 1
+            # last column for error estimate
+            R .= Fs.R
         end
     end
 
-    # last residual block returned in R which is used for error estimate 
-
-    return nothing
+    return R
 end
