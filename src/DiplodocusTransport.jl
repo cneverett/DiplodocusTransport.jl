@@ -56,6 +56,7 @@ module DiplodocusTransport
     using KernelAbstractions
     using KernelAbstractions.Extras: @unroll
     using Atomix: @atomic
+    using Zarr
 
     include("Constants.jl")
     include("Backends.jl")

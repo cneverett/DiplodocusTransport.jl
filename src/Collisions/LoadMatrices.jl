@@ -130,21 +130,22 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         LossScale *= Bin_Norm
 
         Parameters = Output[1]
-        GainMatrix3 = Output[2] .* GainScale
-        GainMatrix4 = Output[3] .* GainScale
-        LossMatrix1 = Output[4] .* LossScale
-        LossMatrix2 = Output[5] .* LossScale
+        GainMatrix3 = Output[2]
+        GainMatrix4 = Output[3]
+        LossMatrix1 = Output[4]
+        LossMatrix2 = Output[5]
 
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
         DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,n_momentum;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,n_momentum,GainScale,LossScale;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
 
     end # for
 
 end
 
+#=
 function LoadMatrices_BinaryGraphLaplacian(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
@@ -570,6 +571,7 @@ function LoadMatrices_BinaryPatankarSymmetric(Binary_list::Vector{BinaryInteract
     end # for
 
 end
+=#
 
 
 function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F}}},Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,BinM::BinaryMatricesStruct;Emi_corrected::Bool=true) where F<:AbstractFloat
