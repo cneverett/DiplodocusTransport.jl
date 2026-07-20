@@ -40,6 +40,8 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         name3 = interaction.name3
         name4 = interaction.name4
 
+        Indistinguishable_12 = name1 == name2
+
         println("Filling M_Bin for binary interaction: $(name1) + $(name2) -> $(name3) + $(name4)")
 
         # Memory optimisation by allowing Ele and Pos populations to be modelled as identical thus only requiring one to be defined
@@ -132,13 +134,12 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         Parameters = Output[1]
         GainMatrix3 = Output[2]
         GainMatrix4 = Output[3]
-        LossMatrix1 = Output[4]
-        LossMatrix2 = Output[5]
+        LossMatrix = Output[4]
 
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
         DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix1,LossMatrix2,n_momentum,GainScale,LossScale;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix,n_momentum,GainScale,LossScale,Indistinguishable_12;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
 
     end # for
