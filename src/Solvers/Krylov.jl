@@ -527,15 +527,12 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
     
     fold = method.fold
     fout = method.fout
-    Estate::Vector{Precision} = zeros(Precision,n_momentum)
     J = method.J
     Jsparse = sparse(copy(J))
     #Jtmp = copy(J)
     F = method.F
     fscale = method.fscale #::Vector{Precision} = zeros(Precision,n_momentum)
 
-    onevec = copy(F)
-    fill!(onevec,one(Precision))
     D = method.D #Diagonal(ones(Precision,n_momentum)) # 1/E
     Dinv = method.Dinv #Diagonal(ones(Precision,n_momentum)) # E
     E = method.E
@@ -607,6 +604,12 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     end
 
                     @. J *= dtscale * invA
+
+                    println("max M_Emi: ", maximum(M_Emi), " min M_Emi : ", minimum(M_Emi))
+                    println("max J: ", maximum(J), " min J : ", minimum(J))
+                    println("max fold: ", maximum(fold), " min fold : ", minimum(fold))
+                    println("max df_Inj: ", maximum(df_Inj), " min df_Inj : ", minimum(df_Inj))
+
                     # Form F
                     mul!(F,method.M_Bin_Mul_Step,fold)
                     @. F *= invA
@@ -615,7 +618,7 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     ηEest = abs(dot(E,F) * dtscale) / dot(E,fold)
                     println("Energy error estimate: ", ηEest)
 
-                    #@. F += #=A *=# df_Inj #* dtldt0
+                    #@. F += #=A *=# df_Inj
                     if norm(F) == zero(Precision) # no change in distribution
                         break
                     end
@@ -633,12 +636,12 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     #@view(Aaug[1:n_momentum,n_momentum+1]) .= F
 
                     # scalar
-                        #_, hmp1m, β = arnoldi_scalar!(J,F,method.V,method.Hs,method.w;reorth=false)
+                        _, hmp1m, β = arnoldi_scalar!(J,F,method.V,method.Hs,method.w;reorth=false)
                     # block
-                        Rlast = arnoldi_block4!(J,F,method.V,method.Hb,method.W,method.R0;reorth=false)
+                        #Rlast = arnoldi_block4!(J,F,method.V,method.Hb,method.W,method.R0;reorth=false)
 
                     order = 1.0 # energy error is order 1
-                    ηHtarget = 1e-8
+                    ηHtarget = 1e-5
                     ηEtarget = 1e-5
                     k = min(1.0,(1.0-t)*dt/dt_local) # initial guess for k, limited to not overshoot final time 
                     k_old = 1.0
@@ -655,17 +658,21 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                     while (!isfinite(ηE) || !isfinite(ηH)) || (ηE > ηEtarget || ηH > 1.4ηHtarget) 
 
                         # scalar
-                            #expm_pade!(k, method.Hsexp, method.Hs, method.PadeExpWorkspace_s)
-                            #ferr = method.Hsexp[m,m+1]
-                            #ηH = abs(k * dtscale * β * hmp1m * ferr) # error estimate from Krylov subspace approximation of exponential action
-                            #@views mul!(δ, method.V[1:n_momentum, 1:m], method.Hsexp[1:m, m+1],β*k,zero(Precision)) # δ is energy change
-                            #δ .*= D # scale δ back to original space
-                        # block
-                            expm_pade!(k, method.Hbexp, method.Hb, method.PadeExpWorkspace_s)
-                            ferr = @view(method.Hbexp[m-3:m,m+1])
-                            ηH = k * norm(Rlast * ferr)
-                            @views mul!(δ, method.V[1:n_momentum, 1:m], method.Hbexp[1:m, m+1],one(Precision),zero(Precision)) # δ is energy change
+                            expm_pade!(k, method.Hsexp, method.Hs, method.PadeExpWorkspace_s)
+                            #display(method.Hs)
+                            #display(method.Hsexp)
+                            #display(exp(method.Hs))
+                            ferr = method.Hsexp[m,m+1]
+                            #println("dtscale: ", dtscale, " k: ", k, " ferr: ", ferr)
+                            ηH = abs(k * dtscale * β * hmp1m * ferr) # error estimate from Krylov subspace approximation of exponential action
+                            @views mul!(δ, method.V[1:n_momentum, 1:m], method.Hsexp[1:m, m+1],β*k,zero(Precision)) # δ is energy change
                             δ .*= D # scale δ back to original space
+                        # block
+                            #expm_pade!(k, method.Hbexp, method.Hb, method.PadeExpWorkspace_s)
+                            #ferr = @view(method.Hbexp[m-3:m,m+1])
+                            #ηH = k * norm(Rlast * ferr)
+                            #@views mul!(δ, method.V[1:n_momentum, 1:m], method.Hbexp[1:m, m+1],one(Precision),zero(Precision)) # δ is energy change
+                            #δ .*= D # scale δ back to original space
 
                             #display(method.Hb)
                             #display(method.Hbexp)
@@ -677,13 +684,13 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                         ηE = abs(dot(E, fout) / Eold - one(Precision))
 
                         # KIOPS adaptive time 
-                        if substeps == 0 || substeps == 1
+                        #=if substeps == 0 || substeps == 1
                             q = q_init
                             q_old = q 
                         else
                             q_old = q
                             q = log(k/k_old) / log(ηH/ηH_old)
-                        end
+                        end=#
 
                         kE = k*(ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate 
                         kH = k*(k*γ/((ηH+eps(ηHtarget))/ηHtarget))^(1/q) #(0.77 * 0.5(tanh(log10(ηH/ηHtarget)+1)+1)) # TODO: update this with a more specific method
@@ -698,7 +705,7 @@ function update_momentum!(method::ERBEKrylovStruct,dt::T) where T
                         elseif ηE < ηEtarget && ηH < 1.4ηHtarget # good step
                             # define how large to guess the next step can be
                             k_next = min(sqrt(kE),sqrt(kH),1.5) # max k is 2.0 or 1.0-t to avoid overshooting final time
-                            println("Accepting step with k: ", k, " k_next: ", k_next, " t: ", t, " dt_local: ", dt_local," ηE: ", ηE, " ηH: ", ηH)
+                            println("Accepting step with k: ", k, " k_next: ", k_next, " t: ", t, " dt_local: ", dt_local," ηE: ", ηE, " ηH: ", ηH, " dtscale: ", dtscale)
                             break
                         else # 
                             k = min(0.9*kE,kH)

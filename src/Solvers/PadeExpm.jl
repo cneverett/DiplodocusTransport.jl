@@ -54,7 +54,7 @@ function expm_pade!(dt::T, F::M, A::AbstractMatrix{T2},ws::PadeExpWorkspaceStruc
 
     dtA = ws.dtA 
     copyto!(dtA, A)
-    @. dtA *= dt
+    @views dtA[:,1:end-1] .*= dt
 
     nrm = norm(dtA,1)
     #println("nrm = $nrm, 1-norm: $(norm(dtA,1))")
