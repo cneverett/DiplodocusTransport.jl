@@ -3,7 +3,7 @@
 
 Loads the binary interaction matrices from the specified `DataDirectory` for each interaction in `Binary_list` and fills the big matrix `M_Bin` either directly if `M_Bin` is dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for binary interactions between all particles in the simulation. The `corrected` argument specifies whether to load the number and energy corrected matrices. The `mode` argument specifies whether to assume these arrays are anisotropic, axisymmetric or isotropic.
 """
-function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int64}}=nothing,M_Bin_J::Union{Nothing,Vector{Int64}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
+function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
 
     Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
     
@@ -141,6 +141,9 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         DoesConserve(Output) # print conversion statistic
         Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix,n_momentum,GainScale,LossScale,Indistinguishable_12;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
+        println("size in memory of M_Bin_I: $(Base.summarysize(M_Bin_I)/1e9) GB")
+        println("size in memory of M_Bin_J: $(Base.summarysize(M_Bin_J)/1e9) GB")
+        println("size in memory of M_Bin_V: $(Base.summarysize(M_Bin_V)/1e9) GB")
 
     end # for
 
