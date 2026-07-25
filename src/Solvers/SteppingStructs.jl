@@ -1727,7 +1727,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             fscale::VT                      # scaling vector for exponential Rosenbrock method
             δ::VT                          # temporary vector for exponential Rosenbrock method
 
-            Ks#::KrylovSubspace{T,T,T,MT,AbstractMatrix{T}}      # Krylov subspace for exponential Rosenbrock method
+            Ks::KrylovSubspace{Float64,Float64,AbstractMatrix{Float64}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
             m::Int64                        # dimension of Krylov subspace
             ϕcache::ExponentialUtilities.PhivCache{useview,T} where useview # cache for ϕ functions
 
@@ -1805,10 +1805,11 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 D = one(Precision) ./ copy(E)
                 Dinv = copy(E)
 
+                # use higher precision for Krylov subspace to avoid numerical issues
                 if Backend isa CUDABackend
-                    Ks = KrylovSubspace{Precision,Precision,CuArray{Precision,2}}(n_momentum,m)
+                    Ks = KrylovSubspace{Float64,Float64,CuArray{Float64,2}}(n_momentum,m)
                 else
-                    Ks = KrylovSubspace{Precision,Precision,Array{Precision,2}}(n_momentum,m)
+                    Ks = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,m)
                 end
 
                 Vol = FluxM.Vol

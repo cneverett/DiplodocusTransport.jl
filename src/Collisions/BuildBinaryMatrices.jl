@@ -43,7 +43,7 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
             M_Bin_V::Vector{Precision} = Precision[]
             LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;symmetric=symmetric,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
             println("Building sparse M_Bin")
-            M_Bin = sparse(M_Bin_I,M_Bin_J,M_Bin_V,m,n)::SparseMatrixCSC{Precision,UInt32}
+            M_Bin = SparseArrays.sparse!(M_Bin_I,M_Bin_J,M_Bin_V,m,n)::SparseMatrixCSC{Precision,UInt32}
    
             GC.gc()
         else
@@ -74,10 +74,13 @@ end
 
 Fills the big matrix `M_Bin` directly if dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for a specific binary interactions given by `name_locs` and the collision arrays `GainMatrix3`, `GainMatrix4`, `LossMatrix1`, `LossMatrix2`.
 """
-function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::ZArray,GainMatrix4::ZArray,LossMatrix::ZArray,n_momentum::Int64,GainScale::Float64,LossScale::Float64,Indistinguishable_12::Bool;mode::AbstractMode=Ani(),symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::PhaseSpaceStruct,GainMatrix3::ZArray,GainMatrix4::ZArray,LossMatrix::ZArray,GainScale::Float64,LossScale::Float64,Indistinguishable_12::Bool;mode::AbstractMode=Ani(),symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     Grids = PhaseSpace.Grids
     offset = Grids.momentum_species_offset
+
+    n_momentum = PhaseSpace.Grids.n_momentum
+    m = n_momentum*n_momentum
 
     (name1_loc,name2_loc,name3_loc,name4_loc) = name_locs
 
@@ -90,22 +93,63 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
     dpz3 = Grids.dpz_list[name3_loc]
     dpz4 = Grids.dpz_list[name4_loc]
 
-    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3,n_momentum,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
-    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy4,dpz4,n_momentum,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
-    LossMatrix_to_M_Bin!(PhaseSpace,LossMatrix,offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,n_momentum,LossScale,Indistinguishable_12;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+    if !isempty(M_Bin_I) && !isempty(M_Bin_J) && !isempty(M_Bin_V)
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+    end
+
+    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+
+        # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        if isnothing(M_Bin)
+            tmp_sparse = SparseArrays.sparse!(M_Bin_I,M_Bin_J,M_Bin_V,n_momentum*n_momentum,n_momentum)
+            M_Bin_I, M_Bin_J, M_Bin_V = findnz(tmp_sparse)
+        end
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        tmp_sparse = nothing
+        GC.gc()
+
+    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy4,dpz4,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+
+        # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        if isnothing(M_Bin)
+            tmp_sparse = SparseArrays.sparse!(M_Bin_I,M_Bin_J,M_Bin_V,n_momentum*n_momentum,n_momentum)
+            M_Bin_I, M_Bin_J, M_Bin_V = findnz(tmp_sparse)
+        end
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        tmp_sparse = nothing 
+        GC.gc()
+
+    LossMatrix_to_M_Bin!(PhaseSpace,LossMatrix,offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,LossScale,Indistinguishable_12;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+
+        # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        if isnothing(M_Bin)
+            tmp_sparse = SparseArrays.sparse!(M_Bin_I,M_Bin_J,M_Bin_V,n_momentum*n_momentum,n_momentum)
+            M_Bin_I, M_Bin_J, M_Bin_V = findnz(tmp_sparse)
+        end
+        println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
+        println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
+        tmp_sparse = nothing
 
     GainMatrix3 = nothing
     GainMatrix4 = nothing
-    LossMatrix1 = nothing
-    LossMatrix2 = nothing
+    LossMatrix = nothing
 
     GC.gc()
 
-    return nothing
+    return M_Bin_I, M_Bin_J, M_Bin_V
 
 end
 
-function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,offset3::Int64,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},dpy3::Vector{Float64},dpz3::Vector{Float64},n_momentum::Int64,GainScale::Float64;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,offset3::Int64,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},dpy3::Vector{Float64},dpz3::Vector{Float64},GainScale::Float64;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     px3_num = size(GainMatrix,1)-2 # ignore underflow and overflow bins
     py3_num = size(GainMatrix,2)
@@ -117,11 +161,11 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
     py2_num = size(GainMatrix,8)
     pz2_num = size(GainMatrix,9)
 
-    N = n_momentum
-    #println("N = $N")
+    N = PhaseSpace.Grids.n_momentum
+    println("N = $N")
     #println("$offset2")
 
-    E = zeros(Float64,N)
+    #=E = zeros(Float64,N)
     for species in eachindex(PhaseSpace.name_list)
         px_num = PhaseSpace.Momentum.px_num_list[species]
         py_num = PhaseSpace.Momentum.py_num_list[species]
@@ -135,15 +179,24 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
                 end
             end
         end
-    end
+    end=#
 
     is_sparse = isnothing(M_Bin)
 
-    GainMatrixLocal = zeros(Float64,px3_num+2,py3_num,pz3_num,py1_num,pz1_num,py2_num,pz2_num)
+    ChunkGainMatrix::Array{Float64,9} = zeros(Float64,px3_num+2,py3_num,pz3_num,1,py1_num,pz1_num,1,py2_num,pz2_num)
+
+    GainMatrixLocal = @view(ChunkGainMatrix[:,:,:,1,:,:,1,:,:])
+
+    wIso = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpz3) * sum(dpy1) * sum(dpy2) * sum(dpy3))
+    wAxi = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpz3))
+    wAni = 1.0
 
     for px2 in 1:px2_num, px1 in 1:px1_num
 
-        GainMatrixLocal .= GainMatrix[:,:,:,px1,:,:,px2,:,:] # load chunk of Zarray
+        r = CartesianIndices((1:(px3_num+2),1:py3_num,1:pz3_num,px1:px1,1:py1_num,1:pz1_num,px2:px2,1:py2_num,1:pz2_num))
+        Zarr.readblock!(ChunkGainMatrix,GainMatrix,r) # load chunk of Zarray
+
+        #GainMatrixLocal .= GainMatrix[:,:,:,px1,:,:,px2,:,:] # load chunk of Zarray
         
     for px3 in 1:px3_num
 
@@ -154,7 +207,7 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
         if mode isa Iso
 
             val = 0.0 
-            w = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpz3) * sum(dpy1) * sum(dpy2) * sum(dpy3))
+            w = wIso
 
             # average over incoming and outgoing u and phi angles (py,pz)
             for py1 in 1:py1_num, pz1 in 1:pz1_num, py2 in 1:py2_num, pz2 in 1:pz2_num, py3 in 1:py3_num, pz3 in 1:pz3_num
@@ -168,7 +221,7 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
             if mode isa Axi
 
                 val = 0.0 
-                w = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpz3))
+                w = wAxi
 
                 # average over incoming and outgoing phi angles (pz)
                 for pz1 in 1:pz1_num, pz2 in 1:pz2_num, pz3 in 1:pz3_num
@@ -181,13 +234,13 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
                 
                 if mode isa Ani
 
-                    if is_sparse
+                    #=if is_sparse
                         #GainMax = maximum(@view(GainMatrix[:,py3,pz3,px1,py1,pz1,px2,py2,pz2]))
                         GainMax = maximum(@view(GainMatrixLocal[:,:,:,py1,pz1,py2,pz2]))
-                    end
+                    end=#
 
                     val = GainMatrixLocal[px3+1,py3,pz3,py1,pz1,py2,pz2]
-                    w = 1.0
+                    w = wAni
 
                     #if is_sparse && val*w < eps(GainMax) # skips values smaller than this value to reduce memory usage
                     #    continue
@@ -195,7 +248,10 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
 
                 end
 
-                if val == 0.0
+                if val == 0.0 || !isfinite(val)
+                    if !isfinite(val)
+                        println("val = $val, px1 = $px1, py1 = $py1, pz1 = $pz1, px2 = $px2, py2 = $py2, pz2 = $pz2, px3 = $px3, py3 = $py3, pz3 = $pz3")
+                    end
                     continue
                 end
 
@@ -265,7 +321,7 @@ function GainMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,GainMatrix::ZArray,of
 
 end
 
-function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},n_momentum::Int64,LossScale::Float64,Indistinguishable_12::Bool;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
+function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,offset1::Int64,offset2::Int64,mode::AbstractMode,dpy1::Vector{Float64},dpz1::Vector{Float64},dpy2::Vector{Float64},dpz2::Vector{Float64},LossScale::Float64,Indistinguishable_12::Bool;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_J::Union{Nothing,Vector{UInt32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:Union{Float32,Float64}
 
     px1_num = size(LossMatrix,1)  
     py1_num = size(LossMatrix,2)
@@ -274,11 +330,12 @@ function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,of
     py2_num = size(LossMatrix,5)
     pz2_num = size(LossMatrix,6)
 
-    N = n_momentum
+    N = PhaseSpace.Grids.n_momentum
+    println("N = $N")
 
     is_sparse = isnothing(M_Bin)
 
-    E = zeros(Float64,N)
+    #=E = zeros(Float64,N)
     for species in eachindex(PhaseSpace.name_list)
         px_num = PhaseSpace.Momentum.px_num_list[species]
         py_num = PhaseSpace.Momentum.py_num_list[species]
@@ -292,14 +349,22 @@ function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,of
                 end
             end
         end
-    end
+    end=#
 
-    LossMatrixLocal = zeros(Float64,py1_num,pz1_num,py2_num,pz2_num)
+    ChunkLossMatrix::Array{Float64,6} = zeros(Float64,1,py1_num,pz1_num,1,py2_num,pz2_num)
+    LossMatrixLocal = @view(ChunkLossMatrix[1,:,:,1,:,:])
+
+    wIso = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpy1) * sum(dpy2))
+    wAxi = 1.0 / (sum(dpz1) * sum(dpz2))
+    wAni = 1.0
 
     #for pz2 in 1:pz2_num, py2 in 1:py2_num, px2 in 1:px2_num, pz1 in 1:pz1_num, py1 in 1:py1_num, px1 in 1:px1_num
     for px2 in 1:px2_num, px1 in 1:px1_num
 
-        LossMatrixLocal .= LossMatrix[px1,:,:,px2,:,:] # load chunk of Zarray
+        r = CartesianIndices((px1:px1, 1:py1_num, 1:pz1_num, px2:px2, 1:py2_num, 1:pz2_num))
+        Zarr.readblock!(ChunkLossMatrix,LossMatrix,r) # load chunk of Zarray
+
+        #LossMatrixLocal .= LossMatrix[px1,:,:,px2,:,:] # load chunk of Zarray
 
         #=if px1 == 1 || px2 == 1
             continue # skip first bin as the occupation of this bin can become very large causing time stepping issues.
@@ -308,7 +373,7 @@ function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,of
         if mode isa Iso 
 
             val = 0.0 
-            w = 1.0 / (sum(dpz1) * sum(dpz2) * sum(dpy1) * sum(dpy2))
+            w = wIso
 
             # average over incoming and outgoing u and phi angles (py,pz)
             for py2 in 1:py2_num, py1 in 1:py1_num, pz2 in 1:pz2_num, pz1 in 1:pz1_num
@@ -322,7 +387,7 @@ function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,of
             if mode isa Axi 
 
                 val = 0.0 
-                w = 1.0 / (sum(dpz1) * sum(dpz2))
+                w = wAxi
 
                 # average over incoming and outgoing phi angles (pz)
                 for pz2 in 1:pz2_num, pz1 in 1:pz1_num
@@ -336,11 +401,14 @@ function LossMatrix_to_M_Bin!(PhaseSpace::PhaseSpaceStruct,LossMatrix::ZArray,of
                 if mode isa Ani
 
                     val = LossMatrixLocal[py1,pz1,py2,pz2]
-                    w = 1.0
+                    w = wAni
 
                 end
 
-                if val == 0.0
+                if val == 0.0 || !isfinite(val)
+                    if !isfinite(val)
+                        println("val = $val, px1 = $px1, py1 = $py1, pz1 = $pz1, px2 = $px2, py2 = $py2, pz2 = $pz2, px3 = $px3, py3 = $py3, pz3 = $pz3")
+                    end
                     continue
                 end
 

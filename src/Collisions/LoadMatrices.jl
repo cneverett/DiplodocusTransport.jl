@@ -29,7 +29,7 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
     py_num_list = Momentum.py_num_list
     pz_num_list = Momentum.pz_num_list
 
-    n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
+    n_momentum = PhaseSpace.Grids.n_momentum
 
     for i in eachindex(Binary_list)
 
@@ -138,8 +138,8 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
 
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 
-        DoesConserve(Output) # print conversion statistic
-        Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix,n_momentum,GainScale,LossScale,Indistinguishable_12;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+        #DoesConserve(Output) # print conversion statistic
+        M_Bin_I, M_Bin_J, M_Bin_V = Fill_M_Bin!(name_locs,PhaseSpace,GainMatrix3,GainMatrix4,LossMatrix,GainScale,LossScale,Indistinguishable_12;mode=mode,symmetric=symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
         println("size in memory of M_Bin_I: $(Base.summarysize(M_Bin_I)/1e9) GB")
         println("size in memory of M_Bin_J: $(Base.summarysize(M_Bin_J)/1e9) GB")
