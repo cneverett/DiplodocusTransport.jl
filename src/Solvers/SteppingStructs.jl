@@ -1727,7 +1727,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             fscale::VT                      # scaling vector for exponential Rosenbrock method
             δ::VT                          # temporary vector for exponential Rosenbrock method
 
-            Ks::KrylovSubspace{Float64,Float64,AbstractMatrix{Float64}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
+            Ks#::KrylovSubspace{Float64,Float64,AbstractMatrix{Float64}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
             m::Int64                        # dimension of Krylov subspace
             ϕcache::ExponentialUtilities.PhivCache{useview,T} where useview # cache for ϕ functions
 

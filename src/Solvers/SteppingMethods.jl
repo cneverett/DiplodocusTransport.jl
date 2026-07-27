@@ -1537,7 +1537,14 @@ function (method::ExponentialRosenbrockEulerKrylovStruct)(t_start,t_stop,dt,Verb
 
     # binary update
 
+        # half momentum update
         update_momentum!(method,dt_scale)
+
+        # injection
+        #@. method.fstep += method.df_Inj * dt_scale  
+
+        # half momentum update
+        #update_momentum!(method,dt_scale/2)
 
     # half momentum update
 
@@ -1735,7 +1742,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     end
 
                     # Compute φ functions of H
-                    _, errest = phiv!(ϕ,k,Ks,1;cache=ϕcache,correct=true,errest=true) # TODO: This allocates                  
+                    _, errest = phiv!(ϕ,k,Ks,1;cache=ϕcache,correct=false,errest=true) # TODO: This allocates                  
                     @. δ = D * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
@@ -1759,13 +1766,14 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         order = 1.0 # energy error is order 1
 
                         ηtarget = 1e-16
+                        ηEtarget = 1e-4
 
-                        kE = (1e-5/(ηE+eps(1e-5)))^(1.0/(order+1)) # k from energy error estimate 
+                        kE = (ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate 
                         kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,Ks,1;cache=ϕcache,correct=true,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,Ks,1;cache=ϕcache,correct=false,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest, " m: ",m)
                             if errest > ηtarget
                                 kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
@@ -1858,7 +1866,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                         copyto!(Jsparse,M_Emi)
                         Jsparse *= dtscale * invA
                     else
-                        fill!(Jsparse,zero(Precision))
+                        Jsparse.nzval .= zero(Precision)
                         dropzeros!(Jsparse)
                     end
 
@@ -1897,7 +1905,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
                     # Compute φ functions of H
                     if has_injection 
-                        phiv!(ϕ,k,Ks,1;cache=ϕcache,correct=true,errest=false) # TODO: This allocates
+                        phiv!(ϕ,k,Ks,1;cache=ϕcache,correct=false,errest=false) # TODO: This allocates
                         @. δ = D * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
                     else # no injection, just linear Jacobian so use exp over phi
