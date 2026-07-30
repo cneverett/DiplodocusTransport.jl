@@ -2240,6 +2240,10 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
     F_d = method.F_d[worker]        # on GPU
     F = method.F[worker]            # on CPU
 
+    M_Bin = method.M_Bin
+    M_Bin_Mul_Step_reshape = method.M_Bin_Mul_Step_reshape[worker]
+    M_Bin_Mul_Step = method.M_Bin_Mul_Step[worker]
+
     fold_d = method.fold_d[worker]  # on GPU
     fold = method.fold[worker]      # on CPU
     fout_d = method.fout_d[worker]  # on GPU
@@ -2328,18 +2332,18 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
 
-                    mul!(method.M_Bin_Mul_Step_reshape,method.M_Bin,fold_d,vol,zero(Precision))
+                    mul!(M_Bin_Mul_Step_reshape,M_Bin,fold_d,vol,zero(Precision))
                     # Form J
-                    @. J_d = Precision(2) * method.M_Bin_Mul_Step
+                    @. J_d = Precision(2) * M_Bin_Mul_Step
                     if EmiTrue
                         @. J_d += M_Emi
-                        @. method.M_Bin_Mul_Step += M_Emi
+                        @. M_Bin_Mul_Step += M_Emi
                     end
 
                     @. J_d *= dtscale * invA
 
                     # Form F
-                    mul!(F_d,method.M_Bin_Mul_Step,fold_d,invA,zero(Precision))
+                    mul!(F_d,M_Bin_Mul_Step,fold_d,invA,zero(Precision))
                     #@. F_d *= invA
 
                     # Energy error estimate using F 
