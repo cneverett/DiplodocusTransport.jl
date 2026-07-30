@@ -2154,8 +2154,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         KsL::Vector{KrylovSubspace{Float64,Float64,Float64,Matrix{Float64},Matrix{Float64}}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
         mB::Int64                        # dimension of Binary Krylov subspace
         mL::Int64                        # dimension of Linear Krylov subspace
-        ϕcacheB::Vector{ExponentialUtilities.PhivCache{useview,T}} where useview # cache for ϕ functions for Binary terms
-        ϕcacheL::Vector{ExponentialUtilities.PhivCache{useview,T}} where useview # cache for ϕ functions for Linear terms
+        ϕcacheB::Vector{ExponentialUtilities.PhivCache{true,T}} # cache for ϕ functions for Binary terms
+        ϕcacheL::Vector{ExponentialUtilities.PhivCache{true,T}} # cache for ϕ functions for Linear terms
 
         dt_guess::Vector{T}             # guess for dt based on CFL condition
 
