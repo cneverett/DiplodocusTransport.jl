@@ -2194,7 +2194,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end
             end
 
-            E_long = zeros(Backend,Precision,n_momentum*n_space)
+            E_long = zeros(CUDABackend(),Precision,n_momentum*n_space)
             for space in 1:n_space
                 copyto!(@view(E_long[(space-1)*n_momentum+1:space*n_momentum]), E)
             end
@@ -2207,21 +2207,21 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             Bin_Domain = BinM.Domain
 
             if Binary_Interactions
-                M_Bin_Mul_Step = zeros(Backend,Precision,n_momentum,n_momentum)
+                M_Bin_Mul_Step = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
                 M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
                 Vec_M_Bin_Mul_Step = Vector{CuArray{Precision,2}}(undef,nworkers)
                 Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,n_momentum,n_momentum)
+                    Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
                     Vec_M_Bin_Mul_Step_reshape[i] = cu(reshape(Vec_M_Bin_Mul_Step[i],n_momentum^2))
                 end
             else
-                M_Bin_Mul_Step = zeros(Backend,Precision,0,0)
+                M_Bin_Mul_Step = zeros(CUDABackend(),Precision,0,0)
                 M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,0)
                 Vec_M_Bin_Mul_Step = Vector{CuArray{Precision,2}}(undef,nworkers)
                 Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,0,0)
+                    Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,0,0)
                     Vec_M_Bin_Mul_Step_reshape[i] = cu(reshape(Vec_M_Bin_Mul_Step[i],0))
                 end
             end
@@ -2259,19 +2259,22 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             Vol = FluxM.Vol
 
-            M_Bin = cu(Precision.(BinM.M_Bin))
-            X_Flux = cu(Precision.(FluxM.X_Flux))
-            P_Flux = cu(Precision.(FluxM.P_Flux))
-            A_Flux = cu(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
-            invA_Flux = cu(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
+            M_Bin = CuSparseMatrixCSC(Precision.(BinM.M_Bin))
+            X_Flux = CuSparseMatrixCSC(Precision.(FluxM.X_Flux))
+            P_Flux = CuSparseMatrixCSC(Precision.(FluxM.P_Flux))
+            A_Flux = CuArray(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
+            invA_Flux = CuArray(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
             df_Inj = convert(Vector{Precision},copy(Injection))
-            df_Inj_d = cu(df_Inj)
+            df_Inj_d = CuArray(df_Inj)
 
-            f_init = cu(convert(Vector{Precision},Initial))
-            f = cu(convert(Vector{Precision},copy(Initial)))
-            # cut initial values that are smaller than n_cut in both number and energy 
-            @. f_init = ifelse(f_init<=n_cut && f_init * E_long < n_cut,zero(eltype(f_init)),f_init)
-            @. f = ifelse(f<=n_cut && f * E_long < n_cut,zero(eltype(f)),f)
+            f_init = convert(Vector{Precision},Initial)
+            f = CuArray(convert(Vector{Precision},copy(Initial)))
+            # cut initial values that are smaller than n_cut in both number and energy
+            E_long_tmp = Vector(E_long) # host copy
+            @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(eltype(f_init)),f_init)
+
+ 
+            @. f = ifelse(f < n_cut && f * E_long < n_cut,zero(eltype(f)),f)
 
             # Making invA = vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
             invA = zeros(Precision,n_space)
@@ -2362,7 +2365,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end=#
             end
             invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(FluxM.P_Flux,1), size(FluxM.P_Flux,2))
-            invImMP = cu(invImMP)
+            invImMP = CuSparseMatrixCSC(invImMP)
 
             # Build new MEmi
             M_Emi = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
@@ -2371,7 +2374,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     if EmiM.M_Emi[off_space] isa SparseMatrixCSC # no binary interactions so stay on GPU for momentum_update
                         M_Emi[off_space] = Precision.(EmiM.M_Emi[off_space])
                     else
-                        M_Emi[off_space] = cu(Precision.(EmiM.M_Emi[off_space]))
+                        M_Emi[off_space] = CuArray(Precision.(EmiM.M_Emi[off_space]))
                     end
                 end
             end
@@ -2383,7 +2386,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     LocationSpeciesToStateVector(f_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                     end
                 end
-                f_mask = cu(f_mask)
+                f_mask = CuArray(f_mask)
             else
                 f_mask = nothing
             end
@@ -2395,7 +2398,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     LocationSpeciesToStateVector(df_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                     end
                 end
-                df_mask = cu(df_mask)
+                df_mask = CuArray(df_mask)
             else
                 df_mask = nothing
             end
