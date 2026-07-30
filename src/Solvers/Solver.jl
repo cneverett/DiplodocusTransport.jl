@@ -30,7 +30,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
     output = OutputStruct(f,n_save)
 
     # save initial state (step 1)
-    @. output.f[1] = f
+    copyto!(output.f[1], f)
     output.t[1] = t_save[1]
 
     # progress bar
@@ -38,7 +38,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
         p = Progress(n_save)
     end
 
-    @. method.f = method.f_init # reset f to initial condition at start of each solve (important for multiple solves in same session)
+    copyto!(method.f,method.f_init) # reset f to initial condition at start of each solve (important for multiple solves in same session)
     #println(sum(method.f))
     method.step = 0
     method.Cr = 0.0
@@ -46,9 +46,11 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
     dt = dt_initial
 
     if method isa ExpRBKIOPSStruct 
-        fill!(method.dt_guess,ldexp(dt_initial, -4)) # initial guess for dt is 1/64 of the initial dt
+        fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
     elseif method isa ERBEKrylovStruct
-        fill!(method.dt_guess,ldexp(dt_initial, -4)) # initial guess for dt is 1/2 of the initial dt
+        fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
+    elseif method isa ExponentialRosenbrockEulerKrylovStruct
+        fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
     end
 
     for i in 2:n_save # start at 2 since initial state already saved
