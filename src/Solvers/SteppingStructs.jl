@@ -2230,8 +2230,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             df_tmp = zeros(Precision,length(Initial))
             df_tmp_d = zeros(CUDABackend(),Precision,length(Initial))
 
-            fstep = zeros(Precision,length(Initial))
-            fstep_d = zeros(CUDABackend(),Precision,length(Initial))
+            fstep = zeros(CUDABackend(),Precision,length(Initial))
             F = zeros(Precision,n_momentum)
             F_d = zeros(CUDABackend(),Precision,n_momentum)
             J = zeros(Precision,n_momentum,n_momentum)
@@ -2268,13 +2267,11 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             df_Inj = convert(Vector{Precision},copy(Injection))
             df_Inj_d = cu(df_Inj)
 
-            f_init = convert(Vector{Precision},Initial)
-            f = convert(Vector{Precision},copy(Initial))
-            # cut initial values that are smaller than n_cut 
-            @. f_init = ifelse(f_init<=n_cut,zero(eltype(f_init)),f_init)
-            @. f = ifelse(f<=n_cut,zero(eltype(f)),f)
-            f_d = cu(f)
-            f_init_d = cu(f_init)
+            f_init = cu(convert(Vector{Precision},Initial))
+            f = cu(convert(Vector{Precision},copy(Initial)))
+            # cut initial values that are smaller than n_cut in both number and energy 
+            @. f_init = ifelse(f_init<=n_cut && f_init * E_long < n_cut,zero(eltype(f_init)),f_init)
+            @. f = ifelse(f<=n_cut && f * E_long < n_cut,zero(eltype(f)),f)
 
             # Making invA = vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
             invA = zeros(Precision,n_space)
@@ -2404,7 +2401,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             end
 
             dt_guess = zeros(Precision, n_space)
-                fill!(dt_guess,ldexp(dt_initial, -4)) # initial guess for dt is 1/64 of the initial dt
+            fill!(dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/64 of the initial dt
 
             ###### Actually Build the Struct with Concrete Types ######
 
