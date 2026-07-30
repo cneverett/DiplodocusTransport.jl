@@ -62,11 +62,12 @@ end
 @inline function ΩConst(ρ0;Ω0=0.1) 
         return Ω0
 end
-@inline function ΩBHPlusDisk(ρ0;ΩH=0.1)
+@inline function ΩBHPlusDisk(ρ0;a=1.0,b=-3/2)
+    ΩF = 1/2 * a/(1+sqrt(1-a^2))  # ΩF = ΩH/2 = 1/2 * a/(1+sqrt(1-a^2)) where Ω has been normalised by c and r_s for field lines threading the horizon in the force-free limit
         if ρ0 <= 1.0
-            return ΩH/2 # ΩF = ΩH/2 for field lines threading the horizon in the force-free limit 
+            return ΩF 
         else
-            return ΩH/2 * (ρ0)^(-3/2)
+            return ΩF * (ρ0)^(b)
         end
 end
 @inline function LocalParabolicForceFreeBField(txyz::MVector{4,T},::Paraboloidal) where T
