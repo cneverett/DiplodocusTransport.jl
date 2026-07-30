@@ -578,7 +578,7 @@ end
 =#
 
 
-function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F}}},Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,BinM::BinaryMatricesStruct;Emi_corrected::Bool=true) where F<:AbstractFloat
+function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F,Int32}}},Emission_list::Vector{EmissiveInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,BinM::BinaryMatricesStruct;Emi_corrected::Bool=true) where F<:AbstractFloat
 
     Emi_Norm = PhaseSpace.Characteristic.Emi_Norm
 
@@ -612,8 +612,8 @@ function LoadMatrices_Emi!(M_Emi::Vector{Union{Matrix{F},SparseMatrixCSC{F}}},Em
     n_momentum = sum(px_num_list.*py_num_list.*pz_num_list)
 
     M_Emi_D = zeros(F,n_momentum,n_momentum)
-    M_Emi_I::Vector{Int64} = Int64[]
-    M_Emi_J::Vector{Int64} = Int64[]
+    M_Emi_I::Vector{Int32} = Int32[]
+    M_Emi_J::Vector{Int32} = Int32[]
     M_Emi_V::Vector{F} = F[]
 
     for i in eachindex(Emission_list)
