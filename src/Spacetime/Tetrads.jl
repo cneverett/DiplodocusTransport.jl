@@ -70,13 +70,13 @@ end
             return ΩF * (ρ0)^(b)
         end
 end
-@inline function ΩBHPlusDisk(ρ0;ΩH=0.1) # legacy version of ΩBHPlusDisk with ΩH as a keyword argument
+#=@inline function ΩBHPlusDisk(ρ0;ΩH=0.1) # legacy version of ΩBHPlusDisk with ΩH as a keyword argument
         if ρ0 <= 1.0
             return ΩH/2 # ΩF = ΩH/2 for field lines threading the horizon in the force-free limit 
         else
             return ΩH/2 * (ρ0)^(-3/2)
         end
-end
+end=#
 
 @inline function LocalParabolicForceFreeBField(txyz::MVector{4,T},::Paraboloidal) where T
     u = txyz[3] 
