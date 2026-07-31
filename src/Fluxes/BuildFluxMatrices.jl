@@ -28,65 +28,65 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
     n = n_momentum*n_space
 
-    Ap_Flux_I::Vector{Int64} = Int64[]
-    Ap_Flux_J::Vector{Int64} = Int64[]
+    Ap_Flux_I::Vector{Int32} = Int32[]
+    Ap_Flux_J::Vector{Int32} = Int32[]
     Ap_Flux_V::Vector{Precision} = Precision[]
-    Am_Flux_I::Vector{Int64} = Int64[]
-    Am_Flux_J::Vector{Int64} = Int64[]
+    Am_Flux_I::Vector{Int32} = Int32[]
+    Am_Flux_J::Vector{Int32} = Int32[]
     Am_Flux_V::Vector{Precision} = Precision[]
 
-    B_Flux_I::Vector{Int64} = Int64[]
-    B_Flux_J::Vector{Int64} = Int64[]
+    B_Flux_I::Vector{Int32} = Int32[]
+    B_Flux_J::Vector{Int32} = Int32[]
     B_Flux_V::Vector{Precision} = Precision[]
 
-    C_Flux_I::Vector{Int64} = Int64[]
-    C_Flux_J::Vector{Int64} = Int64[]
+    C_Flux_I::Vector{Int32} = Int32[]
+    C_Flux_J::Vector{Int32} = Int32[]
     C_Flux_V::Vector{Precision} = Precision[]
 
-    D_Flux_I::Vector{Int64} = Int64[]
-    D_Flux_J::Vector{Int64} = Int64[]
+    D_Flux_I::Vector{Int32} = Int32[]
+    D_Flux_J::Vector{Int32} = Int32[]
     D_Flux_V::Vector{Precision} = Precision[]
 
-    I_Flux_I::Vector{Int64} = Int64[]
-    I_Flux_J::Vector{Int64} = Int64[]
+    I_Flux_I::Vector{Int32} = Int32[]
+    I_Flux_J::Vector{Int32} = Int32[]
     I_Flux_V::Vector{Precision} = Precision[]
 
-    J_Flux_I::Vector{Int64} = Int64[]
-    J_Flux_J::Vector{Int64} = Int64[]
+    J_Flux_I::Vector{Int32} = Int32[]
+    J_Flux_J::Vector{Int32} = Int32[]
     J_Flux_V::Vector{Precision} = Precision[]
 
-    K_Flux_I::Vector{Int64} = Int64[]
-    K_Flux_J::Vector{Int64} = Int64[]
+    K_Flux_I::Vector{Int32} = Int32[]
+    K_Flux_J::Vector{Int32} = Int32[]
     K_Flux_V::Vector{Precision} = Precision[]
 
     Vol::Vector{Precision} = zeros(Precision,n_space)
 
-    X_Flux_I::Vector{Int64} = Int64[]
-    X_Flux_J::Vector{Int64} = Int64[]
+    X_Flux_I::Vector{Int32} = Int32[]
+    X_Flux_J::Vector{Int32} = Int32[]
     X_Flux_V::Vector{Precision} = Precision[]
 
-    P_Flux_I::Vector{Int64} = Int64[]
-    P_Flux_J::Vector{Int64} = Int64[]
+    P_Flux_I::Vector{Int32} = Int32[]
+    P_Flux_J::Vector{Int32} = Int32[]
     P_Flux_V::Vector{Precision} = Precision[]
 
     if debug_mode
 
         println("Building time flux matrices...")
         FillTimeFlux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
-        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
+        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32} 
 
         println("Building space flux matrices...")
         FillSpaceFlux!(PhaseSpace,B_Flux_I,B_Flux_J,B_Flux_V,C_Flux_I,C_Flux_J,C_Flux_V,D_Flux_I,D_Flux_J,D_Flux_V)
-        B_Flux = sparse(B_Flux_I,B_Flux_J,B_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        C_Flux = sparse(C_Flux_I,C_Flux_J,C_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        D_Flux = sparse(D_Flux_I,D_Flux_J,D_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        B_Flux = sparse(B_Flux_I,B_Flux_J,B_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        C_Flux = sparse(C_Flux_I,C_Flux_J,C_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        D_Flux = sparse(D_Flux_I,D_Flux_J,D_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
 
         println("Building momentum flux matrices...")
         FillMomentumFlux!(PhaseSpace,Forces,I_Flux_I,I_Flux_J,I_Flux_V,J_Flux_I,J_Flux_J,J_Flux_V,K_Flux_I,K_Flux_J,K_Flux_V)
-        I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        K_Flux = sparse(K_Flux_I,K_Flux_J,K_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        I_Flux = sparse(I_Flux_I,I_Flux_J,I_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        J_Flux = sparse(J_Flux_I,J_Flux_J,J_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        K_Flux = sparse(K_Flux_I,K_Flux_J,K_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
 
         # when values cancel they can still leave a saved zero in arrays
         dropzeros!(B_Flux)
@@ -136,16 +136,16 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
         println("Building time flux matrices...")
         FillTimeFlux!(PhaseSpace,Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,Am_Flux_I,Am_Flux_J,Am_Flux_V)
-        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
-        Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64} 
+        Ap_Flux = sparse(Ap_Flux_I,Ap_Flux_J,Ap_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
+        Am_Flux= sparse(Am_Flux_I,Am_Flux_J,Am_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32} 
 
         println("Building space flux matrices...")
         FillSpaceFlux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V)
-        X_Flux = sparse(X_Flux_I,X_Flux_J,X_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        X_Flux = sparse(X_Flux_I,X_Flux_J,X_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
 
         println("Building momentum flux matrices...")
         FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V)
-        P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int64}
+        P_Flux = sparse(P_Flux_I,P_Flux_J,P_Flux_V,n,n)::SparseMatrixCSC{Precision,Int32}
 
         # when values cancel they can still leave a saved zero in arrays
         # Remove any remaining small values
@@ -175,14 +175,13 @@ function BuildFluxMatrices(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
         FillVolume!(Vol,PhaseSpace)
 
         # space fluxes
-        B_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
-        C_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
-        D_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
+        B_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32}
+        C_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32}
+        D_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32}
         # momentum fluxes
-        I_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
-        J_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64}
-        K_Flux = spzeros(Precision,0,0)::SparseMatrixCSC{Precision,Int64} 
-
+        I_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32}
+        J_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32}
+        K_Flux = spzeros(Precision,Int32,0,0)::SparseMatrixCSC{Precision,Int32} 
     end
 
     if isdiag(Ap_Flux)
@@ -231,7 +230,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `Ap_Flux` and `Am_Flux` matrices.
 """
-function Fill_A_Flux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_Flux_J::Vector{Int64},Ap_Flux_V::Vector{T},Am_Flux_I::Vector{Int64},Am_Flux_J::Vector{Int64},Am_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_A_Flux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int32},Ap_Flux_J::Vector{Int32},Ap_Flux_V::Vector{T},Am_Flux_I::Vector{Int32},Am_Flux_J::Vector{Int32},Am_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -269,12 +268,12 @@ function Fill_A_Flux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_F
                 norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
                 # fill
-                push!(Ap_Flux_I,a)
-                push!(Ap_Flux_J,b)
+                push!(Ap_Flux_I,Int32(a))
+                push!(Ap_Flux_J,Int32(b))
                 push!(Ap_Flux_V,convert(T,A_plus / norm))
 
-                push!(Am_Flux_I,a)
-                push!(Am_Flux_J,b)
+                push!(Am_Flux_I,Int32(a))
+                push!(Am_Flux_J,Int32(b))
                 push!(Am_Flux_V,convert(T,A_minus / norm))
 
             end
@@ -287,7 +286,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `Ap_Flux` and `Am_Flux` matrices.
 """
-function FillTimeFlux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_Flux_J::Vector{Int64},Ap_Flux_V::Vector{T},Am_Flux_I::Vector{Int64},Am_Flux_J::Vector{Int64},Am_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function FillTimeFlux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int32},Ap_Flux_J::Vector{Int32},Ap_Flux_V::Vector{T},Am_Flux_I::Vector{Int32},Am_Flux_J::Vector{Int32},Am_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -355,12 +354,12 @@ function FillTimeFlux!(PhaseSpace::PhaseSpaceStruct,Ap_Flux_I::Vector{Int64},Ap_
                 Norm = MomentumSpaceNorm(Grids,name,px,py,pz)
 
                 # fill
-                push!(Ap_Flux_I,a)
-                push!(Ap_Flux_J,b)
+                push!(Ap_Flux_I,Int32(a))
+                push!(Ap_Flux_J,Int32(b))
                 push!(Ap_Flux_V,convert(T,Aplus / Norm))
 
-                push!(Am_Flux_I,a)
-                push!(Am_Flux_J,b)
+                push!(Am_Flux_I,Int32(a))
+                push!(Am_Flux_J,Int32(b))
                 push!(Am_Flux_V,convert(T,Aminus / Norm))
             end
         end
@@ -446,7 +445,7 @@ function LeftBound(p::Int64,num::Int64,BC::AbstractBoundaryCondition)
 
 end
 
-function AssignFlux!(PhaseSpace::PhaseSpaceStruct,flux::String,Flux_I::Vector{Int64},Flux_J::Vector{Int64},Flux_V::Vector{T},Flux_plus::Float64,Flux_minus::Float64,x::Int64,y::Int64,z::Int64,px::Int64,py::Int64,pz::Int64,name::Int64,scheme::String,BCp::AbstractBoundaryCondition,BCm::AbstractBoundaryCondition) where T<:Union{Float32,Float64}
+function AssignFlux!(PhaseSpace::PhaseSpaceStruct,flux::String,Flux_I::Vector{Int32},Flux_J::Vector{Int32},Flux_V::Vector{T},Flux_plus::Float64,Flux_minus::Float64,x::Int64,y::Int64,z::Int64,px::Int64,py::Int64,pz::Int64,name::Int64,scheme::String,BCp::AbstractBoundaryCondition,BCm::AbstractBoundaryCondition) where T<:Union{Float32,Float64}
 
     Grids = PhaseSpace.Grids
     x_num = PhaseSpace.Spacetime.x_num
@@ -556,7 +555,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `I_Flux`, `J_Flux`, and `K_Flux` matrices.
 """
-#=function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+#=function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int32},I_Flux_J::Vector{Int32},I_Flux_V::Vector{T},J_Flux_I::Vector{Int32},J_Flux_J::Vector{Int32},J_Flux_V::Vector{T},K_Flux_I::Vector{Int32},K_Flux_J::Vector{Int32},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
     
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -703,7 +702,7 @@ Generates the vectors `...I` of row indices, `...J` of column indices, and `...V
 end=#
 
 
-function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int32},I_Flux_J::Vector{Int32},I_Flux_V::Vector{T},J_Flux_I::Vector{Int32},J_Flux_J::Vector{Int32},J_Flux_V::Vector{T},K_Flux_I::Vector{Int32},K_Flux_J::Vector{Int32},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
     
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -916,7 +915,7 @@ FillMomentumFlux!(PhaseSpace,Forces,P_Flux_I,P_Flux_J,P_Flux_V) = FillMomentumFl
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `B_Flux`, `C_Flux`, and `D_Flux` matrices.
 """
-function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flux_J::Vector{Int64},B_Flux_V::Vector{T},C_Flux_I::Vector{Int64},C_Flux_J::Vector{Int64},C_Flux_V::Vector{T},D_Flux_I::Vector{Int64},D_Flux_J::Vector{Int64},D_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function FillSpaceFlux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int32},B_Flux_J::Vector{Int32},B_Flux_V::Vector{T},C_Flux_I::Vector{Int32},C_Flux_J::Vector{Int32},C_Flux_V::Vector{T},D_Flux_I::Vector{Int32},D_Flux_J::Vector{Int32},D_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1039,7 +1038,7 @@ FillSpaceFlux!(PhaseSpace,X_Flux_I,X_Flux_J,X_Flux_V) = FillSpaceFlux!(PhaseSpac
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `I_Flux` matrix.
 """
-function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int64},I_Flux_J::Vector{Int64},I_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},I_Flux_I::Vector{Int32},I_Flux_J::Vector{Int32},I_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1144,32 +1143,32 @@ function Fill_I_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
 
                 # normalised fluxes
                 if b != bp
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,bp)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(bp))
                     push!(I_Flux_V,convert(T,(I_plus * h_plus_right) / Mom_Normp))
                     #I_Flux[a,bp] += convert(T,(I_plus * h_plus_right) / Mom_Normp)
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,b)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(b))
                     push!(I_Flux_V,convert(T,(I_plus * h_plus_left) / Mom_Norm))
                     #I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
                 elseif BCp isa Open # b=bp
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,b)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(b))
                     push!(I_Flux_V,convert(T,(I_plus * h_plus_left) / Mom_Norm))
                    # I_Flux[a,b] += convert(T,(I_plus * h_plus_left) / Mom_Norm) 
                 end
                 if b != bm
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,b)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(b))
                     push!(I_Flux_V,convert(T,(I_minus * h_minus_right) / Mom_Norm))
                     #I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm)
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,bm)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(bm))
                     push!(I_Flux_V,convert(T,(I_minus * h_minus_left) / Mom_Normm)) 
                     #I_Flux[a,bm] += convert(T,(I_minus * h_minus_left) / Mom_Normm) 
                 elseif BCm isa Open # b=bm
-                    push!(I_Flux_I,a)
-                    push!(I_Flux_J,b)
+                    push!(I_Flux_I,Int32(a))
+                    push!(I_Flux_J,Int32(b))
                     push!(I_Flux_V,convert(T,(I_minus * h_minus_right) / Mom_Norm))
                     #I_Flux[a,b] += convert(T,(I_minus * h_minus_right) / Mom_Norm) 
                 end
@@ -1184,7 +1183,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `J_Flux` matrix.
 """
-function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},J_Flux_I::Vector{Int64},J_Flux_J::Vector{Int64},J_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},J_Flux_I::Vector{Int32},J_Flux_J::Vector{Int32},J_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1288,32 +1287,32 @@ function Fill_J_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
 
                 # normalised fluxes
                 if b != bp
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,bp)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(bp))
                     push!(J_Flux_V,convert(T,(J_plus * h_plus_right) / Mom_Normp))
                     #J_Flux[a,bp] += convert(T,(J_plus * h_plus_right) / Mom_Normp)
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,b)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(b))
                     push!(J_Flux_V,convert(T,(J_plus * h_plus_left) / Mom_Norm))
                     #J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
                 elseif BCp isa Open # b=bp
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,b)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(b))
                     push!(J_Flux_V,convert(T,(J_plus * h_plus_left) / Mom_Norm))
                     #J_Flux[a,b] += convert(T,(J_plus * h_plus_left) / Mom_Norm)
                 end
                 if b != bm
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,b)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(b))
                     push!(J_Flux_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
                     #J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,bm)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(bm))
                     push!(J_Flux_V,convert(T,(J_minus * h_minus_left) / Mom_Normm))
                     #J_Flux[a,bm] += convert(T,(J_minus * h_minus_left) / Mom_Normm)
                 elseif BCm isa Open # b=bm
-                    push!(J_Flux_I,a)
-                    push!(J_Flux_J,b)
+                    push!(J_Flux_I,Int32(a))
+                    push!(J_Flux_J,Int32(b))
                     push!(J_Flux_V,convert(T,(J_minus * h_minus_right) / Mom_Norm))
                     #J_Flux[a,b] += convert(T,(J_minus * h_minus_right) / Mom_Norm)
                 end
@@ -1328,7 +1327,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `K_Flux` matrix.
 """
-function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},K_Flux_I::Vector{Int64},K_Flux_J::Vector{Int64},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce},K_Flux_I::Vector{Int32},K_Flux_J::Vector{Int32},K_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1431,32 +1430,32 @@ function Fill_K_Flux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractForce}
                 Mom_Normm = MomentumSpaceNorm(Grids,name,px,py,pzm)
 
                 if b != bp
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,bp)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(bp))
                     push!(K_Flux_V,convert(T,(K_plus * h_plus_right) / Mom_Normp))
                     #K_Flux[a,bp] += convert(T,(K_plus * h_plus_right) / Mom_Normp)
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,b)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(b))
                     push!(K_Flux_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
                     #K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
                 elseif BCp isa Open # b=bp
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,b)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(b))
                     push!(K_Flux_V,convert(T,(K_plus * h_plus_left) / Mom_Norm))
                     #K_Flux[a,b] += convert(T,(K_plus * h_plus_left) / Mom_Norm)
                 end
                 if b != bm
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,b)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(b))
                     push!(K_Flux_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
                     #K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,bm)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(bm))
                     push!(K_Flux_V,convert(T,(K_minus * h_minus_left) / Mom_Normm))
                     #K_Flux[a,bm] += convert(T,(K_minus * h_minus_left) / Mom_Normm)
                 elseif BCm isa Open # b=bm
-                    push!(K_Flux_I,a)
-                    push!(K_Flux_J,b)
+                    push!(K_Flux_I,Int32(a))
+                    push!(K_Flux_J,Int32(b))
                     push!(K_Flux_V,convert(T,(K_minus * h_minus_right) / Mom_Norm))
                     #K_Flux[a,b] += convert(T,(K_minus * h_minus_right) / Mom_Norm)
                 end
@@ -1472,7 +1471,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `B_Flux` matrix.
 """
-function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flux_J::Vector{Int64},B_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int32},B_Flux_J::Vector{Int32},B_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1569,32 +1568,32 @@ function Fill_B_Flux!(PhaseSpace::PhaseSpaceStruct,B_Flux_I::Vector{Int64},B_Flu
 
             # normalised fluxes
             if b != bp
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,bp)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(bp))
                 push!(B_Flux_V,convert(T,(B_plus * h_plus_right) / Mon_Norm))
                 #B_Flux[a,bp] += convert(T,(B_plus * h_plus_right) / Mon_Norm) 
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,b)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(b))
                 push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))
                 #B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
             elseif BCp isa Open || BCp isa Escape # b=bp
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,b)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(b))
                 push!(B_Flux_V,convert(T,(B_plus * h_plus_left) / Mon_Norm))
                 #B_Flux[a,b] += convert(T,(B_plus * h_plus_left) / Mon_Norm) 
             end
             if b != bm
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,b)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(b))
                 push!(B_Flux_V,convert(T,(B_minus * h_minus_right) / Mon_Norm))
                 #B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,bm)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(bm))
                 push!(B_Flux_V,convert(T,(B_minus * h_minus_left) / Mon_Norm))
                 #B_Flux[a,bm] += convert(T,(B_minus * h_minus_left) / Mon_Norm) 
             elseif BCm isa Open # b=bm
-                push!(B_Flux_I,a)
-                push!(B_Flux_J,b)
+                push!(B_Flux_I,Int32(a))
+                push!(B_Flux_J,Int32(b))
                 push!(B_Flux_V,convert(T,(B_minus * h_minus_right) / Mon_Norm))
                 #B_Flux[a,b] += convert(T,(B_minus * h_minus_right) / Mon_Norm) 
             end
@@ -1608,7 +1607,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `C_Flux` matrix.
 """
-function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int64},C_Flux_J::Vector{Int64},C_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int32},C_Flux_J::Vector{Int32},C_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1706,32 +1705,32 @@ function Fill_C_Flux!(PhaseSpace::PhaseSpaceStruct,C_Flux_I::Vector{Int64},C_Flu
 
             # normalised fluxes
             if b != bp
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,bp)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(bp))
                 push!(C_Flux_V,convert(T,(C_plus * h_plus_right) / Mom_Norm))
                 #C_Flux[a,bp] += convert(T,(C_plus * h_plus_right) / Mom_Norm) 
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,b)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(b))
                 push!(C_Flux_V,convert(T,(C_plus * h_plus_left) / Mom_Norm))
                 #C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
             elseif BCp isa Open # b=bp
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,b)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(b))
                 push!(C_Flux_V,convert(T,(C_plus * h_plus_left) / Mom_Norm))
                 #C_Flux[a,b] += convert(T,(C_plus * h_plus_left) / Mom_Norm) 
             end
             if b != bm
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,b)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(b))
                 push!(C_Flux_V,convert(T,(C_minus * h_minus_right) / Mom_Norm))
                 #C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,bm)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(bm))
                 push!(C_Flux_V,convert(T,(C_minus * h_minus_left) / Mom_Norm))
                 #C_Flux[a,bm] += convert(T,(C_minus * h_minus_left) / Mom_Norm) 
             elseif BCm isa Open # b=bm
-                push!(C_Flux_I,a)
-                push!(C_Flux_J,b)
+                push!(C_Flux_I,Int32(a))
+                push!(C_Flux_J,Int32(b))
                 push!(C_Flux_V,convert(T,(C_minus * h_minus_right) / Mom_Norm))
                 #C_Flux[a,b] += convert(T,(C_minus * h_minus_right) / Mom_Norm) 
             end
@@ -1745,7 +1744,7 @@ end
 
 Generates the vectors `...I` of row indices, `...J` of column indices, and `...V` of values for the `D_Flux` matrix.
 """
-function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int64},D_Flux_J::Vector{Int64},D_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
+function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int32},D_Flux_J::Vector{Int32},D_Flux_V::Vector{T}) where T<:Union{Float32,Float64}
 
     Spacetime = PhaseSpace.Spacetime
     Momentum = PhaseSpace.Momentum
@@ -1857,32 +1856,32 @@ function Fill_D_Flux!(PhaseSpace::PhaseSpaceStruct,D_Flux_I::Vector{Int64},D_Flu
 
             # normalised fluxes
             if b != bp
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,bp)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(bp))
                 push!(D_Flux_V,convert(T,(D_plus * h_plus_right) / Mon_Norm))
                 #D_Flux[a,bp] += convert(T,(D_plus * h_plus_right) / Mon_Norm)
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,b)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(b))
                 push!(D_Flux_V,convert(T,(D_plus * h_plus_left) / Mon_Norm)) 
                 #D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
             elseif BCp isa Open # b=bp
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,b)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(b))
                 push!(D_Flux_V,convert(T,(D_plus * h_plus_left) / Mon_Norm))
                 #D_Flux[a,b] += convert(T,(D_plus * h_plus_left) / Mon_Norm) 
             end
             if b != bm
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,b)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(b))
                 push!(D_Flux_V,convert(T,(D_minus * h_minus_right) / Mon_Norm))
                 #D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,bm)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(bm))
                 push!(D_Flux_V,convert(T,(D_minus * h_minus_left) / Mon_Norm))
                 #D_Flux[a,bm] += convert(T,(D_minus * h_minus_left) / Mon_Norm) 
             elseif BCm isa Open # b=bm
-                push!(D_Flux_I,a)
-                push!(D_Flux_J,b)
+                push!(D_Flux_I,Int32(a))
+                push!(D_Flux_J,Int32(b))
                 push!(D_Flux_V,convert(T,(D_minus * h_minus_right) / Mon_Norm))
                 #D_Flux[a,b] += convert(T,(D_minus * h_minus_right) / Mon_Norm) 
             end

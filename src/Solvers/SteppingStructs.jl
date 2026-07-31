@@ -1667,7 +1667,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
 ##### Exponential Rosenbrock Euler ######
 
-    mutable struct ExponentialRosenbrockEulerKrylovStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:AbstractMatrix{T},MBT<:AbstractMatrix{T},SMT<:AbstractSparseArray{T,<:Integer,2},BD<:Union{Vector{Int64},Nothing},FD<:Union{VT,Nothing},DFD<:Union{VT,Nothing}} <: ImplicitSteppingMethod
+    mutable struct ExponentialRosenbrockEulerKrylovStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:AbstractMatrix{T},MBT<:AbstractMatrix{T},SMT<:AbstractSparseArray{T,Int32,2},BD<:Union{Vector{Int64},Nothing},FD<:Union{VT,Nothing},DFD<:Union{VT,Nothing}} <: ImplicitSteppingMethod
 
             PhaseSpace::PhaseSpaceStruct
             Precision::Type{T}
@@ -1861,8 +1861,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 =#
                 ImMP = I - (dt_initial/2)*invA_Flux*(#=M_Emi=# - P_Flux)
                 #invImMP = spzeros(Precision,size(P_Flux))
-                invImMP_rows = Int64[]
-                invImMP_cols = Int64[]
+                invImMP_rows = Int32[]
+                invImMP_cols = Int32[]
                 invImMP_vals = Precision[]
                 momentum_offset = [momentum_offset_species ; n_momentum]
                 for space in 0:n_space-1
@@ -1880,9 +1880,9 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
                         #invImMP_view .= sparse(inv(ImMP_view))
                         rows, cols, vals = findnz(sparse(inv(ImMP_view)))
-                        append!(invImMP_rows, rows .+ (pi_low - 1))
-                        append!(invImMP_cols, cols .+ (pi_low - 1))
-                        append!(invImMP_vals, vals)
+                        append!(invImMP_rows, Int32.(rows .+ (pi_low - 1)))
+                        append!(invImMP_cols, Int32.(cols .+ (pi_low - 1)))
+                        append!(invImMP_vals, Precision.(vals))
                     end
                     # off-diagonal blocks
                     #=
@@ -1948,7 +1948,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
                 # Build new MEmi
                 if Backend isa CPUBackend
-                    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision,Int64}}}(undef,n_space)
+                    M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
                     for off_space in 1:n_space
                         if isassigned(EmiM.M_Emi,off_space)
                             M_Emi[off_space] = Precision.(EmiM.M_Emi[off_space])
