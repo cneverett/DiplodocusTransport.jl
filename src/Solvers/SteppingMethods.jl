@@ -1659,11 +1659,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-7
+    arnoldi_tol = 1e-12
     
     EmiTrue::Bool = true
 
-    ηtarget = 1e-45
+    ηtarget = 1e-32
     ηEtarget = 1e-5
 
     for off_space in method.ActiveDomain
@@ -1773,7 +1773,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     end
 
                     # Compute φ functions of H
-                    _, errest = phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=true) # TODO: This allocates                  
+                    phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=false) # TODO: This allocates                  
                     @. δ = D * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
@@ -1804,7 +1804,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                             _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=true,errest=true) # TODO: This allocates
                             println("ϕv error estimate during: ", errest, " maxiter: ",mB, " m: ", KsB.m)
                             if errest > ηtarget
-                                kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                                kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
                             end
                         end
                         #println("ϕv error estimate after: ", errest)
@@ -1840,7 +1840,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     end
 
                     # number and energy cut 
-                    @. fout = ifelse(fout < method.n_cut && fout * Dinv < method.n_cut, zero(Precision),fout)
+                    @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
 
                     #=if ηE > 2e-4
                         @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
@@ -1986,7 +1986,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                             _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=true,errest=true) # TODO: This allocates
                             println("ϕv error estimate during: ", errest, " maxiter: ",mL, " m: ", KsL.m)
                             if errest > ηtarget
-                                kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                                kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
                             end
                         end
                         #println("ϕv error estimate after: ", errest)
@@ -2038,7 +2038,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 end
 
                 # number and energy cut
-                @. fout = ifelse(fout < method.n_cut && fout * method.E < method.n_cut, zero(Precision),fout)
+                @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
 
                 #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                 #@. fold = max(fout, zero(Precision))
@@ -2270,11 +2270,11 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-7
+    arnoldi_tol = 1e-12
     
     EmiTrue::Bool = true
 
-    ηtarget = 1e-45
+    ηtarget = 1e-32
     ηEtarget = 1e-5
 
     for off_space in jobs # each job is a space index to be processed
@@ -2375,11 +2375,11 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     end
 
                     # Compute φ functions of H
-                    _, errest = phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=false,errest=true) # TODO: This allocates                  
+                    phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=false) # TODO: This allocates                  
                     @. δ = D * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
-                        @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
+                        @. fout = ifelse(fout < zero(Precision), zero(Precision),fout)
 
                         # energy error
                         ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k*dtscale)
@@ -2406,10 +2406,10 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=false,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=true,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest, " m: ",m)
                             if errest > ηtarget
-                                kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                                kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
                             end
                         end
                         #println("ϕv error estimate after: ", errest)
@@ -2433,7 +2433,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
 
                     if k != 1.0
-                        phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=false,errest=false) # TODO: This allocates
+                        phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=false) # TODO: This allocates
                         @. δ = D * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
 
@@ -2445,7 +2445,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     end
 
                     # number and energy cut 
-                    @. fout = ifelse(fout < method.n_cut && fout * Dinv < method.n_cut, zero(Precision),fout)
+                    @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
 
                     #=if ηE > 2e-4
                         @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
@@ -2543,7 +2543,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 # Compute φ functions of H
                 if has_injection 
-                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=false,errest=false) # TODO: This allocates
+                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=true,errest=false) # TODO: This allocates
                     @. δ = D * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                 else # no injection, just linear Jacobian so use exp over phi
@@ -2554,7 +2554,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 # adaptive time stepping
 
-                    @. fout = ifelse(fout <= zero(Precision), zero(Precision),fout)
+                    @. fout = ifelse(fout < zero(Precision), zero(Precision),fout)
 
                     # energy error
                     if has_injection
@@ -2582,10 +2582,10 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=false,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=true,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest)
                             if errest > ηtarget
-                                kϕ *= 0.77 * 0.5(tanh(log10(errest)-log10(ηtarget)+1)+1)
+                                kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
                             end
                         end
                         #println("ϕv error estimate after: ", errest)
@@ -2611,7 +2611,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 if k != 1.0
                     if has_injection 
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=false,errest=false) # TODO: This allocates
+                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=true,errest=false) # TODO: This allocates
                         @. δ = D * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
                     else # no injection, just linear Jacobian so use exp over phi
@@ -2636,7 +2636,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     
                 end
 
-                @. fout = ifelse(fout < method.n_cut && fout * method.E < method.n_cut, zero(Precision),fout)
+                @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
 
                 #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                 #@. fold = max(fout, zero(Precision))

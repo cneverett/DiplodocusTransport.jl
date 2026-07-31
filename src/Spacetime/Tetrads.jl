@@ -91,9 +91,9 @@ end=#
         cond3 = u == v # z=0
     end
     if cond1 # z>0
-        return 1.0 / (u*sqrt(u^2+v^2))
+        return 2.0 / (u*sqrt(u^2+v^2)) # B at z=1 (u=sqrt(2),v=0) is B0, B at z=0 (u=v=1) is B0/sqrt(2)
     elseif cond2 # z<0
-        return 1.0 / (v*sqrt(u^2+v^2))
+        return 2.0 / (v*sqrt(u^2+v^2))
     else # z=0
         # TODO update with Omega != 0 
         return 0.0 #/ (u*v*sqrt(2))
