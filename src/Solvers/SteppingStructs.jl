@@ -2213,7 +2213,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
                 for i in 1:nworkers
                     Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
-                    Vec_M_Bin_Mul_Step_reshape[i] = cu(reshape(Vec_M_Bin_Mul_Step[i],n_momentum^2))
+                    Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],n_momentum^2)
                 end
             else
                 M_Bin_Mul_Step = zeros(CUDABackend(),Precision,0,0)
@@ -2222,7 +2222,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
                 for i in 1:nworkers
                     Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,0,0)
-                    Vec_M_Bin_Mul_Step_reshape[i] = cu(reshape(Vec_M_Bin_Mul_Step[i],0))
+                    Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],0)
                 end
             end
             df = zeros(Precision,length(Initial))

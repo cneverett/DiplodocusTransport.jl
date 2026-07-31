@@ -2283,13 +2283,12 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
         fstep = @view(method.fstep[idx_range]) # on GPU
         df_Inj = @view(method.df_Inj[idx_range]) # on CPU
+        df_Inj_d = @view(method.df_Inj_d[idx_range]) # on GPU
 
         has_injection = sum(df_Inj) > zero(Precision)
         if !has_injection && sum(fstep) == zero(Precision) 
             continue
         end
-
-        df_Inj_d = @view(method.df_Inj_d[idx_range]) # on GPU
 
         @inbounds vol = method.Vol[off_space+1]
         @inbounds invA = method.invA[off_space+1]
