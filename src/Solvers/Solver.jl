@@ -16,7 +16,7 @@ mutable struct OutputStruct{T<:AbstractFloat,V<:AbstractVector{T}}
 end
 
 
-function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::Vector{<:AbstractFloat};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1)
+function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};progress::Bool=false,fileName::String=nothing,fileLocation::String=pwd(),Verbose::Int64=1) where T
 
     if isdir(fileLocation) == false
         mkpath(fileLocation)
@@ -43,7 +43,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::AbstractFloat,t_save::
     method.step = 0
     method.Cr = 0.0
     
-    dt = dt_initial
+    dt::T = dt_initial
 
     if method isa ExpRBKIOPSStruct 
         fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt

@@ -2067,20 +2067,22 @@ end
 2nd order Expontial integration time-stepping method for the transport equation. 
 
 """
-function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start,t_stop,dt,Verbose::Int64)
+function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,t_stop::Float64,dt::Float64,Verbose::Int64)
 
     method.step += 1
 
-    dt0 = method.dt0
+    dt0::Float64 = method.dt0
 
     # will we reached the next t_save?
 
-    t_next = t_start + dt
-    if abs(t_next - t_stop) <= eps(t_stop) * 10 #eps(max(abs(t_next), abs(t_stop)))
+    t_next::Float64 = t_start + dt
+    if abs(t_next - t_stop) <= sqrt(eps(t_stop)) #eps(max(abs(t_next), abs(t_stop)))
+        dt = t_stop - t_start # make it exact to avoid round off error in time stepping
         save = true
     elseif t_next >= t_stop
-        adaptive_factor *= (t_stop - t_start) / dt # adjust adaptive factor for final time step to ensure we end exactly at t_stop 
-        dt = t_stop - t_start
+        @warn "t_next ($t_next) >= t_stop ($t_stop), with dt=$dt and t_start=$t_start"
+        #adaptive_factor *= (t_stop - t_start) / dt # adjust adaptive factor for final time step to ensure we end exactly at t_stop 
+        #dt = t_stop - t_start
         save = true
     else
         save = false
@@ -2190,9 +2192,9 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start,t_stop,dt
     end
 
     if Verbose == 1 && Cr > 1.0
-        println("step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3)), dt_attempted=$(round(dt_old,sigdigits=3)), dt_adapted = $(round(dt,sigdigits=3)) system may be unstable")
+        println("\r step=$(method.step), t_start=$(round(t_start,sigdigits=16)), t_end=$(round(t_start+dt,sigdigits=16)), Cr = $(round(Cr,sigdigits=3))")
     elseif Verbose == 2
-        println("\r step=$(method.step), t=$(round(t_start,sigdigits=4)), Cr = $(round(Cr,sigdigits=3))")
+        println("\r step=$(method.step), t_start=$(round(t_start,sigdigits=16)), t_end=$(round(t_start+dt,sigdigits=16)), Cr = $(round(Cr,sigdigits=3))")
     end
     if Verbose > 0
         flush(stdout)
