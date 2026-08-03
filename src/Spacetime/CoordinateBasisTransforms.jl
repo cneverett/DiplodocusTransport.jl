@@ -69,3 +69,55 @@ function CoordinateBasisTransform!(vec_from::AbstractVector{T},vec_to::AbstractV
     return nothing
 
 end
+
+function CoordinateBasisTransform!(vec_from::AbstractVector{T},vec_to::AbstractVector{T},pos_from::AbstractVector{T},::Cylindrical,::Paraboloidal) where T
+
+    t = pos_from[1]
+    ρ = pos_from[2]
+    ϕ = pos_from[3]
+    z = pos_from[4]
+
+    r = sqrt(ρ^2+z^2)
+
+    vt = vec_from[1]
+    vρ = vec_from[2]
+    vϕ = vec_from[3]
+    vz = vec_from[4]
+
+    vt = vt
+    vu = sqrt(r-z)/(2r) * vρ + sqrt(r+z)/(2r) * vz
+    vv = sqrt(r+z)/(2r) * vρ - sqrt(r-z)/(2r) * vz
+
+    vec_to[1] = vt 
+    vec_to[2] = vϕ
+    vec_to[3] = vu
+    vec_to[4] = vv
+
+    return nothing
+
+end
+
+function CoordinateBasisTransform!(vec_from::AbstractVector{T},vec_to::AbstractVector{T},pos_from::AbstractVector{T},::Paraboloidal,::Cylindrical) where T
+
+    t = pos_from[1]
+    ϕ = pos_from[2]
+    u = pos_from[3]
+    v = pos_from[4]
+
+    vt = vec_from[1]
+    vϕ = vec_from[2]
+    vu = vec_from[3]
+    vv = vec_from[4]
+
+    vt = vt
+    vρ = v * vu + u * vv
+    vz = u * vu - v * vv
+
+    vec_to[1] = vt 
+    vec_to[2] = vρ
+    vec_to[3] = vϕ
+    vec_to[4] = vz
+
+    return nothing
+
+end
