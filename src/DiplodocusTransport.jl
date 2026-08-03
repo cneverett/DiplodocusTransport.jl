@@ -31,7 +31,7 @@ module DiplodocusTransport
     export AbstractSteppingMethod, ImplicitSteppingMethod, ExplicitSteppingMethod, Solve, ForwardEulerStruct, ForwardSymplecticEulerStruct, SymplecticMPEStruct
     export OutputStruct, SolutionFileLoad
     # Utilities
-    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!, InclusiveDomainMask, ExclusiveDomainMask
+    export GlobalIndicesToStateIndex,LocationSpeciesToStateVector, CoordinateTransform!, CoordinateBasisTransform!, InclusiveDomainMask, ExclusiveDomainMask
     # Distribution Moments 
     export FourFlow, HydroFourVelocity, HydroThreeVelocity, ProjectionTensor, StressEnergyTensor, ScalarNumberDensity, ScalarMassDensity, ScalarEnergyDensity, ScalarPressure, ScalarTemperature
 
@@ -70,6 +70,7 @@ module DiplodocusTransport
     include("Spacetime/Tetrads.jl")
     include("Spacetime/RicciRotation.jl")
     include("Spacetime/CoordinateTransforms.jl")
+    include("Spacetime/CoordinateBasisTransforms.jl")
 
     
     #include("Types.jl")
