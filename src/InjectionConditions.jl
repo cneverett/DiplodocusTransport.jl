@@ -175,7 +175,7 @@ function InjectionBlackBody!(Injection::Vector{F},PhaseSpace::PhaseSpaceStruct,s
     # Scale by rate (rate scaled by dt0 to convert to per time step)
     @. Injection += rate_Inj * tmp
 
-    println("sum injection: ",sum(rate_Inj * tmp))
+    println("sum injection: ",sum(rate_Inj .* tmp))
 
     return nothing
 end
