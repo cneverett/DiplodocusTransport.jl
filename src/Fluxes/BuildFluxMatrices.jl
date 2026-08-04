@@ -873,7 +873,16 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
             elseif Forces[f] isa AnalyticForce 
 
-                for x in 1:x_num, y in 1:y_num, z in 1:z_num, px in 1:px_num, py in 1:py_num, pz in 1:pz_num
+                for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+                    if hasfield(typeof(Forces[f]), :Domain)
+                        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+                        if !(off_space in Forces[f].Domain)
+                            continue
+                        end
+                    end
+                    
+                    for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
                     # integration sign introduced here
                     I_plus_array[x,y,z,px,py,pz] += IFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
                     I_minus_array[x,y,z,px,py,pz] -= IFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz) 
@@ -881,6 +890,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
                     J_minus_array[x,y,z,px,py,pz] -= JFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
                     K_plus_array[x,y,z,px,py,pz] += KFluxFunction(Forces[f],PhaseSpace,name,"plus",1,x,y,z,px,py,pz)
                     K_minus_array[x,y,z,px,py,pz] -= KFluxFunction(Forces[f],PhaseSpace,name,"minus",1,x,y,z,px,py,pz)
+                    end
                 end
 
             else

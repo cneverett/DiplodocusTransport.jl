@@ -37,6 +37,7 @@ struct CoordinateForce <: AbstractForce end
     mode::AbstractMode = Ani()
     B::Union{Float64,Nothing} = nothing
     B_sampled::Union{Vector{Float64},Nothing} = nothing
+    Domain::Union{Vector{Int64},Nothing} = nothing
 end
 
 struct FirstOrderGuidingCentre <: SpaceVectorForce end

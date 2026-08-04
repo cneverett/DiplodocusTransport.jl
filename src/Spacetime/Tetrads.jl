@@ -725,6 +725,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceAIntegrand!(xyzt::MVector{4,T},A::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
             #= A=A_a=e_a^{~0}χ =#
+            fill!(A, zero(T)) 
             u = xyzt[2]
             v = xyzt[3]
             if u isa ForwardDiff.Dual
@@ -753,6 +754,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
         end
         @inline function CoordinateFluxSpaceBIntegrand!(yztx::MVector{4,T},B::MVector{4,T},::Minkowski,::Paraboloidal,tetrad::ParabolicForceFreeFieldTetrad) where T 
             #= B=B_a=e_a^{~1}χ =#
+            fill!(B, zero(T)) 
             u = yztx[1]
             v = yztx[2]
             if u isa ForwardDiff.Dual
