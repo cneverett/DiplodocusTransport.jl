@@ -2429,7 +2429,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                         tmpsparsematrix .+= EmiM.M_Emi[off_space+1]
                     end
                     dropzeros!(tmpsparsematrix)
-                    MEmiPFlux[off_space+1] = CuSparseMatrixCSC(Precision.(tmpsparsematrix))
+                    MEmiPFlux[off_space+1] = copy(tmpsparsematrix)
                 end
                 #=if isassigned(EmiM.M_Emi,off_space+1)
                     if EmiM.M_Emi[off_space+1] isa SparseMatrixCSC # no binary interactions so stay on GPU for momentum_update
