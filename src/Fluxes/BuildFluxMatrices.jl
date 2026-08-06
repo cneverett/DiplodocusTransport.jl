@@ -789,7 +789,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
                     if hasfield(typeof(Forces[f]), :Domain)
                         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-                        if !(off_space in Forces[f].Domain)
+                        if !isnothing(Forces[f].Domain) && !(off_space in Forces[f].Domain)
                             continue
                         end
                     end
@@ -866,7 +866,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
                     if hasfield(typeof(Forces[f]), :Domain)
                         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-                        if !(off_space in Forces[f].Domain)
+                        if !isnothing(Forces[f].Domain) && !(off_space in Forces[f].Domain)
                             continue
                         end
                     end
@@ -893,7 +893,7 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
 
                     if hasfield(typeof(Forces[f]), :Domain)
                         off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
-                        if !(off_space in Forces[f].Domain)
+                        if !isnothing(Forces[f].Domain) && !(off_space in Forces[f].Domain)
                             continue
                         end
                     end
