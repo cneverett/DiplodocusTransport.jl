@@ -1657,7 +1657,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-7
+    arnoldi_tol = 1e-16
     correct = true
     
     EmiTrue::Bool = true
@@ -1683,7 +1683,6 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
         @inbounds invA = method.invA[off_space+1]
         @inbounds dt_guess = method.dt_guess[off_space+1]
 
-
         @inbounds MEmiPFlux = method.MEmiPFlux[off_space+1]
 
         if method.Binary_Interactions && off_space in method.Bin_Domain
@@ -1694,12 +1693,12 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 ηEtarget = 1e-3
             end
 
-            if isassigned(method.M_Emi, off_space+1)
+            #=if isassigned(method.M_Emi, off_space+1)
                 EmiTrue = true
                 @inbounds M_Emi = method.M_Emi[off_space+1]
             else
                 EmiTrue = false
-            end
+            end=#
 
             fold .= fstep 
 
@@ -1777,7 +1776,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
                     arnoldi!(KsB, J, F;m=mB,reorthogonalize=reorthogonalize,remove_drift=false,tol=arnoldi_tol,iop=iop)
 
-                    V = ExponentialUtilities.getV(KsB)[:,1:end-1]
+                    V = ExponentialUtilities.getV(KsB)[:,1:KsB.m]
                     #H = ExponentialUtilities.getH(KsB)[1:end-1,1:end]
 
                     if iop == 0 && #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1e-5 
@@ -1890,11 +1889,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 ηEtarget = 1e-3
             end
 
-            if isassigned(method.M_Emi, off_space+1)
+            #=if isassigned(method.M_Emi, off_space+1)
                 @inbounds M_Emi = method.M_Emi[off_space+1]
             else
                 EmiTrue = false
-            end
+            end=#
 
             fold .= fstep 
 
@@ -1929,15 +1928,10 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
 
                 # Form J
-                if EmiTrue
-                    #copyto!(Jsparse,M_Emi)
-                    #Jsparse .-= P_Flux
-                    copyto!(Jsparse,MEmiPFlux)
-                    @. Jsparse.nzval *= dtscale * invA
-                else
-                    Jsparse.nzval .= zero(Precision)
-                    dropzeros!(Jsparse)
-                end
+                #copyto!(Jsparse,M_Emi)
+                #Jsparse .-= P_Flux
+                copyto!(Jsparse,MEmiPFlux)
+                @. Jsparse.nzval *= dtscale * invA
 
                 # Form F
                 mul!(F,Jsparse,fold)
@@ -1950,16 +1944,16 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 Jsparse .*= Dinv # left mul
                 F .*= Dinv # left mul
 
-                Jsparse64 = Float64.(Jsparse)
-                F64 = Float64.(F)
+                #Jsparse64 = Float64.(Jsparse)
+                #F64 = Float64.(F)
 
 
                 if has_injection
-                    arnoldi!(KsL,Jsparse64,F64;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
+                    arnoldi!(KsL,Jsparse,F;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
                 else # no injection, just linear Jacobian so use exp over phi
                     @. fscale = Dinv * fold # left mul
-                    fscale64 = Float64.(fscale)
-                    arnoldi!(KsL,Jsparse64,fscale64;m=mL,reorthogonalize=true#=reorthogonalize=#,tol=arnoldi_tol,iop=iop)
+                    #fscale64 = Float64.(fscale)
+                    arnoldi!(KsL,Jsparse,fscale;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
                 end
 
                 V = ExponentialUtilities.getV(KsL)[:,1:end-1]
@@ -1970,10 +1964,10 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     break
                 end
 
-                if iop == 0 &&#=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1e-5 
+                if iop == 0 && norm(V' * V - I) > 1e-5 
                     dt_local = dt_local * 0.5
-                    @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), reducing time step to $dt_local"
-                    println("norm J: $(norm(Jsparse64)), norm F: $(norm(F64)), norm fscale: $(norm(fscale64))")
+                    @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), KsL.m: $(KsL.m), reducing time step to $dt_local"
+                    println("norm J: $(norm(Jsparse)), norm F: $(norm(F)), norm fscale: $(norm(fscale))")
                     display(V)
                     display(V' * V)
                     H = ExponentialUtilities.getH(KsL)[1:end-1,1:end]
@@ -1982,10 +1976,14 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 end
 
                 # Compute φ functions of H
-                if has_injection 
-                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                    @. δ = D * @view(ϕ[:,2]) * k
-                    @. fout = fold + δ
+                if has_injection
+                    if KsL.m != 1  
+                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                        @. δ = D * @view(ϕ[:,2]) * k
+                        @. fout = fold + δ
+                    else # J has no entries so just linearly add df_Inj * k * dtscale to fold
+                        @. fout = fold + df_Inj * k * dtscale
+                    end
                 else # no injection, just linear Jacobian so use exp over phi
                     expv!(δ,k#=*invA=#,KsL) # TODO: add cache for expv to avoid repeated allocations, maybe replace with phiv! with dimension 0 to just return ϕ0=exp
                     @. fout = D * δ
@@ -2017,7 +2015,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     order = 1.0 # energy error is order 1
 
                     kE = (ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate
-                    if has_injection
+                    if has_injection && KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
                         kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
@@ -2050,10 +2048,14 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     k = dt_local / dt_old
 
                 if k != 1.0
-                    if has_injection 
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                        @. δ = D * @view(ϕ[:,2]) * k
-                        @. fout = fold + δ
+                    if has_injection
+                        if KsL.m != 1 
+                            phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                            @. δ = D * @view(ϕ[:,2]) * k
+                            @. fout = fold + δ
+                        else # J has no entries so just linearly add df_Inj * k * dtscale to fold
+                            @. fout = fold + df_Inj * k * dtscale
+                        end
                     else # no injection, just linear Jacobian so use exp over phi
                         expv!(δ,k#=*invA=#,KsL)
                         @. fout = D * δ
@@ -2320,7 +2322,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
     # arnoldi settings and tolerances
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-7
+    arnoldi_tol = 1e-16
     ηtarget = 1e-45
     correct = true
 
@@ -2573,9 +2575,13 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 # Compute φ functions of H
                 if has_injection 
-                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                    @. δ = D * @view(ϕ[:,2]) * k
-                    @. fout = fold + δ
+                    if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
+                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                        @. δ = D * @view(ϕ[:,2]) * k
+                        @. fout = fold + δ
+                    else
+                        @. fout = fold + df_Inj * k * dtscale
+                    end
                 else # no injection, just linear Jacobian so use exp over phi
                     expv!(δ,k#=*invA=#,KsL) # TODO: add cache for expv to avoid repeated allocations, maybe replace with phiv! with dimension 0 to just return ϕ0=exp
                     @. fout = D * δ
@@ -2607,7 +2613,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     order = 1.0 # energy error is order 1
 
                     kE = (ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate
-                    if has_injection
+                    if has_injection && KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
                         kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
@@ -2641,9 +2647,13 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 if k != 1.0
                     if has_injection 
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                        @. δ = D * @view(ϕ[:,2]) * k
-                        @. fout = fold + δ
+                        if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
+                            phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                            @. δ = D * @view(ϕ[:,2]) * k
+                            @. fout = fold + δ
+                        else
+                            @. fout = fold + df_Inj * k * dtscale
+                        end
                     else # no injection, just linear Jacobian so use exp over phi
                         expv!(δ,k#=*invA=#,KsL)
                         @. fout = D * δ
