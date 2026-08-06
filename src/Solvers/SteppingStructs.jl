@@ -1689,6 +1689,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             P_Flux::SMT
 
             invImMP::SMT                      # (I-dt*A^{-1}(M_Emi-P_Flux))^{-1} for momentum update
+            MEmiPFlux::Vector{Union{MT,SMT}} # M_Emi - P_Flux for each spatial point  
 
             Vol::Vector{T}
             invA::Vector{T}                 # vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
@@ -1865,7 +1866,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 invImMP_cols = Int32[]
                 invImMP_vals = Precision[]
                 momentum_offset = [momentum_offset_species ; n_momentum]
-                for space in 0:n_space-1
+                #=for space in 0:n_space-1
                     off_space = space*n_momentum
                     # diagonal blocks
                     #= for block diagonals Bii = ii component of the inverse matrix 
@@ -1925,7 +1926,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
  
                     end=#
-                end
+                end=#
                 invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(P_Flux,1), size(P_Flux,2))
 
                 if Backend isa CUDABackend
@@ -1946,19 +1947,52 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     Dinv = cu(Dinv)
                 end
 
-                # Build new MEmi
+                # Build new MEmi and MEmiPFlux
                 if Backend isa CPUBackend
                     M_Emi = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
-                    for off_space in 1:n_space
-                        if isassigned(EmiM.M_Emi,off_space)
-                            M_Emi[off_space] = Precision.(EmiM.M_Emi[off_space])
+                    MEmiPFlux = Vector{Union{Matrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
+                    for off_space in 0:n_space-1
+                        start_idx = n_momentum*off_space+1
+                        end_idx = n_momentum*(off_space+1)
+                        in_Binary = Binary_Interactions && in(off_space,BinM.Domain)
+                        if in_Binary 
+                            MEmiPFlux[off_space+1] = zeros(Precision,n_momentum,n_momentum)
+                            MEmiPFlux[off_space+1] .-= @view(P_Flux[start_idx:end_idx,start_idx:end_idx])
+                        else
+                            MEmiPFlux[off_space+1] = spzeros(Precision,Int32,n_momentum,n_momentum)
+                            MEmiPFlux[off_space+1] .-= @view(P_Flux[start_idx:end_idx,start_idx:end_idx])
+                        end
+
+                        if isassigned(EmiM.M_Emi,off_space+1) # already defined as sparse or dense 
+                            M_Emi[off_space+1] = Precision.(EmiM.M_Emi[off_space+1])
+                            MEmiPFlux[off_space+1] .+= Precision.(EmiM.M_Emi[off_space+1])
+                        end
+
+                        if !in_Binary 
+                            dropzeros!(MEmiPFlux[off_space+1])
                         end
                     end
                 elseif Backend isa CUDABackend
                     M_Emi = Vector{Union{CuMatrix{Precision},CuSparseMatrixCSC{Precision,Int32}}}(undef,n_space)
-                    for off_space in 1:n_space
-                        if isassigned(EmiM.M_Emi,off_space)
-                            M_Emi[off_space] = cu(EmiM.M_Emi[off_space])
+                    MEmiPFlux = Vector{Union{CuMatrix{Precision},CuSparseMatrixCSC{Precision,Int32}}}(undef,n_space)
+                    for off_space in 0:n_space-1
+                        start_idx = n_momentum*off_space+1
+                        end_idx = n_momentum*(off_space+1)
+                        in_Binary = Binary_Interactions && in(off_space,BinM.Domain)
+                        if in_Binary 
+                            MEmiPFlux[off_space+1] = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
+                            MEmiPFlux[off_space+1] .-= @view(P_Flux[start_idx:end_idx,start_idx:end_idx])
+                        else
+                            MEmiPFlux[off_space+1] = CuSparseMatrixCSC(spzeros(Precision,Int32,n_momentum,n_momentum))
+                            MEmiPFlux[off_space+1] .-= @view(P_Flux[start_idx:end_idx,start_idx:end_idx])
+                        end
+                        if isassigned(EmiM.M_Emi,off_space+1)
+                            M_Emi[off_space+1] = cu(EmiM.M_Emi[off_space+1])
+                            MEmiPFlux[off_space+1] .+= Precision.(EmiM.M_Emi[off_space+1])
+                        end
+
+                        if !in_Binary 
+                            dropzeros!(MEmiPFlux[off_space+1])
                         end
                     end
                 end
@@ -2065,6 +2099,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 self.E_long = E_long
 
                 self.invImMP = invImMP
+                self.MEmiPFlux = MEmiPFlux
 
                 self.dt_guess = dt_guess
 
@@ -2102,6 +2137,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         P_Flux::DSMT                    # on GPU
 
         invImMP::DSMT                   # (I-dt*A^{-1}(M_Emi-P_Flux))^{-1} for momentum update, on GPU
+        MEmiPFlux::Vector{Union{DMT,SMT}}# M_Emi - P_Flux for each spatial point, on GPU if dense and CPU if sparse
 
         Vol::Vector{T}
         invA::Vector{T}                 # vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
@@ -2303,7 +2339,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             invImMP_cols = Int32[]
             invImMP_vals = Precision[]
             momentum_offset = [momentum_offset_species ; n_momentum]
-            for space in 0:n_space-1
+            #=for space in 0:n_space-1
                 off_space = space*n_momentum
                 # diagonal blocks
                 #= for block diagonals Bii = ii component of the inverse matrix 
@@ -2363,20 +2399,45 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
 
                 end=#
-            end
+            end=#
             invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(FluxM.P_Flux,1), size(FluxM.P_Flux,2))
             invImMP = CuSparseMatrixCSC(invImMP)
 
             # Build new MEmi
             M_Emi = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
-            for off_space in 1:n_space
-                if isassigned(EmiM.M_Emi,off_space)
-                    if EmiM.M_Emi[off_space] isa SparseMatrixCSC # no binary interactions so stay on GPU for momentum_update
-                        M_Emi[off_space] = Precision.(EmiM.M_Emi[off_space])
-                    else
-                        M_Emi[off_space] = CuArray(Precision.(EmiM.M_Emi[off_space]))
+            MEmiPFlux = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
+            tmpmatrix = zeros(Precision,n_momentum,n_momentum)
+            tmpsparsematrix = spzeros(Precision,Int32,n_momentum,n_momentum)
+            for off_space in 0:n_space-1
+                start_idx = n_momentum*off_space+1
+                end_idx = n_momentum*(off_space+1)
+                in_Binary = Binary_Interactions && in(off_space,BinM.Domain)
+                if in_Binary # dense matrix for binary cells as no default CUDA for dense + sparse matrix addition
+                    fill!(tmpmatrix,zero(Precision))
+                    tmpmatrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
+                    if isasigned(EmiM.M_Emi,off_space+1)
+                        @assert EmiM.M_Emi[off_space+1] isa Matrix "Emission matrix must be dense for binary interactions"
+                        tmpmatrix .+= EmiM.M_Emi[off_space+1]
                     end
+                    MEmiPFlux[off_space+1] = CuArray(Precision.(tmpmatrix))
+                else # sparse matrix for non-binary cells
+                    fill!(tmpsparsematrix,zero(Precision))
+                    dropzeros!(tmpsparsematrix)
+                    tmpsparsematrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
+                    if isassigned(EmiM.M_Emi,off_space+1)
+                        @assert EmiM.M_Emi[off_space+1] isa SparseMatrixCSC "Emission matrix must be sparse for non-binary interactions"
+                        tmpsparsematrix .+= EmiM.M_Emi[off_space+1]
+                    end
+                    dropzeros!(tmpsparsematrix)
+                    MEmiPFlux[off_space+1] = CuSparseMatrixCSC(Precision.(tmpsparsematrix))
                 end
+                #=if isassigned(EmiM.M_Emi,off_space+1)
+                    if EmiM.M_Emi[off_space+1] isa SparseMatrixCSC # no binary interactions so stay on GPU for momentum_update
+                        M_Emi[off_space+1] = Precision.(EmiM.M_Emi[off_space+1])
+                    else
+                        M_Emi[off_space+1] = CuArray(Precision.(EmiM.M_Emi[off_space+1]))
+                    end
+                end=#
             end
 
             if !isnothing(DistributionDomainMask)
@@ -2436,6 +2497,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.P_Flux = P_Flux
 
             self.invImMP = invImMP
+            self.MEmiPFlux = MEmiPFlux
 
             self.Vol = Vol
             self.invA = invA

@@ -48,9 +48,11 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
     if method isa ExpRBKIOPSStruct 
         fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
     elseif method isa ERBEKrylovStruct
-        fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
+        fill!(method.dt_guess,ldexp(dt_initial, -10)) # initial guess for dt is 1/32 of the initial dt
     elseif method isa ExponentialRosenbrockEulerKrylovStruct
-        fill!(method.dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/32 of the initial dt
+        fill!(method.dt_guess,ldexp(dt_initial, -6)) # initial guess for dt is 1/32 of the initial dt
+    elseif method isa ExponentialRosenbrockEulerKrylovMixedStruct
+        fill!(method.dt_guess,ldexp(dt_initial, -6)) # initial guess for dt is 1/32 of the initial dt
     end
 
     for i in 2:n_save # start at 2 since initial state already saved
