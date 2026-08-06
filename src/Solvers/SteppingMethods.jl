@@ -1658,7 +1658,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
     iop = 0
     reorthogonalize = true
     arnoldi_tol = 1e-7
-    correct = false
+    correct = true
     
     EmiTrue::Bool = true
 
@@ -2320,8 +2320,9 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
     # arnoldi settings and tolerances
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-12
+    arnoldi_tol = 1e-7
     ηtarget = 1e-45
+    correct = true
 
     for off_space in jobs # each job is a space index to be processed
 
@@ -2418,7 +2419,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     end
 
                     # Compute φ functions of H
-                    phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=false) # TODO: This allocates                  
+                    phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates                  
                     @. δ = D^2 * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
@@ -2446,7 +2447,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=true,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=correct,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest, " m: ",m)
                             if errest > ηtarget
                                 kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
@@ -2473,7 +2474,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
 
                     if k != 1.0
-                        phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=true,errest=false) # TODO: This allocates
+                        phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates
                         @. δ = D^2 * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
 
@@ -2572,7 +2573,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 # Compute φ functions of H
                 if has_injection 
-                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=true,errest=false) # TODO: This allocates
+                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
                     @. δ = D * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                 else # no injection, just linear Jacobian so use exp over phi
@@ -2611,7 +2612,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=true,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=correct,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest)
                             if errest > ηtarget
                                 kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
@@ -2640,7 +2641,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                 if k != 1.0
                     if has_injection 
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=true,errest=false) # TODO: This allocates
+                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
                         @. δ = D * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
                     else # no injection, just linear Jacobian so use exp over phi
