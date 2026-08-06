@@ -1689,7 +1689,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
         if method.Binary_Interactions && off_space in method.Bin_Domain
 
             if has_injection
-                ηEtarget = 1e-4
+                ηEtarget = 5e-4
             else
                 ηEtarget = 1e-3
             end
@@ -1885,7 +1885,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
         else #
 
             if has_injection
-                ηEtarget = 1e-4
+                ηEtarget = 5e-4
             else
                 ηEtarget = 1e-3
             end
@@ -1933,7 +1933,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                     #copyto!(Jsparse,M_Emi)
                     #Jsparse .-= P_Flux
                     copyto!(Jsparse,MEmiPFlux)
-                    Jsparse *= dtscale * invA
+                    @. Jsparse.nzval *= dtscale * invA
                 else
                     Jsparse.nzval .= zero(Precision)
                     dropzeros!(Jsparse)
@@ -2079,7 +2079,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
                 end
 
                 # number and energy cut
-                #@. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
+                @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
 
                 #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                 #@. fold = max(fout, zero(Precision))
@@ -2337,7 +2337,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
         end
 
         if has_injection
-            ηEtarget = 1e-4
+            ηEtarget = 5e-4
         else
             ηEtarget = 1e-3
         end
@@ -2367,7 +2367,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                 dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
                 if dtscale < 1e-8 
-                    error("Time step too small")
+                    @warn "Time step small $dt_local in cell $off_space, injection = $has_injection, type: binary"
                 end
 
                 kold = k 
@@ -2524,7 +2524,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                 dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
                 if dtscale < 1e-8 
-                    error("Time step too small")
+                    @warn "Time step small $dt_local in cell $off_space, injection = $has_injection, type: linear"
                 end
 
                 kold = k 
@@ -2541,7 +2541,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                 # Form F
                 mul!(F,Jsparse,fold)
                 @. F += #=A *=# df_Inj * dtscale
-                if norm(F) == zero(Precision) # no change in distribution
+                if norm(F) < Precision(1e-30) # no change in distribution
                     break
                 end
 
