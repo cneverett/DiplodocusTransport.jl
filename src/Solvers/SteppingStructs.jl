@@ -2421,7 +2421,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     end
                     MEmiPFlux[off_space+1] = CuArray(Precision.(tmpmatrix))
                 else # sparse matrix for non-binary cells
-                    fill!(tmpsparsematrix,zero(Precision))
+                    tmpsparsematrix.nzval .= zero(Precision)
                     dropzeros!(tmpsparsematrix)
                     tmpsparsematrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
                     if isassigned(EmiM.M_Emi,off_space+1)
