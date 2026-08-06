@@ -2415,7 +2415,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 if in_Binary # dense matrix for binary cells as no default CUDA for dense + sparse matrix addition
                     fill!(tmpmatrix,zero(Precision))
                     tmpmatrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
-                    if isasigned(EmiM.M_Emi,off_space+1)
+                    if isassigned(EmiM.M_Emi,off_space+1)
                         @assert EmiM.M_Emi[off_space+1] isa Matrix "Emission matrix must be dense for binary interactions"
                         tmpmatrix .+= EmiM.M_Emi[off_space+1]
                     end
