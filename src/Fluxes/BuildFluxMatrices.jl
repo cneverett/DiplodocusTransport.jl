@@ -786,6 +786,14 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             if Forces[f] isa CoordinateForce
 
                 for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+                    if hasfield(typeof(Forces[f]), :Domain)
+                        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+                        if !(off_space in Forces[f].Domain)
+                            continue
+                        end
+                    end
+
                     t0 = Grids.tr[1]
                     t1 = Grids.tr[2]
                     x0 = Grids.xr[x]
@@ -855,6 +863,14 @@ function FillMomentumFlux!(PhaseSpace::PhaseSpaceStruct,Forces::Vector{AbstractF
             elseif Forces[f] isa SpaceVectorForce
 
                 for x in 1:x_num, y in 1:y_num, z in 1:z_num
+
+                    if hasfield(typeof(Forces[f]), :Domain)
+                        off_space = (x-1)*y_num*z_num+(y-1)*z_num+z-1
+                        if !(off_space in Forces[f].Domain)
+                            continue
+                        end
+                    end
+                    
                     SpaceVectorForceFunction!(Forces[f],SVecForce,PhaseSpace,x,y,z)
                     for px in 1:px_num, py in 1:py_num, pz in 1:pz_num
                         MomentumMatrixForceFunction!(Forces[f],MMatForce,PhaseSpace,name,px,py,pz)

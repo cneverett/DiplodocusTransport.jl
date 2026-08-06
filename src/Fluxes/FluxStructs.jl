@@ -31,7 +31,9 @@ abstract type SpaceVectorForce <: AbstractForce end
 abstract type SpaceScalarForce <: AbstractForce end
 abstract type AnalyticForce <: AbstractForce end
 
-struct CoordinateForce <: AbstractForce end
+@kwdef struct CoordinateForce <: AbstractForce
+    Domain::Union{Vector{Int64},Nothing} = nothing
+end
 
 @kwdef struct SyncRadReact <: AnalyticForce
     mode::AbstractMode = Ani()
@@ -40,7 +42,9 @@ struct CoordinateForce <: AbstractForce end
     Domain::Union{Vector{Int64},Nothing} = nothing
 end
 
-struct FirstOrderGuidingCentre <: SpaceVectorForce end
+@kwdef struct FirstOrderGuidingCentre <: SpaceVectorForce 
+    Domain::Union{Vector{Int64},Nothing} = nothing
+end
 
 struct ExB <: AbstractForce
     E0::Float64
