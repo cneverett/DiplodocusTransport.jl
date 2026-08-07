@@ -2285,8 +2285,9 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     end
 
     for i in method.ActiveDomain
-        take!(done)
         println("Waiting for worker to finish off_space $i")
+        flush(stdout)
+        take!(done) # when worker is done it will put a value in the done channel, so we can wait for all workers to finish. take waits for a value to be available in the done channel and then removes if from the channel. This is a blocking operation, so it will wait until a worker is done before continuing.
     end
 
     return nothing
@@ -2341,6 +2342,8 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
     correct = true
 
     for (off_space, dt, done) in jobs # each job is a space index to be processed
+
+        println("Worker $worker processing off_space $off_space with dt=$dt")
 
         idx_range = n_momentum*off_space+1:n_momentum*(off_space+1)
 
