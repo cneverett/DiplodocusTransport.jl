@@ -2352,6 +2352,8 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
         if method.Binary_Interactions && off_space in method.Bin_Domain # mix of CPU and GPU
 
+            @assert MEmiPFlux isa CuArray "MEmiPFlux must be a CuArray for binary interactions"
+
             copyto!(fold_d,fstep)
             copyto!(fold,fstep) # copy to CPU for Arnoldi
 
@@ -2509,6 +2511,8 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
             @inbounds method.dt_guess[off_space+1] = dt_old # update dt_guess with last plus one dt (avoid last as this could be limited by (1.0-t))
 
         else # if no binary interaction this is done purely on CPU
+
+            @assert MEmiPFlux isa SparseMatrixCSC "MEmiPFlux must be a SparseMatrixCSC for linear terms"
 
             copyto!(fold,fstep)
 

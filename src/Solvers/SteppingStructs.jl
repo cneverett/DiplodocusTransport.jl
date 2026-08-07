@@ -2110,7 +2110,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
 ##### Exponential Rosenbrock Euler Mixed Backend ######
 
-    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{T<:AbstractFloat,VT<:Vector{T},DVT<:CuArray{T, 1, CUDACore.DeviceMemory},MT<:Matrix{T},DMT<:CuArray{T, 2, CUDACore.DeviceMemory},SMT<:SparseMatrixCSC{T, Int32},DSMT<:CuSparseMatrixCSC{T, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
+    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{T<:AbstractFloat,VT<:Vector{T},DVT<:CuArray{T, 1, CUDACore.DeviceMemory},MT<:Matrix{T},DMT<:CuArray{T, 2, CUDACore.DeviceMemory},SMT<:SparseMatrixCSC{T, Int32},DSMT<:CuSparseMatrixCSR{T, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
 
         # mixed backend so only MBin multiplication is done on GPU and then transfered back to CPU for the rest of the calculations
         # i.e. Jacobian and F are generated on GPU then transfered back if in a BinaryDomain, if not they are taken from the stored sparse arrays on CPU.
@@ -2295,9 +2295,9 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             Vol = FluxM.Vol
 
-            M_Bin = CuSparseMatrixCSC(Precision.(BinM.M_Bin))
-            X_Flux = CuSparseMatrixCSC(Precision.(FluxM.X_Flux))
-            P_Flux = CuSparseMatrixCSC(Precision.(FluxM.P_Flux))
+            M_Bin = CuSparseMatrixCSR(Precision.(BinM.M_Bin))
+            X_Flux = CuSparseMatrixCSR(Precision.(FluxM.X_Flux))
+            P_Flux = CuSparseMatrixCSR(Precision.(FluxM.P_Flux))
             A_Flux = CuArray(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
             invA_Flux = CuArray(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
             df_Inj = convert(Vector{Precision},copy(Injection))
@@ -2401,7 +2401,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end=#
             end=#
             invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(FluxM.P_Flux,1), size(FluxM.P_Flux,2))
-            invImMP = CuSparseMatrixCSC(invImMP)
+            invImMP = CuSparseMatrixCSR(invImMP)
 
             # Build new MEmi
             M_Emi = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
@@ -2469,7 +2469,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             ###### Actually Build the Struct with Concrete Types ######
 
-            self = new{Precision,Vector{Precision},CuArray{Precision, 1, CUDACore.DeviceMemory},Matrix{Precision},CuArray{Precision, 2, CUDACore.DeviceMemory},SparseMatrixCSC{Precision, Int32},CuSparseMatrixCSC{Precision, Int32},typeof(Bin_Domain),typeof(f_mask),typeof(df_mask)}()
+            self = new{Precision,Vector{Precision},CuArray{Precision, 1, CUDACore.DeviceMemory},Matrix{Precision},CuArray{Precision, 2, CUDACore.DeviceMemory},SparseMatrixCSC{Precision, Int32},CuSparseMatrixCSR{Precision, Int32},typeof(Bin_Domain),typeof(f_mask),typeof(df_mask)}()
 
             self.nworkers = nworkers
 
