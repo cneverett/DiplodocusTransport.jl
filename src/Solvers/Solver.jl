@@ -57,14 +57,13 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
 
     for i in 2:n_save # start at 2 since initial state already saved
 
-        CUDA.memory_status() # check GPU memory status
-
         t_start = t_save[i-1]
         t_stop = t_save[i]
 
         save = false
         # perform timestep
         while !save
+            CUDA.memory_status() # check GPU memory status
             dt,save = method(t_start,t_stop,dt,Verbose)
             t_start += dt
         end

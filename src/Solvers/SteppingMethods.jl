@@ -2411,7 +2411,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
                     arnoldi!(KsB, J, F;m=mB,reorthogonalize=reorthogonalize,remove_drift=false,tol=arnoldi_tol,iop=iop)
 
-                    V = ExponentialUtilities.getV(KsB)[:,1:end-1]
+                    V = @view(ExponentialUtilities.getV(KsB)[:,1:end-1])
                     #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
 
                     if iop == 0 && #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1e-5 
@@ -2559,7 +2559,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
                     arnoldi!(KsL,Jsparse,fscale;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
                 end
 
-                V = ExponentialUtilities.getV(KsL)[:,1:end-1]
+                V = @view(ExponentialUtilities.getV(KsL)[:,1:end-1])
                 #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
 
                 norm_unscaled = norm(V' * V - I)
