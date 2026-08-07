@@ -2312,6 +2312,8 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
     println("Worker $worker started")
 
+    wait(jobs) # wait for jobs to be available in the channel before assigning the variables below to prevent them from intialiseing when `WorkerPool` is created and before `method` is fully constructed.
+
     Precision = method.Precision
 
     n_momentum = method.PhaseSpace.Grids.n_momentum
