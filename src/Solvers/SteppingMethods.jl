@@ -2278,19 +2278,24 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     end=#
 
     WorkerPool = method.WorkerPool
-    done = Channel{Nothing}(length(method.ActiveDomain))
+    done = Channel{Int}(length(method.ActiveDomain))
 
     for off_space in method.ActiveDomain
-        put!(WorkerPool.jobs, (off_space,done))
+        put!(WorkerPool.jobs, (off_space,dt,done))
     end
 
-    for _ in method.ActiveDomain
+    for i in method.ActiveDomain
         take!(done)
+        println("Waiting for worker to finish off_space $i")
     end
+
+    return nothing
 
 end
 
-function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
+function worker!(worker::Int,off_space::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
+
+    println("Worker $worker processing off_space $off_space")
 
     Precision = method.Precision
 
@@ -2337,7 +2342,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
     ηtarget = 1e-45
     correct = true
 
-    for off_space in jobs # each job is a space index to be processed
+    #for off_space in jobs # each job is a space index to be processed
 
         idx_range = n_momentum*off_space+1:n_momentum*(off_space+1)
 
@@ -2347,7 +2352,8 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
         has_injection = sum(df_Inj) > zero(Precision)
         if !has_injection && sum(fstep) == zero(Precision) 
-            continue
+            #continue
+            return nothing
         end
 
         if has_injection
@@ -2708,7 +2714,7 @@ function worker!(worker::Int,jobs::Channel{Int},method::ExponentialRosenbrockEul
 
         end
 
-    end
+    #end
 
     return nothing
 

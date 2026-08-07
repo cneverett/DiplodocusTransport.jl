@@ -2110,8 +2110,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
 ##### Exponential Rosenbrock Euler Mixed Backend ######
 
-    struct WorkerPoolStruct 
-        jobs::Channel{Tuple{Int,Channel{Nothing}}}
+    struct WorkerPoolStruct{T} 
+        jobs::Channel{Tuple{Int,T,Channel{Nothing}}}
         tasks::Vector{Task}
     end
 
@@ -2121,7 +2121,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         # i.e. Jacobian and F are generated on GPU then transfered back if in a BinaryDomain, if not they are taken from the stored sparse arrays on CPU.
 
         nworkers::Int64
-        WorkerPool::WorkerPoolStruct
+        WorkerPool::WorkerPoolStruct{T}
 
         PhaseSpace::PhaseSpaceStruct
         Precision::Type{T}
@@ -2250,7 +2250,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             Vol = FluxM.Vol
 
-            M_Bin = CuSparseMatrixCSR(BinM.M_Bin)
+            M_Bin = CuSparseMatrixCSR(Precision.(BinM.M_Bin))
 
             CUDA.pool_status() 
 
@@ -2569,24 +2569,27 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.dt_guess = dt_guess
 
-            self.WorkerPool = WorkerPoolStruct(nworkers,self,dt_initial,length(self.ActiveDomain))
+            self.WorkerPool = WorkerPoolStruct(nworkers,self)
 
             return self
         end
 
     end
     
-    function WorkerPoolStruct(nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct,dt,queue_size::Int)
-        jobs = Channel{Tuple{Int,Channel{Nothing}}}(queue_size)
-        tasks = [Threads.@spawn begin 
-            for (off_space, donech) in jobs
-                worker!(wid,off_space,method,dt)
-                put!(donech, nothing)
-            end
-        end
-        for wid in 1:nwokers]
+    function WorkerPoolStruct(::Type{T},nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct) where T
 
-        return WorkerPoolStruct(jobs, tasks)
+        jobs = Channel{Tuple{Int,T,Channel{Int}}}(length(method.ActiveDomain))
+        tasks = [
+            Threads.@spawn begin 
+                for (off_space, dt, done) in jobs
+                    worker!(wid,off_space,method,dt)
+                    put!(done, nothing)
+                end
+            end
+        for wid in 1:nwokers
+        ]
+
+        return WorkerPoolStruct{T}(jobs, tasks)
     end
 
     function close_pool!(pool::WorkerPoolStruct)
