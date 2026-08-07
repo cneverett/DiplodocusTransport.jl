@@ -2281,8 +2281,11 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     done = Channel{Nothing}(length(method.ActiveDomain))
 
     for off_space in method.ActiveDomain
+        println("submitting $off_space")
         put!(WorkerPool.jobs,(off_space,dt,done))
     end
+
+    println("finished submitting")
 
     for i in method.ActiveDomain
         println("Waiting for worker to finish off_space $i")
