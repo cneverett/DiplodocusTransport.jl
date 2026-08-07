@@ -2278,7 +2278,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     end=#
 
     WorkerPool = method.WorkerPool
-    done = Channel{Int}(length(method.ActiveDomain))
+    done = Channel{Nothing}(length(method.ActiveDomain))
 
     for off_space in method.ActiveDomain
         put!(WorkerPool.jobs, (off_space,dt,done))
