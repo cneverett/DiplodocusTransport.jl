@@ -2265,7 +2265,7 @@ end
 function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
 
     # build a channel of jobs to be run across workers
-    jobs = Channel{Int}(length(method.ActiveDomain))
+    #=jobs = Channel{Int}(length(method.ActiveDomain))
     for off_space in method.ActiveDomain
         put!(jobs, off_space)
     end
@@ -2275,6 +2275,17 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
     @sync for worker in 1:nworkers
         Threads.@spawn worker!(worker,jobs,method,dt)
+    end=#
+
+    WorkerPool = method.WorkerPool
+    done = Channel{Nothing}(length(method.ActiveDomain))
+
+    for off_space in method.ActiveDomain
+        put!(WorkerPool.jobs, (off_space,done))
+    end
+
+    for _ in method.ActiveDomain
+        take!(done)
     end
 
 end

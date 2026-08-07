@@ -2110,12 +2110,18 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
 ##### Exponential Rosenbrock Euler Mixed Backend ######
 
+    struct WorkerPoolStruct 
+        jobs::Channel{Tuple{Int,Channel{Nothing}}}
+        tasks::Vector{Task}
+    end
+
     mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{T<:AbstractFloat,VT<:Vector{T},DVT<:CuArray{T, 1, CUDACore.DeviceMemory},MT<:Matrix{T},DMT<:CuArray{T, 2, CUDACore.DeviceMemory},SMT<:SparseMatrixCSC{T, Int32},DSMT<:CuSparseMatrixCSR{T, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
 
         # mixed backend so only MBin multiplication is done on GPU and then transfered back to CPU for the rest of the calculations
         # i.e. Jacobian and F are generated on GPU then transfered back if in a BinaryDomain, if not they are taken from the stored sparse arrays on CPU.
 
         nworkers::Int64
+        WorkerPool::WorkerPoolStruct
 
         PhaseSpace::PhaseSpaceStruct
         Precision::Type{T}
@@ -2561,10 +2567,32 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.dt_guess = dt_guess
 
+            self.WorkerPool = WorkerPoolStruct(nworkers,self,dt_initial,length(self.ActiveDomain))
+
             return self
         end
 
     end
+    
+    function WorkerPoolStruct(nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct,dt,queue_size::Int)
+        jobs = Channel{Tuple{Int,Channel{Nothing}}}(queue_size)
+        tasks = [Threads.@spawn begin 
+            for (off_space, donech) in jobs
+                worker!(wid,off_space,method,dt)
+                put!(donech, nothing)
+            end
+        end
+        for wid in 1:nwokers]
+
+        return WorkerPoolStruct(jobs, tasks)
+    end
+
+    function close_pool!(pool::WorkerPoolStruct)
+        close(pool.jobs)
+        wait.(pool.tasks)
+    end
+
+#######################
 
     mutable struct ExpRBKIOPSStruct{T<:AbstractFloat,VT<:AbstractVector{T},MT<:AbstractMatrix{T},MBT<:AbstractMatrix{T},SMT<:AbstractSparseArray{T,<:Integer,2},BD<:Union{Vector{Int64},Nothing},FD<:Union{VT,Nothing},DFD<:Union{VT,Nothing}} <: ImplicitSteppingMethod
 
