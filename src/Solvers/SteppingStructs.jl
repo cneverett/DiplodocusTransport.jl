@@ -2579,7 +2579,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
     function WorkerPoolStruct(::Type{T},nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct) where T
 
         jobs = Channel{Tuple{Int,T,Channel{Nothing}}}(length(method.ActiveDomain))
-        tasks = [Threads.@spawn worker!(wid,jobs,method,dt) for wid in 1:nwokers]
+        tasks = [Threads.@spawn worker!(wid,jobs,method) for wid in 1:nwokers]
 
         return WorkerPoolStruct{T}(jobs, tasks)
     end

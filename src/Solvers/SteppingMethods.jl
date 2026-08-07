@@ -2296,6 +2296,8 @@ end
 
 function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method::ExponentialRosenbrockEulerKrylovMixedStruct#=,dt::T=#) where T
 
+    println("Worker $worker started")
+
     Precision = method.Precision
 
     n_momentum = method.PhaseSpace.Grids.n_momentum
