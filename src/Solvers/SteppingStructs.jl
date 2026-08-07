@@ -2569,14 +2569,14 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.dt_guess = dt_guess
 
-            self.WorkerPool = WorkerPoolStruct(nworkers,self)
+            self.WorkerPool = WorkerPoolStruct(Precision,nworkers,self)
 
             return self
         end
 
     end
     
-    function WorkerPoolStruct(::Type{T},nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct) where T
+    function WorkerPoolStruct(::T,nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct) where T
 
         jobs = Channel{Tuple{Int,T,Channel{Int}}}(length(method.ActiveDomain))
         tasks = [
