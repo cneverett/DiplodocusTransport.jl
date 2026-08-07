@@ -2287,6 +2287,17 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
     println("finished submitting")
 
+    for task in WorkerPool.tasks
+    if istaskfailed(task)
+        try
+            fetch(task)
+        catch err
+            showerror(stdout, err, catch_backtrace())
+            println()
+        end
+    end
+    end
+
     for i in method.ActiveDomain
         println("Waiting for worker to finish off_space $i")
         flush(stdout)
