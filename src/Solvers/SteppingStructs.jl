@@ -2248,6 +2248,27 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             Bin_Domain = BinM.Domain
 
+            Vol = FluxM.Vol
+
+            M_Bin = CuSparseMatrixCSR(BinM.M_Bin)
+
+            CUDA.pool_status() 
+
+            X_Flux = CuSparseMatrixCSR(Precision.(FluxM.X_Flux))
+            P_Flux = CuSparseMatrixCSR(Precision.(FluxM.P_Flux))
+            A_Flux = CuArray(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
+            invA_Flux = CuArray(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
+            df_Inj = convert(Vector{Precision},copy(Injection))
+            df_Inj_d = CuArray(df_Inj)
+
+            f_init = convert(Vector{Precision},Initial)
+            f = CuArray(convert(Vector{Precision},copy(Initial)))
+            # cut initial values that are smaller than n_cut in both number and energy
+            E_long_tmp = Vector(E_long) # host copy
+            @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(eltype(f_init)),f_init)
+
+            @. f = ifelse(f < n_cut && f * E_long < n_cut,zero(eltype(f)),f)
+
             if Binary_Interactions
                 M_Bin_Mul_Step = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
                 M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
@@ -2298,25 +2319,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             # use higher precision for Krylov subspace to avoid numerical issues
             KsB = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mB)
             KsL = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mL)
-
-            Vol = FluxM.Vol
-
-            M_Bin = CuSparseMatrixCSR(Precision.(BinM.M_Bin))
-            X_Flux = CuSparseMatrixCSR(Precision.(FluxM.X_Flux))
-            P_Flux = CuSparseMatrixCSR(Precision.(FluxM.P_Flux))
-            A_Flux = CuArray(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
-            invA_Flux = CuArray(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
-            df_Inj = convert(Vector{Precision},copy(Injection))
-            df_Inj_d = CuArray(df_Inj)
-
-            f_init = convert(Vector{Precision},Initial)
-            f = CuArray(convert(Vector{Precision},copy(Initial)))
-            # cut initial values that are smaller than n_cut in both number and energy
-            E_long_tmp = Vector(E_long) # host copy
-            @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(eltype(f_init)),f_init)
-
- 
-            @. f = ifelse(f < n_cut && f * E_long < n_cut,zero(eltype(f)),f)
 
             # Making invA = vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
             invA = zeros(Precision,n_space)
