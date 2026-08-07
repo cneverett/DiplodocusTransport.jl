@@ -2265,9 +2265,9 @@ end
 function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
 
     # build a channel of jobs to be run across workers
-    #=jobs = Channel{Int}(length(method.ActiveDomain))
+    #=jobs = Channel{Tuple{Int,T}(length(method.ActiveDomain))
     for off_space in method.ActiveDomain
-        put!(jobs, off_space)
+        put!(jobs, (off_space,dt))
     end
     close(jobs)
 
@@ -2281,7 +2281,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     done = Channel{Nothing}(length(method.ActiveDomain))
 
     for off_space in method.ActiveDomain
-        put!(WorkerPool.jobs, (off_space,dt,done))
+        put!(WorkerPool.jobs,(off_space,dt,done))
     end
 
     for i in method.ActiveDomain
@@ -2293,9 +2293,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
 end
 
-function worker!(worker::Int,off_space::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
-
-    println("Worker $worker processing off_space $off_space")
+function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method::ExponentialRosenbrockEulerKrylovMixedStruct#=,dt::T=#) where T
 
     Precision = method.Precision
 
@@ -2342,7 +2340,7 @@ function worker!(worker::Int,off_space::Int,method::ExponentialRosenbrockEulerKr
     ηtarget = 1e-45
     correct = true
 
-    #for off_space in jobs # each job is a space index to be processed
+    for (off_space, dt, done) in jobs # each job is a space index to be processed
 
         idx_range = n_momentum*off_space+1:n_momentum*(off_space+1)
 
@@ -2352,8 +2350,8 @@ function worker!(worker::Int,off_space::Int,method::ExponentialRosenbrockEulerKr
 
         has_injection = sum(df_Inj) > zero(Precision)
         if !has_injection && sum(fstep) == zero(Precision) 
-            #continue
-            return nothing
+            put!(done, nothing) # signal that this job is done
+            continue
         end
 
         if has_injection
@@ -2714,7 +2712,9 @@ function worker!(worker::Int,off_space::Int,method::ExponentialRosenbrockEulerKr
 
         end
 
-    #end
+        put!(done, nothing) # signal that this job is done
+
+    end
 
     return nothing
 
