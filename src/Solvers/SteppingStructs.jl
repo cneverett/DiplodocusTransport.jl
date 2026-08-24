@@ -2206,6 +2206,14 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             Backend = getfield(Main,Symbol("Backend"))
             Precision = getfield(Main,Symbol("Precision"))
 
+            if Backend isa CPUBackend 
+                device_array_type = Matrix{Precision}
+                device_vector_type = Vector{Precision}
+            elseif Backend isa CUDABackend
+                device_array_type = CuArray{Precision,2}
+                device_vector_type = CuArray{Precision,1}
+            end
+
             Momentum = PhaseSpace.Momentum
             Spacetime = PhaseSpace.Spacetime
             x_num = Spacetime.x_num
@@ -2236,7 +2244,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end
             end
 
-            E_long = zeros(CUDABackend(),Precision,n_momentum*n_space)
+            E_long = zeros(Backend,Precision,n_momentum*n_space)
             for space in 1:n_space
                 copyto!(@view(E_long[(space-1)*n_momentum+1:space*n_momentum]), E)
             end
@@ -2250,71 +2258,72 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             Vol = FluxM.Vol
 
-            M_Bin = CuSparseMatrixCSR(Precision.(BinM.M_Bin))
+            M_Bin = sparse(Backend,Precision,BinM.M_Bin)
 
-            CUDA.pool_status() 
+            if Backend isa CUDABackend
+                CUDA.pool_status() 
+            end
 
-            X_Flux = CuSparseMatrixCSR(Precision.(FluxM.X_Flux))
-            P_Flux = CuSparseMatrixCSR(Precision.(FluxM.P_Flux))
-            A_Flux = CuArray(Precision.(FluxM.Ap_Flux)) # diagonal matrix of Ap flux for Modified Patankar Euler method
-            invA_Flux = CuArray(Precision.(1 ./ FluxM.Ap_Flux)) # invert Ap Flux for time stepping
+            X_Flux = sparse(Backend,Precision,FluxM.X_Flux)
+            P_Flux = sparse(Backend,Precision,FluxM.P_Flux)
+            A_Flux = device_array(Backend,Precision,FluxM.Ap_Flux) # diagonal matrix of Ap flux 
+            invA_Flux = device_array(Backend,Precision,1 ./ FluxM.Ap_Flux) # invert Ap Flux for time stepping
             df_Inj = convert(Vector{Precision},copy(Injection))
-            df_Inj_d = CuArray(df_Inj)
+            df_Inj_d = device_array(Backend,Precision,df_Inj)
 
-            f_init = convert(Vector{Precision},Initial)
-            f = CuArray(convert(Vector{Precision},copy(Initial)))
+            f_init = convert(Vector{Precision},copy(Initial))
             # cut initial values that are smaller than n_cut in both number and energy
             E_long_tmp = Vector(E_long) # host copy
             @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(eltype(f_init)),f_init)
 
-            @. f = ifelse(f < n_cut && f * E_long < n_cut,zero(eltype(f)),f)
+            f = zeros(Backend,Precision,length(Initial)) # initial f set in solver 
 
             if Binary_Interactions
-                M_Bin_Mul_Step = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
+                M_Bin_Mul_Step = zeros(Backend,Precision,n_momentum,n_momentum)
                 M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
-                Vec_M_Bin_Mul_Step = Vector{CuArray{Precision,2}}(undef,nworkers)
-                Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
+                Vec_M_Bin_Mul_Step = Vector{device_array_type}(undef,nworkers)
+                Vec_M_Bin_Mul_Step_reshape = Vector{device_vector_type}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
+                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,n_momentum,n_momentum)
                     Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],n_momentum^2)
                 end
             else
-                M_Bin_Mul_Step = zeros(CUDABackend(),Precision,0,0)
+                M_Bin_Mul_Step = zeros(Backend,Precision,0,0)
                 M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,0)
-                Vec_M_Bin_Mul_Step = Vector{CuArray{Precision,2}}(undef,nworkers)
-                Vec_M_Bin_Mul_Step_reshape = Vector{CuArray{Precision,1}}(undef,nworkers)
+                Vec_M_Bin_Mul_Step = Vector{device_array_type}(undef,nworkers)
+                Vec_M_Bin_Mul_Step_reshape = Vector{device_vector_type}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(CUDABackend(),Precision,0,0)
+                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,0,0)
                     Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],0)
                 end
             end
             df = zeros(Precision,length(Initial))
-            df_d = zeros(CUDABackend(),Precision,length(Initial))
+            df_d = device_array(Backend,Precision,df)
             df_tmp = zeros(Precision,length(Initial))
-            df_tmp_d = zeros(CUDABackend(),Precision,length(Initial))
+            df_tmp_d = device_array(Backend,Precision,df_tmp)
 
-            fstep = zeros(CUDABackend(),Precision,length(Initial))
+            fstep = zeros(Backend,Precision,length(Initial))
             F = zeros(Precision,n_momentum)
-            F_d = zeros(CUDABackend(),Precision,n_momentum)
+            F_d = device_array(Backend,Precision,F)
             J = zeros(Precision,n_momentum,n_momentum)
-            J_d = zeros(CUDABackend(),Precision,n_momentum,n_momentum)
+            J_d = device_array(Backend,Precision,J)
             Jsparse = sparse(zeros(Precision,n_momentum,n_momentum))
             fold = zeros(Precision,n_momentum)
-            fold_d = zeros(CUDABackend(),Precision,n_momentum)
+            fold_d = device_array(Backend,Precision,fold)
             fout = zeros(Precision,n_momentum)
-            fout_d = zeros(CUDABackend(),Precision,n_momentum)
+            fout_d = device_array(Backend,Precision,fout)
             fscale = zeros(Precision,n_momentum)
-            fscale_d = zeros(CUDABackend(),Precision,n_momentum)
+            fscale_d = device_array(Backend,Precision,fscale)
             δ = zeros(Precision,n_momentum)
-            δ_d = zeros(CUDABackend(),Precision,n_momentum)
+            δ_d = device_array(Backend,Precision,δ)
             ϕ = zeros(Precision,n_momentum,2)
             ϕcacheB = ExponentialUtilities.PhivCache(ϕ,mB,1)
             ϕcacheL = ExponentialUtilities.PhivCache(ϕ,mL,1)
 
             D = one(Precision) ./ copy(E)
             Dinv = copy(E)
-            D_d = cu(D)
-            Dinv_d = cu(Dinv)
+            D_d = device_array(Backend,Precision,D)
+            Dinv_d = device_array(Backend,Precision,Dinv)
 
             # use higher precision for Krylov subspace to avoid numerical issues
             KsB = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mB)
@@ -2409,10 +2418,10 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end=#
             end=#
             invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(FluxM.P_Flux,1), size(FluxM.P_Flux,2))
-            invImMP = CuSparseMatrixCSR(invImMP)
+            invImMP = sparse(Backend,Precision,invImMP)
 
             # Build new MEmi
-            M_Emi = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
+            M_Emi = Vector{Union{device_array_type,SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
             MEmiPFlux = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
             tmpmatrix = zeros(Precision,n_momentum,n_momentum)
             tmpsparsematrix = spzeros(Precision,Int32,n_momentum,n_momentum)
@@ -2427,7 +2436,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                         @assert EmiM.M_Emi[off_space+1] isa Matrix "Emission matrix must be dense for binary interactions"
                         tmpmatrix .+= EmiM.M_Emi[off_space+1]
                     end
-                    MEmiPFlux[off_space+1] = CuArray(Precision.(tmpmatrix))
+                    MEmiPFlux[off_space+1] = copy(Backend,Precision,tmpmatrix)
                 else # sparse matrix for non-binary cells
                     tmpsparsematrix.nzval .= zero(Precision)
                     dropzeros!(tmpsparsematrix)
@@ -2455,7 +2464,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     LocationSpeciesToStateVector(f_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                     end
                 end
-                f_mask = CuArray(f_mask)
+                f_mask = device_array(Backend,Precision,f_mask)
             else
                 f_mask = nothing
             end
@@ -2467,7 +2476,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     LocationSpeciesToStateVector(df_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
                     end
                 end
-                df_mask = CuArray(df_mask)
+                df_mask = device_array(Backend,Precision,df_mask)
             else
                 df_mask = nothing
             end

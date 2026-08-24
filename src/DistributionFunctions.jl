@@ -124,7 +124,7 @@ where ``γ(p) = \\sqrt{1+(p/mc)^2}`` and ``1/θ = m c^2/(k_B T)``.
         # added 1e2 above is cut for exponential tail
         E = sqrt(m^2 + px^2)
         θ = (kb*T)/(m*mEle*c^2)
-        return (1+(E-1)/(κ*θ))^(-κ-1) * exp(-E/sqrt(m^2+p_max^2)) 
+        return (1+(E/m-1)/(κ*θ))^(-κ-1) * exp(-E/sqrt(m^2+p_max^2)) 
     end
 
     return 0.0

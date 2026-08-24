@@ -63,7 +63,6 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
         save = false
         # perform timestep
         while !save
-            CUDA.pool_status() # check GPU memory status
             dt,save = method(t_start,t_stop,dt,Verbose)
             t_start += dt
         end
