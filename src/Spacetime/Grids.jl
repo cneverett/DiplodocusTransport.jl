@@ -44,7 +44,7 @@ end
 
 function SpacetimeGrid(grid::StretchGrid) 
     #= stretch spacing 
-        grid starts at `low` and passes through `up` with `sub` grid points between `low` and `up`, the total number of grid cells is `num`. If `num` = `sub+2` then the grid ends at `up`, otherwise the grid continues beyond `up`. The spacing between grid points is determined by a geometric progressions with `ratio = 2^(1/sub+1)`
+        grid starts at `low` and passes through `up` with `sub` grid points between `low` and `up`, the total number of grid cells is `num`. If `num` = `sub+2` then the grid ends at `up`, otherwise the grid continues beyond `up`. The spacing between grid points is determined by a geometric progressions with `ratio = 2^(1/(sub+1))`
     =#
     r = 2^(1/(grid.sub+1))
     vec = [grid.low + (grid.up - grid.low) * (r^i-1) / (r^(grid.sub+1)-1) for i in 0:(grid.num)]
