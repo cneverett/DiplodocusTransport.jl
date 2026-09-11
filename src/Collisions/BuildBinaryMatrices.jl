@@ -94,7 +94,8 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
         println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
     end
 
-    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+    if GainScale != 0.0
+        GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix3,offset[name3_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy3,dpz3,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
         # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
         println("before combining duplicates")
@@ -110,7 +111,7 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
         println("length I: ",length(M_Bin_I)," length J: ",length(M_Bin_J)," length V: ",length(M_Bin_V))
         GC.gc()
 
-    GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy4,dpz4,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+        GainMatrix_to_M_Bin!(PhaseSpace,GainMatrix4,offset[name4_loc],offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,dpy4,dpz4,GainScale;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
         # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
         println("before combining duplicates")
@@ -125,8 +126,10 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
         println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
         println("length I: ",length(M_Bin_I)," length J: ",length(M_Bin_J)," length V: ",length(M_Bin_V))
         GC.gc()
+    end
 
-    LossMatrix_to_M_Bin!(PhaseSpace,LossMatrix,offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,LossScale,Indistinguishable_12;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+    if LossScale != 0.0
+        LossMatrix_to_M_Bin!(PhaseSpace,LossMatrix,offset[name1_loc],offset[name2_loc],mode,dpy1,dpz1,dpy2,dpz2,LossScale,Indistinguishable_12;symmetric,M_Bin=M_Bin,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
 
         # before moving onto the next interaction lets combine the duplicate entries in the sparse matrix representation of M_Bin
         println("before combining duplicates")
@@ -140,7 +143,8 @@ function Fill_M_Bin!(name_locs::Tuple{Int64,Int64,Int64,Int64},PhaseSpace::Phase
         println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
         println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
         println("length I: ",length(M_Bin_I)," length J: ",length(M_Bin_J)," length V: ",length(M_Bin_V))
-        tmp_sparse = nothing
+
+    end
 
     GainMatrix3 = nothing
     GainMatrix4 = nothing
