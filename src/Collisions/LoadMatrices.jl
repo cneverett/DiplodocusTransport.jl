@@ -138,10 +138,9 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
 
         if !isnothing(gain_loss) # used for timescale plots where it is useful to only load the gain or loss matrices to generate loss and gain rates
             if gain_loss == "gain"
-                LossMatrix .= 0.0
+                LossScale = 0.0  
             elseif gain_loss == "loss"
-                GainMatrix3 .= 0.0
-                GainMatrix4 .= 0.0
+                GainScale = 0.0
             end
         end
 
