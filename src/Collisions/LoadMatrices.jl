@@ -3,7 +3,7 @@
 
 Loads the binary interaction matrices from the specified `DataDirectory` for each interaction in `Binary_list` and fills the big matrix `M_Bin` either directly if `M_Bin` is dense or the vectors of rows, columns and values `M_Bin_I`, `M_Bin_J``, `M_Bin_V` if sparse, with the interaction rates for binary interactions between all particles in the simulation. The `corrected` argument specifies whether to load the number and energy corrected matrices. The `mode` argument specifies whether to assume these arrays are anisotropic, axisymmetric or isotropic.
 """
-function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int32}}=nothing,M_Bin_J::Union{Nothing,Vector{Int32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing) where F<:AbstractFloat
+function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirectory::String,PhaseSpace::PhaseSpaceStruct,mode::AbstractMode=Ani(),corrected::Bool=true;symmetric::Bool=false,M_Bin::Union{Nothing,Matrix{F}}=nothing,M_Bin_I::Union{Nothing,Vector{Int32}}=nothing,M_Bin_J::Union{Nothing,Vector{Int32}}=nothing,M_Bin_V::Union{Nothing,Vector{F}}=nothing,gain_loss::Union{Nothing,String}=nothing) where F<:AbstractFloat
 
     Bin_Norm = PhaseSpace.Characteristic.Bin_Norm
     
@@ -135,6 +135,15 @@ function LoadMatrices_Binary(Binary_list::Vector{BinaryInteraction},DataDirector
         GainMatrix3 = Output[2]
         GainMatrix4 = Output[3]
         LossMatrix = Output[4]
+
+        if !isnothing(gain_loss) # used for timescale plots where it is useful to only load the gain or loss matrices to generate loss and gain rates
+            if gain_loss == "gain"
+                LossMatrix .= 0.0
+            elseif gain_loss == "loss"
+                GainMatrix3 .= 0.0
+                GainMatrix4 .= 0.0
+            end
+        end
 
         name_locs = (name1_loc,name2_loc,name3_loc,name4_loc)
 

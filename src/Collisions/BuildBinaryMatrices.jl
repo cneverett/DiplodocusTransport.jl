@@ -3,7 +3,7 @@
 
 Function that builds the big matrices associated with binary and emissive interactions. If there are such interactions, first space is allocated for the arrays, then data is loaded into these arrays from the desired `DataDirectory` location and finally the big matrices are returned as an immutable `BinaryMatricesStruct`.
 """
-function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryInteraction},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;symmetric::Bool=false,loading_check::Bool=false,Bin_Mode::AbstractMode=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false)
+function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{BinaryInteraction},Domain::Union{Vector{Int64},Nothing},DataDirectory::String;symmetric::Bool=false,loading_check::Bool=false,Bin_Mode::AbstractMode=Ani(),Bin_corrected::Bool=true,Bin_sparse::Bool=false,gain_loss::Union{Nothing,String}=nothing)
 
     Precision::DataType = getfield(Main,Symbol("Precision"))
 
@@ -35,7 +35,7 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
             M_Bin_I::Vector{Int32} = Int32[]
             M_Bin_J::Vector{Int32} = Int32[]
             M_Bin_V::Vector{Precision} = Precision[]
-            LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;symmetric=symmetric,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V)
+            LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;symmetric=symmetric,M_Bin_I=M_Bin_I,M_Bin_J=M_Bin_J,M_Bin_V=M_Bin_V,gain_loss=gain_loss)
             println("Building sparse M_Bin")
             println("max I: ",maximum(M_Bin_I)," max J: ",maximum(M_Bin_J)," max V: ",maximum(M_Bin_V))
             println("min I: ",minimum(M_Bin_I)," min J: ",minimum(M_Bin_J)," min V: ",minimum(M_Bin_V))
@@ -44,7 +44,7 @@ function BuildBinaryMatrices(PhaseSpace::PhaseSpaceStruct,Binary_list::Vector{Bi
             GC.gc()
         else
             M_Bin = zeros(Precision,m,n)::Matrix{Precision}
-            LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;symmetric=symmetric,M_Bin=M_Bin)
+            LoadMatrices_Binary(Binary_list,DataDirectory,PhaseSpace,Bin_Mode,Bin_corrected;symmetric=symmetric,M_Bin=M_Bin,gain_loss=gain_loss)
         end
     end
 
