@@ -61,6 +61,7 @@ module DiplodocusTransport
     include("Constants.jl")
     include("Backends.jl")
     include("NumericalIntegration.jl")
+    include("UtilityFunctions.jl")
 
     # Phasespace
     include("Spacetime/CoordinateStructs.jl")

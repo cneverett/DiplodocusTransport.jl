@@ -1510,12 +1510,10 @@ function (method::ExponentialRosenbrockEulerKrylovStruct)(t_start,t_stop,dt,Verb
 
     # half space update
 
-        
         mul!(method.df,method.X_Flux,method.fstep)
         method.df .= - method.invA_Flux * method.df .* dt_scale/2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
 
         # mask of df regions
-
         if !isnothing(method.df_mask)
             @. method.df *= method.df_mask
         end 
@@ -1523,7 +1521,6 @@ function (method::ExponentialRosenbrockEulerKrylovStruct)(t_start,t_stop,dt,Verb
         @. method.fstep += method.df
 
         @. method.fstep = ifelse(method.fstep < method.n_cut && method.fstep * method.E_long < method.n_cut, zero(eltype(method.fstep)),method.fstep)
-        
         
 
     # Half injection 
@@ -1666,6 +1663,17 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
     #ηEtarget = 1e-5 # energy can be gained from P_Flux terms but limit this to a maximum fractional gain of 0.001% per time step, otherwise reduce time step
 
     for off_space in method.ActiveDomain
+
+        if method.LocalMomentumUpdate
+            local_momentum_step = method.momentum_step[off_space+1]
+            # evalute momentum on every step if local_momentum_step = 1 or halfway to every local_momentum_step if local_momentum_step > 1
+            # i.e. if local_momentum_step = 64, momentum should first be evalued at step 32 for dt=64*dt and then on every 64 steps after that, i.e. 32, 96, 160 etc. 
+            if local_momentum_step != 1 || mod(method.step+Int(local_momentum_step / 2),local_momentum_step) != 0 
+                continue # do not evalute momentum update 
+            else 
+                dt = local_momentum_step * dt
+            end
+        end
 
         start_idx = n_momentum*off_space+1
         end_idx = n_momentum*(off_space+1)

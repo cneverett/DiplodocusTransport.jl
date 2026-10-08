@@ -52,7 +52,25 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
     elseif method isa ExponentialRosenbrockEulerKrylovStruct
         fill!(method.dt_guess,ldexp(dt_initial, -6)) # initial guess for dt is 1/32 of the initial dt
     elseif method isa ExponentialRosenbrockEulerKrylovMixedStruct
-        fill!(method.dt_guess,ldexp(dt_initial, -6)) # initial guess for dt is 1/32 of the initial dt
+        @. method.dt_guess = ldexp(dt_initial * method.local_momentum_step, -6) # initial guess for dt is 1/32 of the initial dt multiplied by the size of the local step allowed by X_flux
+        # check dt <= dt_min from X_Flux 
+        if dt > method.dt_min
+            @warn "Chosen dt may lead to unstable space updates"
+        end
+        if !ispow2(dt)
+            @warn "Chosen dt is not of the form 2.0^n, may lead to floating point issues in timestep"
+        end
+        if !all(iszero,mod(t_save,dt))
+            @warn "Chosen t_save are not all integer multiples of dt"
+        end
+        # largest momentum step update 
+        if method.LocalMomentumUpdate
+            max_dt = method.dt_min * maximum(method.momentum_step)
+            # check end step is a multiple of max_dt 
+            if mod(t_save[end],max_dt) != 0
+                @warn "simulation end time is not a multiple of the largest advection timescale, may result in inaccuracy"
+            end
+        end
     end
 
     for i in 2:n_save # start at 2 since initial state already saved

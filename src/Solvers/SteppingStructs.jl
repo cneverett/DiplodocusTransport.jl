@@ -2125,6 +2125,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
         PhaseSpace::PhaseSpaceStruct
         Precision::Type{T}
+        LocalMomentumUpdate::Bool
 
         Binary_Interactions::Bool
         Emission_Interactions::Bool
@@ -2142,7 +2143,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         X_Flux::DSMT                    # on GPU
         P_Flux::DSMT                    # on GPU
 
-        invImMP::DSMT                   # (I-dt*A^{-1}(M_Emi-P_Flux))^{-1} for momentum update, on GPU
         MEmiPFlux::Vector{Union{DMT,SMT}}# M_Emi - P_Flux for each spatial point, on GPU if dense and CPU if sparse
 
         Vol::Vector{T}
@@ -2151,10 +2151,12 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         Adaptive::Bool
         Implicit::Bool
         dt0::T
+        dt_min::T                        # suggestion for smallest timestep in form 2^n
         Cr::T
         n_cut::T
 
         step::Int64
+        momentum_step::Vector{Int64}    # vector indicating if momentum should be updated for a given step           
 
         M_Bin_Mul_Step::Vector{DMT}            # GPU temporary array for matrix multiplication of binary terms
         M_Bin_Mul_Step_reshape::Vector{DVT}    # GPU temporary array for reshaped matrix multiplication of binary terms
@@ -2201,7 +2203,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
         dt_guess::Vector{T}             # guess for dt based on CFL condition
 
-        function ExponentialRosenbrockEulerKrylovMixedStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,dt_initial::Float64=1.0,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,mB::Int64=128,mL::Int64=32,nworkers::Int64=8)
+        function ExponentialRosenbrockEulerKrylovMixedStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,dt_initial::Float64=1.0,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,mB::Int64=128,mL::Int64=32,nworkers::Int64=8,LocalMomentumUpdate::Bool=false)
 
             Backend = getfield(Main,Symbol("Backend"))
             Precision = getfield(Main,Symbol("Precision"))
@@ -2339,87 +2341,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             end
 
-
-            #= Making invMP = (I-dt*A^{-1}(M_Emi-P_Flux))^{-1}
-                This assuming only emissive interactions coming from one set of specie to another (e.g. electron to photon but not photon to electron) (I-A^{-1}(M_Emi-P_Flux)) has a block triangular structure:
-                I-MP = [A 0]
-                        [B C]
-                where A corresponds to the non-emissive species and C corresponds to the emissive species. This means we can invert (I-MP) as:
-                inv(I-MP) = [A^{-1}          0    ]
-                            [-C^{-1}BA^{-1} C^{-1}]    
-
-            =#
-            # construct ImMP on CPU
-            ImMP = spdiagm(1 ./ FluxM.Ap_Flux) * FluxM.P_Flux .* (dt_initial/2) + I
-            #invImMP = spzeros(Precision,size(P_Flux))
-            invImMP_rows = Int32[]
-            invImMP_cols = Int32[]
-            invImMP_vals = Precision[]
-            momentum_offset = [momentum_offset_species ; n_momentum]
-            #=for space in 0:n_space-1
-                off_space = space*n_momentum
-                # diagonal blocks
-                #= for block diagonals Bii = ii component of the inverse matrix 
-                        Bii = Aii^{-1} where Aii is the ii component of (I-MP) = I-dt*A^{-1}(M_Emi-P_Flux)
-                =#
-                for speciesi in eachindex(PhaseSpace.name_list)
-                    pi_low = momentum_offset[speciesi] + off_space + 1
-                    pi_up = momentum_offset[speciesi+1] + off_space
-
-                    #invImMP_view = @view(invImMP[pi_low:pi_up,pi_low:pi_up])
-                    ImMP_view = @view(ImMP[pi_low:pi_up,pi_low:pi_up])
-
-                    #invImMP_view .= sparse(inv(ImMP_view))
-                    rows, cols, vals = findnz(sparse(inv(ImMP_view)))
-                    append!(invImMP_rows, Int32.(rows .+ (pi_low - 1)))
-                    append!(invImMP_cols, Int32.(cols .+ (pi_low - 1)))
-                    append!(invImMP_vals, Precision.(vals))
-                end
-                # off-diagonal blocks
-                #=
-                    for i>j and Bij = the ij components of the inverse matrix
-
-                        Bij = -Bii \sum_{k=j}^{i-1} Aik Bkj
-
-                =#
-                #=for speciesi in eachindex(PhaseSpace.name_list)
-                    pi_low = momentum_offset[speciesi] + off_space + 1
-                    pi_up = momentum_offset[speciesi+1] + off_space
-
-
-                    for speciesj in 1:speciesi-1
-                        pj_low = momentum_offset[speciesj] + off_space + 1
-                        pj_up = momentum_offset[speciesj+1] + off_space
-
-                        
-                        #Bij = @view(invImMP[pi_low:pi_up,pj_low:pj_up])
-
-                        Bij = zeros(Precision, pi_up - pi_low + 1, pj_up - pj_low + 1)
-
-                        for speciesk in speciesj:speciesi-1
-                            pk_low = momentum_offset[speciesk] + off_space + 1
-                            pk_up = momentum_offset[speciesk+1] + off_space
-
-                            Aik = @view(ImMP[pi_low:pi_up,pk_low:pk_up])
-                            Bkj = @view(invImMP[pk_low:pk_up,pj_low:pj_up])
-
-                            #Bij .-= sparse(Aik * Bkj) 
-                            Bij .-= Aik * Bkj
-                        end
-
-                        # TODO: check order of rows and cols here, might need to swap them 
-                        rows, cols, vals = findnz(sparse(inv(Bij)))
-                        append!(invImMP_rows, rows .+ pi_low - 1)
-                        append!(invImMP_cols, cols .+ pj_low - 1)
-                        append!(invImMP_vals, vals)
-                    end
-
-
-                end=#
-            end=#
-            invImMP = sparse(invImMP_rows, invImMP_cols, invImMP_vals, size(FluxM.P_Flux,1), size(FluxM.P_Flux,2))
-            invImMP = sparse(Backend,Precision,invImMP)
-
             # Build new MEmi
             M_Emi = Vector{Union{device_array_type,SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
             MEmiPFlux = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
@@ -2457,6 +2378,37 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end=#
             end
 
+            # work out suggestion for smallest timestep
+            X_Flux_diag = diag(FluxM.X_Flux)
+            XdivA = X_Flux_diag ./ FluxM.Ap_Flux
+            dt_min = nextpow2_float(minimum(PhaseSpace.Spacetime.dt0 ./ XdivA))
+            # work out momentum_step 
+            momentum_step::Vector{Int64} = ones(Int64,n_space)
+            if LocalMomentumUpdate
+                for off_space in 0:n_space-1 
+                    start_idx = n_momentum*off_space+1
+                    end_idx = n_momentum*(off_space+1)
+                    X_Flux_diag_local = @view(diag(FluxM.X_Flux)[start_idx:end_idx])
+                    invA_local = invA[off_space+1]
+                    XdivA_local = X_Flux_diag_local .* invA_local
+                    # Δf/f = -X/A * Δt/Δt0 (Δt = Δt0 when evaluating X and A)
+                    # Therefore Δtmin = min(-A * Δt0 / X) is the smallest timestep required for Δf/f < 1
+                    # we want this in the form 2^n where 2^n > Δtmin is the smallest power of 2 greater than Δtmin (as space update is perfomred using two sets in the split operator scheme)
+                    # here n = steps
+                    steps = Int64(log2(nextpow2_float(minimum(PhaseSpace.Spacetime.dt0 ./ XdivA_local))))
+                    momentum_step[off_space+1] = steps
+                end
+                # now work out minimum of steps 
+                min_steps = minimum(momentum_step)
+                # we now want to scale n -> n - nmin so that each n is a multiple of the smallest timestep 
+                momentum_step .-= min_steps 
+                println(reshape(momentum_step,8,8))
+                @. momentum_step = ifelse(momentum_step > 0, momentum_step-1, momentum_step) # do twice the number of required steps if > 2^0
+                # now generate Δt intervals for each momentum step to be evaluated
+                momentum_step = 2 .^ momentum_step
+                # now when mod(method.step,momentum_steps) = 0 momentum update should be evaluated
+            end
+
             if !isnothing(DistributionDomainMask)
                 f_mask = ones(Precision,length(Initial))
                 for off_space_idx in DistributionDomainMask
@@ -2492,6 +2444,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.PhaseSpace = PhaseSpace
             self.Precision = Precision
+            self.LocalMomentumUpdate = LocalMomentumUpdate
  
             self.Binary_Interactions = Binary_Interactions
             self.Emission_Interactions = Emission_Interactions
@@ -2513,7 +2466,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.X_Flux = X_Flux
             self.P_Flux = P_Flux
 
-            self.invImMP = invImMP
             self.MEmiPFlux = MEmiPFlux
 
             self.Vol = Vol
@@ -2522,10 +2474,12 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.Adaptive = Adaptive
             self.Implicit = true
             self.dt0 = PhaseSpace.Spacetime.dt0
+            self.dt_min = dt_min
             self.Cr = zero(Precision)
             self.n_cut = n_cut
 
             self.step = 0
+            self.momentum_step = momentum_step
 
             self.M_Bin_Mul_Step = Vec_M_Bin_Mul_Step
             self.M_Bin_Mul_Step_reshape = Vec_M_Bin_Mul_Step_reshape
