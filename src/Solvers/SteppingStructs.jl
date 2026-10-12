@@ -2402,7 +2402,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 min_steps = minimum(momentum_step)
                 # we now want to scale n -> n - nmin so that each n is a multiple of the smallest timestep 
                 momentum_step .-= min_steps 
-                println(reshape(momentum_step,8,8))
                 @. momentum_step = ifelse(momentum_step > 0, momentum_step-1, momentum_step) # do twice the number of required steps if > 2^0
                 # now generate Δt intervals for each momentum step to be evaluated
                 momentum_step = 2 .^ momentum_step

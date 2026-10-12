@@ -1664,17 +1664,6 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
     for off_space in method.ActiveDomain
 
-        if method.LocalMomentumUpdate
-            local_momentum_step = method.momentum_step[off_space+1]
-            # evalute momentum on every step if local_momentum_step = 1 or halfway to every local_momentum_step if local_momentum_step > 1
-            # i.e. if local_momentum_step = 64, momentum should first be evalued at step 32 for dt=64*dt and then on every 64 steps after that, i.e. 32, 96, 160 etc. 
-            if local_momentum_step != 1 || mod(method.step+Int(local_momentum_step / 2),local_momentum_step) != 0 
-                continue # do not evalute momentum update 
-            else 
-                dt = local_momentum_step * dt
-            end
-        end
-
         start_idx = n_momentum*off_space+1
         end_idx = n_momentum*(off_space+1)
 
@@ -2176,52 +2165,9 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
 
         @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
 
-    # Half injection 
+    # momentum update
 
-        #@. method.fstep += method.df_Inj * dt_scale / 2
-
-    # half momentum update
-
-       #= 
-       mul!(df_d,method.invImMP,fstep) 
-
-        if !isnothing(method.df_mask)
-            @. fstep = df_d * method.df_mask + fstep * (1-method.df_mask)
-        else
-            @. fstep = df_d
-        end 
-
-        @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
-        =#
-
-    # binary update
-
-        # half momentum update
-        update_momentum!(method,dt_scale) # this MUST updates method.fstep_d in place
-
-        # injection
-        #@. method.fstep += method.df_Inj * dt_scale  
-
-        # half momentum update
-        #update_momentum!(method,dt_scale/2)
-
-    # half momentum update
-
-        #=
-        mul!(df_d,method.invImMP,method.fstep) 
-
-        if !isnothing(method.df_mask)
-            @. fstep = df_d * method.df_mask + fstep * (1-method.df_mask)
-        else
-            @. fstep = df_d
-        end
-
-        @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
-        =#
-
-    # Half injection 
-
-        #@. method.fstep += method.df_Inj * dt_scale / 2
+        update_momentum!(method,dt_scale;every_step=true) # this MUST updates method.fstep_d in place
 
     # half space update
 
@@ -2235,6 +2181,14 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
         @. fstep += df_d
 
         @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
+
+    # momentum update (only if LocalMomentumUpdate)
+
+        if method.LocalMomentumUpdate
+            update_momentum!(method,dt_scale;every_step=false) # this MUST updates method.fstep_d in place
+        end
+
+    # Cr calculation
 
     Cr = 0.0
     sum_f = sum(method.f)
@@ -2270,7 +2224,7 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
 
 end
 
-function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T) where T
+function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T;every_step::Bool=true) where T
 
     # build a channel of jobs to be run across workers
     #=jobs = Channel{Tuple{Int,T}(length(method.ActiveDomain))
@@ -2287,10 +2241,45 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
     WorkerPool = method.WorkerPool
     done = Channel{Nothing}(length(method.ActiveDomain))
+    tasks_this_step::Int64 = 0
 
     for off_space in method.ActiveDomain
+
+        #= Control when to update momenum  
+            1. if LocalMomentumUpdate == false or every_step == true, then this updates momentum inbetween half space updates for every time step.
+            2. if LocalMomentumUpdate == true and every_step == false, then this only updates momentum after 2 half space updates but halfway in terms of global steps towards momentum_step 
+            
+            e.g. for case 1:
+            step:                   1         2         3         4         ...
+            space half steps:       | 1/2 1/2 | 1/2 1/2 | 1/2 1/2 | 1/2 1/2 ...
+            momentum updates:       |    1    |    1    |    1    |    1    ...
+
+            e.g. for case 2 with momentum step = 2:
+            step:                   1         2         3         4         ...
+            space half steps:       | 1/2 1/2 | 1/2 1/2 | 1/2 1/2 | 1/2 1/2 ...
+            momentum updates:       |         2         |         2         ...
+        =#
+
+        momentum_step = method.momentum_step[off_space+1]
+
+        if method.LocalMomentumUpdate
+            if every_step && momentum_step == 1 # evalute momentum on every step if momentum_step = 1
+                dt_cell = momentum_step * dt
+                put!(WorkerPool.jobs,(off_space,dt_cell,done))
+                tasks_this_step += 1
+            elseif !every_step && mod(method.step+Int(momentum_step / 2),momentum_step) == 0 # or halfway to every momentum_step if momentum_step > 1
+                # i.e. if momentum_step = 64, momentum should first be evalued at step 32 for dt=64*dt and then on every 64 steps after that, i.e. 32, 96, 160 etc.
+                dt_cell = momentum_step * dt
+                put!(WorkerPool.jobs,(off_space,dt_cell,done))
+                tasks_this_step += 1
+            end
+        elseif every_step
+            put!(WorkerPool.jobs,(off_space,dt,done))
+            tasks_this_step += 1
+        end
+        
         #println("submitting $off_space")
-        put!(WorkerPool.jobs,(off_space,dt,done))
+        
     end
 
     #println("finished submitting")
@@ -2306,10 +2295,12 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
     end
     end
 
-    for i in method.ActiveDomain
-        #println("Waiting for worker to finish off_space $i")
-        #flush(stdout)
-        take!(done) # when worker is done it will put a value in the done channel, so we can wait for all workers to finish. take waits for a value to be available in the done channel and then removes if from the channel. This is a blocking operation, so it will wait until a worker is done before continuing.
+    if tasks_this_step > 0 # if there are tasks to do
+        for i in 1:tasks_this_step
+            #println("Waiting for worker to finish off_space $i")
+            #flush(stdout)
+            take!(done) # when worker is done it will put a value in the done channel, so we can wait for all workers to finish. take waits for a value to be available in the done channel and then removes if from the channel. This is a blocking operation, so it will wait until a worker is done before continuing.
+        end
     end
 
     return nothing

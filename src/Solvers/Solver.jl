@@ -52,7 +52,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
     elseif method isa ExponentialRosenbrockEulerKrylovStruct
         fill!(method.dt_guess,ldexp(dt_initial, -6)) # initial guess for dt is 1/32 of the initial dt
     elseif method isa ExponentialRosenbrockEulerKrylovMixedStruct
-        @. method.dt_guess = ldexp(dt_initial * method.local_momentum_step, -6) # initial guess for dt is 1/32 of the initial dt multiplied by the size of the local step allowed by X_flux
+        @. method.dt_guess = ldexp(dt_initial * method.momentum_step, -6) # initial guess for dt is 1/32 of the initial dt multiplied by the size of the local step allowed by X_flux
         # check dt <= dt_min from X_Flux 
         if dt > method.dt_min
             @warn "Chosen dt may lead to unstable space updates"
@@ -60,7 +60,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
         if !ispow2(dt)
             @warn "Chosen dt is not of the form 2.0^n, may lead to floating point issues in timestep"
         end
-        if !all(iszero,mod(t_save,dt))
+        if !all(iszero,mod.(t_save,dt))
             @warn "Chosen t_save are not all integer multiples of dt"
         end
         # largest momentum step update 
