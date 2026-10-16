@@ -2115,105 +2115,111 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         tasks::Vector{Task}
     end
 
-    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{T<:AbstractFloat,VT<:Vector{T},DVT<:CuArray{T, 1, CUDACore.DeviceMemory},MT<:Matrix{T},DMT<:CuArray{T, 2, CUDACore.DeviceMemory},SMT<:SparseMatrixCSC{T, Int32},DSMT<:CuSparseMatrixCSR{T, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
+    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{HT<:AbstractFloat,DT<:AbstractFloat,HVT<:Vector{HT},DVT<:CuArray{DT, 1, CUDACore.DeviceMemory},HMT<:Matrix{HT},DMT<:CuArray{DT, 2, CUDACore.DeviceMemory},HSMT<:SparseMatrixCSC{HT, Int32},DSMT<:CuSparseMatrixCSR{DT, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
 
         # mixed backend so only MBin multiplication is done on GPU and then transfered back to CPU for the rest of the calculations
         # i.e. Jacobian and F are generated on GPU then transfered back if in a BinaryDomain, if not they are taken from the stored sparse arrays on CPU.
 
         nworkers::Int64
-        WorkerPool::WorkerPoolStruct{T}
+        WorkerPool::WorkerPoolStruct{HT}
 
         PhaseSpace::PhaseSpaceStruct
-        Precision::Type{T}
+        HostPrecision::Type{HT}
+        DevicePrecision::Type{DT}
         LocalMomentumUpdate::Bool
 
-        Binary_Interactions::Bool
-        Emission_Interactions::Bool
+        BinaryInteractions::Bool
+        EmissionInteractions::Bool
 
         DistributionDomainMask::Union{Vector{Int64},Nothing}
         DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}
         ActiveDomain::Vector{Int64}
 
-        M_Bin::DSMT                    # GPU
-        Bin_Domain::BD
+        MBin::DSMT                    # GPU
+        BinaryDomain::BD
 
-        M_Emi::Vector{Union{DMT,SMT}}   # on GPU if dense and CPU is sparse
-        A_Flux::DVT                     # on CPU
-        invA_Flux::DVT                  # inv Ap flux for time stepping
-        X_Flux::DSMT                    # on GPU
-        P_Flux::DSMT                    # on GPU
+        MEmi::Vector{Union{DMT,HSMT}}  # on GPU if dense and CPU is sparse
+        #AFlux_d::DVT                     # on CPU
+        invAFlux_d::DVT                  # inv Ap flux for time stepping
+        XFlux_d::DSMT                    # on GPU
+        PFlux_d::DSMT                    # on GPU
 
-        MEmiPFlux::Vector{Union{DMT,SMT}}# M_Emi - P_Flux for each spatial point, on GPU if dense and CPU if sparse
+        MEmiPFlux::Vector{Union{DMT,HSMT}}# M_Emi - P_Flux for each spatial point, on GPU if dense and CPU if sparse
 
-        Vol::Vector{T}
-        invA::Vector{T}                 # vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
+        Vol::Vector{HT}
+        invA::Vector{HT}                 # vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
 
         Adaptive::Bool
         Implicit::Bool
-        dt0::T
-        dt_min::T                        # suggestion for smallest timestep in form 2^n
-        Cr::T
-        n_cut::T
+        dt0::HT
+        dt_min::HT                        # suggestion for smallest timestep in form 2^n
+        n_cut::HT
+        n_cut_d::DT
 
         step::Int64
-        momentum_step::Vector{Int64}    # vector indicating if momentum should be updated for a given step           
+        momentum_step::Vector{Int64}    # vector indicating if momentum should be updated for a given step    
+        HasInjection::Vector{Bool}     # vector of bools to indicate if a spatial cell has injection       
 
-        M_Bin_Mul_Step::Vector{DMT}            # GPU temporary array for matrix multiplication of binary terms
-        M_Bin_Mul_Step_reshape::Vector{DVT}    # GPU temporary array for reshaped matrix multiplication of binary terms
-        f_init::VT                     # initial distribution function (used by solver to define output struct)
-        f::DVT                          # current distribution function on GPU
-        fstep::DVT                      # distribution function after a step on GPU
-        df::VT                         # change in distribution function
-        df_d::DVT                      # change in distribution function on GPU
-        df_Inj::VT                     # change in distribution function due to injection of particles
-        df_Inj_d::DVT                     # change in distribution function due to injection of particles on GPU
-        df_tmp::VT                     # temporary array the size of f for CFL calculations
-        df_tmp_d::DVT                  # temporary array the size of f for CFL calculations on GPU
-        f_mask::FD                     # mask for spatial domain f (1 for points in domain, 0 for points outside domain) 
-        df_mask::DFD                   # mask for spatial domain df (1 for points in domain, 0 for points outside domain)  
+        MBinMulStep::Vector{DMT}            # GPU temporary array for matrix multiplication of binary terms
+        MBinMulStepReshape::Vector{DVT}    # GPU temporary array for reshaped matrix multiplication of binary terms
+        f_init::HVT                     # initial distribution function (used by solver to define output struct)
+        f::DVT           # current distribution function on GPU
+        fstep_d::DVT     # distribution function after a step on GPU
+        df::HVT          # change in distribution function
+        df_d::DVT        # change in distribution function on GPU
+        df_Inj::HVT      # change in distribution function due to injection of particles
+        df_Inj_d::DVT    # change in distribution function due to injection of particles on GPU
+        df_tmp::HVT      # temporary array the size of f for CFL calculations
+        df_tmp_d::DVT    # temporary array the size of f for CFL calculations on GPU
+        f_mask_d::FD     # mask for spatial domain f (1 for points in domain, 0 for points outside domain) 
+        df_mask_d::DFD   # mask for spatial domain df (1 for points in domain, 0 for points outside domain)  
 
-        F::Vector{VT}                          # vector for implicit solve residuals
-        J::Vector{MT}                          # Jacobian matrix for implicit solve 
-        F_d::Vector{DVT}                       # vector for implicit solve residuals on GPU
-        J_d::Vector{DMT}                       # Jacobian matrix for implicit solve on GPU
-        Jsparse::Vector{SMT}                   # sparse Jacobian matrix for implicit solve on CPU
-        E::VT                           # energy vector for correcting step (length of n_momentum)) on CPU
-        E_long::DVT                      # energy vector for correcting step (length of n_momentum*n_space) on GPU
-        D::VT                          # Diagonal scaling matrix
-        D_d::DVT                       # Diagonal scaling matrix on GPU
-        Dinv::VT                       # Inverse of diagonal scaling matrix
-        Dinv_d::DVT                    # Inverse of diagonal scaling matrix on GPU
-        ϕ::Vector{MT}                          # matrix of ϕ functions for exponential Rosenbrock method
+        F::Vector{HVT}          # vector for implicit solve residuals
+        J::Vector{HMT}          # Jacobian matrix for implicit solve 
+        F_d::Vector{DVT}        # vector for implicit solve residuals on GPU
+        J_d::Vector{DMT}        # Jacobian matrix for implicit solve on GPU
+        Jsparse::Vector{HSMT}   # sparse Jacobian matrix for implicit solve on CPU
+        E::HVT                  # energy vector for correcting step (length of n_momentum)) on CPU
+        E_d::DVT                # energy vector for correcting step (length of n_momentum)) on GPU
+        E_long_d::DVT           # energy vector for correcting step (length of n_momentum*n_space) on GPU
+        D::HVT                  # Diagonal scaling matrix
+        D_d::DVT                # Diagonal scaling matrix on GPU
+        Dinv::HVT               # Inverse of diagonal scaling matrix
+        Dinv_d::DVT             # Inverse of diagonal scaling matrix on GPU
+        ϕ::Vector{HMT}          # matrix of ϕ functions for exponential Rosenbrock method
 
-        fold::Vector{VT}                       # local distribution function from previous step 
-        fold_d::Vector{DVT}                    # local distribution function from previous step on GPU
-        fout::Vector{VT}                       # local distribution function from current step
-        fout_d::Vector{DVT}                    # local distribution function from current step on GPU
-        fscale::Vector{VT}                     # scaling vector for exponential Rosenbrock method
-        fscale_d::Vector{DVT}                  # scaling vector for exponential Rosenbrock method on GPU
-        δ::Vector{VT}                          # temporary vector for exponential Rosenbrock method
-        δ_d::Vector{DVT}                     # temporary vector for exponential Rosenbrock method on GPU
+        fold::Vector{HVT}       # local distribution function from previous step 
+        fold_d::Vector{DVT}     # local distribution function from previous step on GPU
+        fout::Vector{HVT}       # local distribution function from current step
+        fout_d::Vector{DVT}     # local distribution function from current step on GPU
+        fscale::Vector{HVT}     # scaling vector for exponential Rosenbrock method
+        fscale_d::Vector{DVT}   # scaling vector for exponential Rosenbrock method on GPU
+        δ::Vector{HVT}          # temporary vector for exponential Rosenbrock method
+        δ_d::Vector{DVT}        # temporary vector for exponential Rosenbrock method on GPU
 
-        KsB::Vector{KrylovSubspace{Float64,Float64,Float64,Matrix{Float64},Matrix{Float64}}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
-        KsL::Vector{KrylovSubspace{Float64,Float64,Float64,Matrix{Float64},Matrix{Float64}}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
+        KsB::Vector{KrylovSubspace{HT,HT,HT,HMT,HMT}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
+        KsL::Vector{KrylovSubspace{HT,HT,HT,HMT,HMT}}      # Krylov subspace for exponential Rosenbrock method (higher precision for more accuracy)
         mB::Int64                        # dimension of Binary Krylov subspace
         mL::Int64                        # dimension of Linear Krylov subspace
-        ϕcacheB::Vector{ExponentialUtilities.PhivCache{true,T}} # cache for ϕ functions for Binary terms
-        ϕcacheL::Vector{ExponentialUtilities.PhivCache{true,T}} # cache for ϕ functions for Linear terms
+        ϕcacheB::Vector{ExponentialUtilities.PhivCache{true,HT}} # cache for ϕ functions for Binary terms
+        ϕcacheL::Vector{ExponentialUtilities.PhivCache{true,HT}} # cache for ϕ functions for Linear terms
 
-        dt_guess::Vector{T}             # guess for dt based on CFL condition
+        dt_guess::Vector{HT}             # guess for dt based on CFL condition
 
         function ExponentialRosenbrockEulerKrylovMixedStruct(PhaseSpace::PhaseSpaceStruct,Initial::Vector{Float64},Injection::Vector{Float64},BinM::BinaryMatricesStruct,EmiM::EmissionMatricesStruct,FluxM::FluxMatricesStruct;Adaptive::Bool=false,dt_initial::Float64=1.0,n_cut::Float64=1e-45,DistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,DeltaDistributionDomainMask::Union{Vector{Int64},Nothing}=nothing,mB::Int64=128,mL::Int64=32,nworkers::Int64=8,LocalMomentumUpdate::Bool=false)
 
             Backend = getfield(Main,Symbol("Backend"))
-            Precision = getfield(Main,Symbol("Precision"))
+            DevicePrecision = getfield(Main,Symbol("Precision"))
+            HostPrecision = Float64
+
+            @assert DevicePrecision == Float32 || DevicePrecision == Float64 "Precision for device arrays must be either Float32 or Float64"
 
             if Backend isa CPUBackend 
-                device_array_type = Matrix{Precision}
-                device_vector_type = Vector{Precision}
+                device_array_type = Matrix{DevicePrecision}
+                device_vector_type = Vector{DevicePrecision}
             elseif Backend isa CUDABackend
-                device_array_type = CuArray{Precision,2}
-                device_vector_type = CuArray{Precision,1}
+                device_array_type = CuArray{DevicePrecision,2}
+                device_vector_type = CuArray{DevicePrecision,1}
             end
 
             Momentum = PhaseSpace.Momentum
@@ -2230,7 +2236,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             n_momentum =PhaseSpace.Grids.n_momentum
             momentum_offset_species = PhaseSpace.Grids.momentum_species_offset
 
-            E = zeros(Precision,n_momentum)
+            E = zeros(HostPrecision,n_momentum)
             for species in eachindex(PhaseSpace.name_list)
                 px_num = px_num_list[species]
                 py_num = py_num_list[species]
@@ -2240,126 +2246,116 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                     for py in 1:py_num
                         for pz in 1:pz_num
                             idx = GlobalIndicesToStateIndex(PhaseSpace,1,1,1,px,py,pz,species)
-                            E[idx] = Precision(dE[px])
+                            E[idx] = HostPrecision(dE[px])
                         end
                     end
                 end
             end
+            E_d = zeros(Backend,DevicePrecision,n_momentum)
+            copyto!(E_d,E)
 
-            E_long = zeros(Backend,Precision,n_momentum*n_space)
+            E_long_d = zeros(Backend,DevicePrecision,n_momentum*n_space)
             for space in 1:n_space
-                copyto!(@view(E_long[(space-1)*n_momentum+1:space*n_momentum]), E)
+                copyto!(@view(E_long_d[(space-1)*n_momentum+1:space*n_momentum]), E)
             end
 
-            @assert Precision == Float32 || Precision == Float64 "Precision must be either Float32 or Float64"
+            BinaryInteractions = !isempty(BinM.Binary_list) && !isnothing(BinM.Domain)
+            EmissionInteractions = !isempty(EmiM.Emission_list)
 
-            Binary_Interactions = !isempty(BinM.Binary_list) && !isnothing(BinM.Domain)
-            Emission_Interactions = !isempty(EmiM.Emission_list)
-
-            Bin_Domain = BinM.Domain
+            BinaryDomain = BinM.Domain
 
             Vol = FluxM.Vol
 
-            M_Bin = sparse(Backend,Precision,BinM.M_Bin)
+            MBin = sparse(Backend,DevicePrecision,BinM.M_Bin)
 
             if Backend isa CUDABackend
                 CUDA.pool_status() 
             end
 
-            X_Flux = sparse(Backend,Precision,FluxM.X_Flux)
-            P_Flux = sparse(Backend,Precision,FluxM.P_Flux)
-            A_Flux = device_array(Backend,Precision,FluxM.Ap_Flux) # diagonal matrix of Ap flux 
-            invA_Flux = device_array(Backend,Precision,1 ./ FluxM.Ap_Flux) # invert Ap Flux for time stepping
-            df_Inj = convert(Vector{Precision},copy(Injection))
-            df_Inj_d = device_array(Backend,Precision,df_Inj)
+            XFlux_d = sparse(Backend,DevicePrecision,FluxM.X_Flux)
+            #AFlux = device_array(Backend,DevicePrecision,FluxM.Ap_Flux) # diagonal matrix of Ap flux 
+            invAFlux_d = device_array(Backend,DevicePrecision,1 ./ FluxM.Ap_Flux) # invert Ap Flux for time stepping
+            df_Inj = convert(Vector{HostPrecision},copy(Injection))
+            df_Inj_d = device_array(Backend,DevicePrecision,df_Inj)
 
-            f_init = convert(Vector{Precision},copy(Initial))
+            f_init = convert(Vector{HostPrecision},copy(Initial))
             # cut initial values that are smaller than n_cut in both number and energy
-            E_long_tmp = Vector(E_long) # host copy
-            @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(eltype(f_init)),f_init)
+            E_long_tmp = Vector{HostPrecision}(E_long_d) # host copy
+            @. f_init = ifelse(f_init < n_cut && f_init * E_long_tmp < n_cut,zero(HostPrecision),f_init)
 
-            f = zeros(Backend,Precision,length(Initial)) # initial f set in solver 
+            f = zeros(Backend,DevicePrecision,length(Initial)) # initial f set in solver 
 
-            if Binary_Interactions
-                M_Bin_Mul_Step = zeros(Backend,Precision,n_momentum,n_momentum)
-                M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
-                Vec_M_Bin_Mul_Step = Vector{device_array_type}(undef,nworkers)
-                Vec_M_Bin_Mul_Step_reshape = Vector{device_vector_type}(undef,nworkers)
+            if BinaryInteractions
+                MBinMulStep = zeros(Backend,DevicePrecision,n_momentum,n_momentum)
+                MBinMulStepReshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
+                MBinMulStep_vec = Vector{device_array_type}(undef,nworkers)
+                MBinMulStepReshape_vec = Vector{device_vector_type}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,n_momentum,n_momentum)
-                    Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],n_momentum^2)
+                    MBinMulStep_vec[i] = zeros(Backend,DevicePrecision,n_momentum,n_momentum)
+                    MBinMulStepReshape_vec[i] = reshape(MBinMulStep_vec[i],n_momentum^2)
                 end
             else
-                M_Bin_Mul_Step = zeros(Backend,Precision,0,0)
-                M_Bin_Mul_Step_reshape = reshape(M_Bin_Mul_Step,0)
-                Vec_M_Bin_Mul_Step = Vector{device_array_type}(undef,nworkers)
-                Vec_M_Bin_Mul_Step_reshape = Vector{device_vector_type}(undef,nworkers)
+                MBinMulStep = zeros(Backend,DevicePrecision,0,0)
+                MBinMulStepReshape = reshape(MBinMulStep,0)
+                MBinMulStep_vec = Vector{device_array_type}(undef,nworkers)
+                MBinMulStepReshape_vec = Vector{device_vector_type}(undef,nworkers)
                 for i in 1:nworkers
-                    Vec_M_Bin_Mul_Step[i] = zeros(Backend,Precision,0,0)
-                    Vec_M_Bin_Mul_Step_reshape[i] = reshape(Vec_M_Bin_Mul_Step[i],0)
+                    MBinMulStep_vec[i] = zeros(Backend,DevicePrecision,0,0)
+                    MBinMulStepReshape_vec[i] = reshape(MBinMulStep_vec[i],0)
                 end
             end
-            df = zeros(Precision,length(Initial))
-            df_d = device_array(Backend,Precision,df)
-            df_tmp = zeros(Precision,length(Initial))
-            df_tmp_d = device_array(Backend,Precision,df_tmp)
+            df = zeros(HostPrecision,length(Initial))
+            df_d = device_array(Backend,DevicePrecision,df)
+            df_tmp = zeros(HostPrecision,length(Initial))
+            df_tmp_d = device_array(Backend,DevicePrecision,df_tmp)
 
-            fstep = zeros(Backend,Precision,length(Initial))
-            F = zeros(Precision,n_momentum)
-            F_d = device_array(Backend,Precision,F)
-            J = zeros(Precision,n_momentum,n_momentum)
-            J_d = device_array(Backend,Precision,J)
-            Jsparse = sparse(zeros(Precision,n_momentum,n_momentum))
-            fold = zeros(Precision,n_momentum)
-            fold_d = device_array(Backend,Precision,fold)
-            fout = zeros(Precision,n_momentum)
-            fout_d = device_array(Backend,Precision,fout)
-            fscale = zeros(Precision,n_momentum)
-            fscale_d = device_array(Backend,Precision,fscale)
-            δ = zeros(Precision,n_momentum)
-            δ_d = device_array(Backend,Precision,δ)
-            ϕ = zeros(Precision,n_momentum,2)
-            ϕcacheB = ExponentialUtilities.PhivCache(ϕ,mB,1)
-            ϕcacheL = ExponentialUtilities.PhivCache(ϕ,mL,1)
+            fstep_d = zeros(Backend,DevicePrecision,length(Initial))
+            F = zeros(HostPrecision,n_momentum)
+            F_d = device_array(Backend,DevicePrecision,F)
+            J = zeros(HostPrecision,n_momentum,n_momentum)
+            J_d = device_array(Backend,DevicePrecision,J)
+            Jsparse = sparse(zeros(HostPrecision,n_momentum,n_momentum))
+            fold = zeros(HostPrecision,n_momentum)
+            fold_d = device_array(Backend,DevicePrecision,fold)
+            fout = zeros(HostPrecision,n_momentum)
+            fout_d = device_array(Backend,DevicePrecision,fout)
+            fscale = zeros(HostPrecision,n_momentum)
+            fscale_d = device_array(Backend,DevicePrecision,fscale)
+            δ = zeros(HostPrecision,n_momentum)
+            δ_d = device_array(Backend,DevicePrecision,δ)
+            ϕ = zeros(HostPrecision,n_momentum,2)
 
-            D = one(Precision) ./ copy(E)
+            D = one(HostPrecision) ./ copy(E)
             Dinv = copy(E)
-            D_d = device_array(Backend,Precision,D)
-            Dinv_d = device_array(Backend,Precision,Dinv)
-
-            # use higher precision for Krylov subspace to avoid numerical issues
-            KsB = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mB)
-            KsL = KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mL)
+            D_d = device_array(Backend,DevicePrecision,D)
+            Dinv_d = device_array(Backend,DevicePrecision,Dinv)
 
             # Making invA = vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
-            invA = zeros(Precision,n_space)
+            invA = zeros(HostPrecision,n_space)
             for off_space in 0:n_space-1
-
                 start_idx = n_momentum*off_space + 1
-
                 invA[off_space+1] = 1 / FluxM.Ap_Flux[start_idx]
-
             end
 
             # Build new MEmi
-            M_Emi = Vector{Union{device_array_type,SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
-            MEmiPFlux = Vector{Union{CuMatrix{Precision},SparseMatrixCSC{Precision,Int32}}}(undef,n_space)
-            tmpmatrix = zeros(Precision,n_momentum,n_momentum)
-            tmpsparsematrix = spzeros(Precision,Int32,n_momentum,n_momentum)
+            MEmi = Vector{Union{device_array_type,SparseMatrixCSC{HostPrecision,Int32}}}(undef,n_space)
+            MEmiPFlux = Vector{Union{device_array_type,SparseMatrixCSC{HostPrecision,Int32}}}(undef,n_space)
+            tmpmatrix = zeros(HostPrecision,n_momentum,n_momentum)
+            tmpsparsematrix = spzeros(HostPrecision,Int32,n_momentum,n_momentum)
             for off_space in 0:n_space-1
                 start_idx = n_momentum*off_space+1
                 end_idx = n_momentum*(off_space+1)
-                in_Binary = Binary_Interactions && in(off_space,BinM.Domain)
+                in_Binary = BinaryInteractions && in(off_space,BinaryDomain)
                 if in_Binary # dense matrix for binary cells as no default CUDA for dense + sparse matrix addition
-                    fill!(tmpmatrix,zero(Precision))
+                    fill!(tmpmatrix,zero(HostPrecision))
                     tmpmatrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
                     if isassigned(EmiM.M_Emi,off_space+1)
                         @assert EmiM.M_Emi[off_space+1] isa Matrix "Emission matrix must be dense for binary interactions"
                         tmpmatrix .+= EmiM.M_Emi[off_space+1]
                     end
-                    MEmiPFlux[off_space+1] = copy(Backend,Precision,tmpmatrix)
+                    MEmiPFlux[off_space+1] = copy(Backend,DevicePrecision,tmpmatrix)
                 else # sparse matrix for non-binary cells
-                    tmpsparsematrix.nzval .= zero(Precision)
+                    tmpsparsematrix.nzval .= zero(HostPrecision)
                     dropzeros!(tmpsparsematrix)
                     tmpsparsematrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
                     if isassigned(EmiM.M_Emi,off_space+1)
@@ -2378,14 +2374,29 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end=#
             end
 
+            if isnothing(DistributionDomainMask)
+                ActiveDomain = InclusiveDomainMask(PhaseSpace)
+            else
+                ActiveDomain = setdiff(InclusiveDomainMask(PhaseSpace),DistributionDomainMask)
+            end
+
             # work out suggestion for smallest timestep
-            X_Flux_diag = diag(FluxM.X_Flux)
-            XdivA = X_Flux_diag ./ FluxM.Ap_Flux
-            dt_min = nextpow2_float(minimum(PhaseSpace.Spacetime.dt0 ./ XdivA))
+            dt_min = HostPrecision(Inf)
+            for off_space in ActiveDomain
+                start_idx = n_momentum*off_space+1
+                end_idx = n_momentum*(off_space+1)
+                X_Flux_diag_local = @view(diag(FluxM.X_Flux)[start_idx:end_idx])
+                invA_local = invA[off_space+1]
+                XdivA_local = X_Flux_diag_local .* invA_local
+                dt_min_local = nextpow2_float(minimum(PhaseSpace.Spacetime.dt0 ./ XdivA_local))
+                println("off_space: $off_space, dt_min = $dt_min_local")
+                dt_min = min(dt_min,dt_min_local)
+            end
             # work out momentum_step 
             momentum_step::Vector{Int64} = ones(Int64,n_space)
             if LocalMomentumUpdate
-                for off_space in 0:n_space-1 
+                fill!(momentum_step,256) # random large number so 2^n overflows back to zero without affecting minimum calculations below 
+                for off_space in ActiveDomain
                     start_idx = n_momentum*off_space+1
                     end_idx = n_momentum*(off_space+1)
                     X_Flux_diag_local = @view(diag(FluxM.X_Flux)[start_idx:end_idx])
@@ -2400,6 +2411,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end
                 # now work out minimum of steps 
                 min_steps = minimum(momentum_step)
+                println("minsteps: $min_steps")
                 # we now want to scale n -> n - nmin so that each n is a multiple of the smallest timestep 
                 momentum_step .-= min_steps 
                 @. momentum_step = ifelse(momentum_step > 0, momentum_step-1, momentum_step) # do twice the number of required steps if > 2^0
@@ -2408,62 +2420,66 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 # now when mod(method.step,momentum_steps) = 0 momentum update should be evaluated
             end
 
+            # has injection? 
+            HasInjection = zeros(Bool,n_space)
+            for off_space in 0:n_space-1 
+                idx_range = n_momentum*off_space+1:n_momentum*(off_space+1)
+                df_Inj_local = @view(df_Inj[idx_range])
+                HasInjection[off_space+1] = !all(iszero,df_Inj_local)
+            end
+
             if !isnothing(DistributionDomainMask)
-                f_mask = ones(Precision,length(Initial))
+                f_mask = ones(HostPrecision,length(Initial))
                 for off_space_idx in DistributionDomainMask
                     for species_idx in eachindex(PhaseSpace.name_list)
-                    LocationSpeciesToStateVector(f_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                    LocationSpeciesToStateVector(f_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= HostPrecision(0)
                     end
                 end
-                f_mask = device_array(Backend,Precision,f_mask)
+                f_mask_d = device_array(Backend,DevicePrecision,f_mask)
             else
-                f_mask = nothing
+                f_mask_d = nothing
             end
 
             if !isnothing(DeltaDistributionDomainMask)
-                df_mask = ones(Precision,length(Initial))
+                df_mask = ones(HostPrecision,length(Initial))
                 for off_space_idx in DeltaDistributionDomainMask
                     for species_idx in eachindex(PhaseSpace.name_list)
-                    LocationSpeciesToStateVector(df_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= Precision(0.0)
+                    LocationSpeciesToStateVector(df_mask,PhaseSpace,off_space_idx=off_space_idx,species_index=species_idx) .= HostPrecision(0)
                     end
                 end
-                df_mask = device_array(Backend,Precision,df_mask)
+                df_mask_d = device_array(Backend,DevicePrecision,df_mask)
             else
-                df_mask = nothing
+                df_mask_d = nothing
             end
 
-            dt_guess = zeros(Precision, n_space)
+            dt_guess = zeros(HostPrecision, n_space)
             fill!(dt_guess,ldexp(dt_initial, -5)) # initial guess for dt is 1/64 of the initial dt
 
             ###### Actually Build the Struct with Concrete Types ######
 
-            self = new{Precision,Vector{Precision},CuArray{Precision, 1, CUDACore.DeviceMemory},Matrix{Precision},CuArray{Precision, 2, CUDACore.DeviceMemory},SparseMatrixCSC{Precision, Int32},CuSparseMatrixCSR{Precision, Int32},typeof(Bin_Domain),typeof(f_mask),typeof(df_mask)}()
+            self = new{HostPrecision,DevicePrecision,Vector{HostPrecision},CuArray{DevicePrecision, 1, CUDACore.DeviceMemory},Matrix{HostPrecision},CuArray{DevicePrecision, 2, CUDACore.DeviceMemory},SparseMatrixCSC{HostPrecision, Int32},CuSparseMatrixCSR{DevicePrecision, Int32},typeof(BinaryDomain),typeof(f_mask_d),typeof(df_mask_d)}()
 
             self.nworkers = nworkers
 
             self.PhaseSpace = PhaseSpace
-            self.Precision = Precision
+            self.HostPrecision = HostPrecision
+            self.DevicePrecision = DevicePrecision
             self.LocalMomentumUpdate = LocalMomentumUpdate
  
-            self.Binary_Interactions = Binary_Interactions
-            self.Emission_Interactions = Emission_Interactions
+            self.BinaryInteractions = BinaryInteractions
+            self.EmissionInteractions = EmissionInteractions
 
             self.DistributionDomainMask = DistributionDomainMask
             self.DeltaDistributionDomainMask = DeltaDistributionDomainMask
-            if isnothing(DistributionDomainMask)
-                self.ActiveDomain = InclusiveDomainMask(PhaseSpace)
-            else
-                self.ActiveDomain = setdiff(InclusiveDomainMask(PhaseSpace),DistributionDomainMask)
-            end
+            self.ActiveDomain = ActiveDomain
 
-            self.M_Bin = M_Bin
-            self.Bin_Domain = BinM.Domain
+            self.MBin = MBin
+            self.BinaryDomain = BinaryDomain
 
-            self.M_Emi = M_Emi
-            self.A_Flux = A_Flux
-            self.invA_Flux = invA_Flux
-            self.X_Flux = X_Flux
-            self.P_Flux = P_Flux
+            self.MEmi = MEmi
+            #self.AFlux = AFlux
+            self.invAFlux_d = invAFlux_d
+            self.XFlux_d = XFlux_d
 
             self.MEmiPFlux = MEmiPFlux
 
@@ -2474,18 +2490,19 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.Implicit = true
             self.dt0 = PhaseSpace.Spacetime.dt0
             self.dt_min = dt_min
-            self.Cr = zero(Precision)
-            self.n_cut = n_cut
+            self.n_cut = HostPrecision(n_cut)
+            self.n_cut_d = DevicePrecision(n_cut)
 
             self.step = 0
             self.momentum_step = momentum_step
+            self.HasInjection = HasInjection
 
-            self.M_Bin_Mul_Step = Vec_M_Bin_Mul_Step
-            self.M_Bin_Mul_Step_reshape = Vec_M_Bin_Mul_Step_reshape
+            self.MBinMulStep = MBinMulStep_vec
+            self.MBinMulStepReshape = MBinMulStepReshape_vec
             self.f_init = f_init
             self.f = f
 
-            self.fstep = fstep
+            self.fstep_d = fstep_d
 
             self.df = df
             self.df_d = df_d
@@ -2496,8 +2513,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.df_tmp = df_tmp
             self.df_tmp_d = df_tmp_d
 
-            self.f_mask = f_mask
-            self.df_mask = df_mask
+            self.f_mask_d = f_mask_d
+            self.df_mask_d = df_mask_d
 
             self.F = [similar(F) for _ in 1:nworkers]
             self.J = [similar(J) for _ in 1:nworkers]
@@ -2505,7 +2522,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.J_d = [similar(J_d) for _ in 1:nworkers]
             self.Jsparse = [similar(Jsparse) for _ in 1:nworkers]
             self.E = E
-            self.E_long = E_long
+            self.E_d = E_d
+            self.E_long_d = E_long_d
             self.D = D 
             self.D_d = D_d
             self.Dinv = Dinv
@@ -2531,19 +2549,19 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.dt_guess = dt_guess
 
-            self.WorkerPool = WorkerPoolStruct(Precision,nworkers,self)
+            self.WorkerPool = WorkerPoolStruct(self,nworkers)
 
             return self
         end
 
     end
     
-    function WorkerPoolStruct(::Type{T},nwokers::Int,method::ExponentialRosenbrockEulerKrylovMixedStruct) where T
+    function WorkerPoolStruct(method::ExponentialRosenbrockEulerKrylovMixedStruct,nwokers::Int)
 
-        jobs = Channel{Tuple{Int,T,Channel{Nothing}}}(length(method.ActiveDomain))
-        tasks = [Threads.@spawn worker!(wid,jobs,method) for wid in 1:nwokers]
+        jobs = Channel{Tuple{Int,method.HostPrecision,Channel{Nothing}}}(length(method.ActiveDomain))
+        tasks = [Threads.@spawn worker!(method,wid,jobs) for wid in 1:nwokers]
 
-        return WorkerPoolStruct{T}(jobs, tasks)
+        return WorkerPoolStruct{method.HostPrecision}(jobs, tasks)
     end
 
     function close_pool!(pool::WorkerPoolStruct)

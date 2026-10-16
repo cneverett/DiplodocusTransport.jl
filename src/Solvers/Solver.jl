@@ -41,7 +41,6 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
     copyto!(method.f,method.f_init) # reset f to initial condition at start of each solve (important for multiple solves in same session)
     #println(sum(method.f))
     method.step = 0
-    method.Cr = 0.0
     
     dt::T = dt_initial
 
@@ -69,6 +68,9 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
             # check end step is a multiple of max_dt 
             if mod(t_save[end],max_dt) != 0
                 @warn "simulation end time is not a multiple of the largest advection timescale, may result in inaccuracy"
+            end
+            if dt != method.dt_min 
+                @error "For this method dt_Initial must equal dt_min"
             end
         end
     end

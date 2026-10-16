@@ -1714,7 +1714,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
             while t < 1.0
 
-                println("this cell $off_space injection = $has_injection, type: binary")
+                println("this cell $off_space injection = $HasInjection, type: binary")
 
                 dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
@@ -1909,7 +1909,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovStruct,dt::T) 
 
             while t < 1.0
 
-                println("this cell $off_space, injection = $has_injection, type: linear")
+                println("this cell $off_space, injection = $HasInjection, type: linear")
 
                 dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
@@ -2110,15 +2110,20 @@ end
 2nd order Expontial integration time-stepping method for the transport equation. 
 
 """
-function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,t_stop::Float64,dt::Float64,Verbose::Int64)
+function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::T,t_stop::T,dt::T,Verbose::Int64) where T
+
+    DevicePrecision = method.DevicePrecision
+    HostPrecision = method.HostPrecision
+
+    @assert T == HostPrecision "Host precision and timing precision do not match"
 
     method.step += 1
 
-    dt0::Float64 = method.dt0
+    dt0::HostPrecision = method.dt0
 
     # will we reached the next t_save?
 
-    t_next::Float64 = t_start + dt
+    t_next::HostPrecision = t_start + dt
     if abs(t_next - t_stop) <= sqrt(eps(t_stop)) #eps(max(abs(t_next), abs(t_stop)))
         dt = t_stop - t_start # make it exact to avoid round off error in time stepping
         save = true
@@ -2137,33 +2142,34 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
 
     # scaling of time stepping
 
-    dt_scale = method.Precision(dt / dt0)
+    dt_scale_d = method.DevicePrecision(dt / dt0)
+    dt_scale = method.HostPrecision(dt / dt0)
 
-    f = method.f
-    fstep = method.fstep
+    f_d = method.f 
+    fstep_d = method.fstep_d
     #ftmp_d = method.ftmp_d
     df_d = method.df_d
     df_tmp_d = method.df_tmp_d
-    E_long = method.E_long
+    E_long_d = method.E_long_d
 
     # set fstep to intial value
 
-        copyto!(fstep,f)
+        copyto!(fstep_d,f_d)
 
     # half space update
 
-        mul!(df_d,method.X_Flux,fstep)
-        @. df_d *= -method.invA_Flux * dt_scale/2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
+        mul!(df_d,method.XFlux_d,fstep_d)
+        @. df_d *= -method.invAFlux_d * dt_scale_d / 2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
 
         # mask of df regions
 
-        if !isnothing(method.df_mask)
-            @. df_d *= method.df_mask
+        if !isnothing(method.df_mask_d)
+            @. df_d *= method.df_mask_d
         end 
 
-        @. fstep += df_d
+        @. fstep_d += df_d
 
-        @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
+        @. fstep_d = ifelse(fstep_d < method.n_cut_d && fstep_d .* E_long_d < method.n_cut_d,zero(DevicePrecision),fstep_d)
 
     # momentum update
 
@@ -2171,16 +2177,16 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
 
     # half space update
 
-        mul!(df_d,method.X_Flux,fstep)
-        @. df_d *= -method.invA_Flux * dt_scale/2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
+        mul!(df_d,method.XFlux_d,fstep_d)
+        @. df_d *= -method.invAFlux_d * dt_scale_d / 2  # minus sign as flux terms are on RHS of transport equation, also resets df_Space
 
-        if !isnothing(method.df_mask)
-            @. df_d *= method.df_mask
+        if !isnothing(method.df_mask_d)
+            @. df_d *= method.df_mask_d
         end 
 
-        @. fstep += df_d
+        @. fstep_d += df_d
 
-        @. fstep = ifelse(fstep<method.n_cut && fstep .* E_long < method.n_cut,zero(eltype(fstep)),fstep)
+        @. fstep_d = ifelse(fstep_d < method.n_cut_d && fstep_d .* E_long_d < method.n_cut_d,zero(DevicePrecision),fstep_d)
 
     # momentum update (only if LocalMomentumUpdate)
 
@@ -2191,16 +2197,12 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
     # Cr calculation
 
     Cr = 0.0
-    sum_f = sum(method.f)
-    if sum_f != 0.0
-
-        #@. method.df_tmp = ifelse(method.f + method.df < method.n_cut, zero(eltype(method.df)), method.df)
-        #@. method.df_tmp = method.df_tmp / method.f
-        @. df_d = fstep - f
-        @. df_tmp_d = df_d / f
-        @. df_tmp_d = ifelse(isnan(df_tmp_d), Inf, df_tmp_d)
+    sum_f = sum(f_d) # sum of previous state
+    if sum_f != zero(DevicePrecision)
+        @. df_d = fstep_d - f_d
+        @. df_tmp_d = df_d / f_d
+        @. df_tmp_d = ifelse(isnan(df_tmp_d), DevicePrecision(Inf), df_tmp_d)
         Cr = -minimum(df_tmp_d) 
-
     end
 
     if Verbose == 1 && Cr > 1.0
@@ -2212,19 +2214,24 @@ function (method::ExponentialRosenbrockEulerKrylovMixedStruct)(t_start::Float64,
         flush(stdout)
     end
 
-    @. f = fstep
+    # update state vector
+    @. f_d = fstep_d
 
     # remove masked off domain regions
 
-    if !isnothing(method.f_mask)
-        @. f *= method.f_mask
+    if !isnothing(method.f_mask_d)
+        @. f_d *= method.f_mask_d
     end
 
-    return dt,save
+    return dt, save
 
 end
 
 function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt::T;every_step::Bool=true) where T
+
+    HostPrecision = method.HostPrecision
+
+    @assert T == HostPrecision "Host precision and timing precision do not match"
 
     # build a channel of jobs to be run across workers
     #=jobs = Channel{Tuple{Int,T}(length(method.ActiveDomain))
@@ -2264,12 +2271,12 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
         if method.LocalMomentumUpdate
             if every_step && momentum_step == 1 # evalute momentum on every step if momentum_step = 1
-                dt_cell = momentum_step * dt
+                dt_cell = HostPrecision(momentum_step * method.dt_min)
                 put!(WorkerPool.jobs,(off_space,dt_cell,done))
                 tasks_this_step += 1
-            elseif !every_step && mod(method.step+Int(momentum_step / 2),momentum_step) == 0 # or halfway to every momentum_step if momentum_step > 1
+            elseif !every_step && momentum_step > 1 && mod(method.step+Int(momentum_step / 2),momentum_step) == 0 # or halfway to every momentum_step if momentum_step > 1
                 # i.e. if momentum_step = 64, momentum should first be evalued at step 32 for dt=64*dt and then on every 64 steps after that, i.e. 32, 96, 160 etc.
-                dt_cell = momentum_step * dt
+                dt_cell = HostPrecision(momentum_step * method.dt_min)
                 put!(WorkerPool.jobs,(off_space,dt_cell,done))
                 tasks_this_step += 1
             end
@@ -2307,31 +2314,34 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
 end
 
-function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method::ExponentialRosenbrockEulerKrylovMixedStruct#=,dt::T=#) where T
+function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}}) where T
 
     println("Worker $worker started")
 
     wait(jobs) # wait for jobs to be available in the channel before assigning the variables below to prevent them from intialiseing when `WorkerPool` is created and before `method` is fully constructed.
 
-    Precision = method.Precision
+    HostPrecision = method.HostPrecision
+    DevicePrecision = method.DevicePrecision
+
+    @assert T == HostPrecision "Host precision and timing precision do not match"
 
     n_momentum = method.PhaseSpace.Grids.n_momentum
     n_space = method.PhaseSpace.Grids.n_space
 
-    J_d = method.J_d[worker]        # on GPU
     J = method.J[worker]            # on CPU
+    J_d = method.J_d[worker]        # on GPU
     Jsparse = method.Jsparse[worker]# on CPU
-    F_d = method.F_d[worker]        # on GPU
     F = method.F[worker]            # on CPU
+    F_d = method.F_d[worker]        # on GPU
 
-    M_Bin = method.M_Bin
-    M_Bin_Mul_Step_reshape = method.M_Bin_Mul_Step_reshape[worker]
-    M_Bin_Mul_Step = method.M_Bin_Mul_Step[worker]
+    MBin = method.MBin
+    MBinMulStepReshape = method.MBinMulStepReshape[worker]
+    MBinMulStep = method.MBinMulStep[worker]
 
-    fold_d = method.fold_d[worker]  # on GPU
     fold = method.fold[worker]      # on CPU
-    fout_d = method.fout_d[worker]  # on GPU
+    fold_d = method.fold_d[worker]  # on GPU
     fout = method.fout[worker]      # on CPU
+    fout_d = method.fout_d[worker]  # on GPU
     fscale = method.fscale[worker]  # on CPU
 
     mB = method.mB 
@@ -2345,11 +2355,13 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
     δ = method.δ[worker]            # on CPU
     δ_d = method.δ_d[worker]        # on GPU
 
-    D_d = method.D_d                # on GPU
     D = method.D                    # on CPU
-    Dinv_d = method.Dinv_d          # on GPU
+    D_d = method.D_d                # on GPU
     Dinv = method.Dinv              # on CPU
-    E = method.E
+    Dinv_d = method.Dinv_d          # on GPU
+
+    E = method.E                    # on CPU 
+    E_d = method.E_d                # on GPU
 
     # arnoldi settings and tolerances
     iop = 0
@@ -2364,38 +2376,42 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
         idx_range = n_momentum*off_space+1:n_momentum*(off_space+1)
 
-        fstep = @view(method.fstep[idx_range]) # on GPU
+        @inbounds HasInjection = method.HasInjection[off_space+1]
+
+        fstep_d = @view(method.fstep_d[idx_range]) # on GPU
         df_Inj = @view(method.df_Inj[idx_range]) # on CPU
         df_Inj_d = @view(method.df_Inj_d[idx_range]) # on GPU
 
-        has_injection = sum(df_Inj) > zero(Precision)
-        if !has_injection && sum(fstep) == zero(Precision) 
+        if !HasInjection && sum(fstep_d) == zero(DevicePrecision) 
+            println("space: ", off_space," no change"," dt: ", dt)
             put!(done, nothing) # signal that this job is done
             continue
         end
 
-        if has_injection
-            ηEtarget = 5e-4
+        if HasInjection
+            ηEtarget = 1.0#HostPrecision(5e-4)
         else
-            ηEtarget = 1e-3
+            ηEtarget = 1.0#HostPrecision(1e-3)
         end
 
-        @inbounds vol = method.Vol[off_space+1]
+        @inbounds Vol = method.Vol[off_space+1]
+        Vol_d = DevicePrecision(Vol)
         @inbounds invA = method.invA[off_space+1]
+        invA_d = DevicePrecision(invA)
+
         @inbounds dt_guess = method.dt_guess[off_space+1]
+
         @inbounds MEmiPFlux = method.MEmiPFlux[off_space+1]
 
-        if method.Binary_Interactions && off_space in method.Bin_Domain # mix of CPU and GPU
+        if method.BinaryInteractions && off_space in method.BinaryDomain # mix of CPU and GPU
 
             @assert MEmiPFlux isa CuArray "MEmiPFlux must be a CuArray for binary interactions"
 
-            copyto!(fold_d,fstep)
-            copyto!(fold,fstep) # copy to CPU for Arnoldi
+            copyto!(fold_d,fstep_d)
+            copyto!(fold,fstep_d) # copy to CPU for Arnoldi
 
             t = 0.0
-
-            dt_local = dt_guess #/ 2 # initial guess for local time step, can adjust based on desired accuracy and problem stiffness
-
+            dt_local = dt_guess
             dt_old = dt_local
 
             kE = 1.0
@@ -2404,10 +2420,10 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
             while t < 1.0
 
-                dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
-
-                if dtscale < 1e-8 
-                    @warn "Time step small $dt_local in cell $off_space, injection = $has_injection, type: binary"
+                dtscale = HostPrecision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
+                dtscale_d = DevicePrecision(dtscale)
+                if dtscale < HostPrecision(1e-8) 
+                    @warn "Time step small $dt_local in cell $off_space, injection = $HasInjection, type: binary"
                 end
 
                 kold = k 
@@ -2417,31 +2433,30 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
                 # EXPRB First Order Exponential Rosenbrock method with adaptive timestepping
 
-                    mul!(M_Bin_Mul_Step_reshape,M_Bin,fold_d,vol,zero(Precision))
+                    mul!(MBinMulStepReshape,MBin,fold_d,Vol_d,zero(DevicePrecision))
                     # Form J
-                    @. J_d = Precision(2) * M_Bin_Mul_Step
+                    @. J_d = MBinMulStep * 2
                     @. J_d += MEmiPFlux
-                    @. M_Bin_Mul_Step += MEmiPFlux
+                    @. MBinMulStep += MEmiPFlux
 
-                    @. J_d *= dtscale * invA
+                    @. J_d *= dtscale_d * invA_d
 
                     # Form F
-                    mul!(F_d,M_Bin_Mul_Step,fold_d,invA * dtscale,zero(Precision))
-                    #@. F_d *= invA
+                    mul!(F_d,MBinMulStep,fold_d,invA_d * dtscale_d,zero(DevicePrecision))
 
                     # Energy error estimate using F 
                     #ηEest = abs(dot(E,F) * dtscale) / dot(E,fold)
                     #println("Energy error estimate: ", ηEest)
 
-                    @. F_d += #=A *=# df_Inj_d * dtscale #* dtldt0
-                    if norm(F_d) < Precision(1e-30) # no change in distribution or just small numerical round off
+                    @. F_d += df_Inj_d * dtscale_d 
+                    if norm(F_d) < DevicePrecision(1e-30) # no change in distribution or just small numerical round off
                         break
                     end
 
                     # Diagonal scaling of J and F to improve conditioning for Krylov subspace approximation
-                    J_d .*= (D_d').^2 # right mul
-                    J_d .*= (Dinv_d).^2 # left mul
-                    F_d .*= (Dinv_d).^2 # left mul
+                    J_d .*= (D_d') #.^2 # right mul
+                    J_d .*= (Dinv_d) #.^2 # left mul
+                    F_d .*= (Dinv_d) #.^2 # left mul
 
                     copyto!(J,J_d) # copy to CPU for Arnoldi
                     copyto!(F,F_d) # copy to CPU for Arnoldi
@@ -2451,7 +2466,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
                     V = @view(ExponentialUtilities.getV(KsB)[:,1:end-1])
                     #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
 
-                    if iop == 0 && #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1e-5 
+                    if iop == 0 && norm(V' * V - I) > 1e-5 
                         dt_local = ldexp(dt_local, -1) # reduce time step by factor of 2
                         @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), dimension $(KsB.m), max dimension $(KsB.maxiter), reducing time step to $dt_local"
                         continue
@@ -2459,21 +2474,21 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
                     # Compute φ functions of H
                     phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates                  
-                    @. δ = D^2 * @view(ϕ[:,2]) * k
+                    @. δ = D #=^2=# * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
-                        @. fout = ifelse(fout < zero(Precision), zero(Precision),fout)
+                        @. fout = ifelse(fout < zero(HostPrecision), zero(HostPrecision),fout)
 
                         # energy error
-                        ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k*dtscale)
+                        #ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * k*dtscale)
                         Eold = dot(E, fold .+ df_Inj * k * dtscale)
-                        ηE = abs(dot(E, fout) / Eold - one(Precision))
+                        ηE = abs(dot(E, fout) / Eold - one(HostPrecision))
                         #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout), " inj E: ", dot(E, df_Inj * k * dtscale))
 
                         if isnan(ηE) || ηE > 1e-2
 
                             # reject step and reduce time step
-                            #println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5")
+                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5")
                             dt_local = ldexp(dt_local, -1)
                             continue
                         end
@@ -2525,7 +2540,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
                     end
 
                     # number and energy cut 
-                    @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
+                    @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(HostPrecision),fout)
 
                     #=if ηE > 2e-4
                         @warn "Energy error in EXPRB1 step is large $ηE, may be unstable, consider reducing time step or adjusting ηtarget"
@@ -2541,7 +2556,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
             end # while not accurate
 
-            copyto!(fstep, fold_d)
+            copyto!(fstep_d, fold_d)
 
             @inbounds method.dt_guess[off_space+1] = dt_old # update dt_guess with last plus one dt (avoid last as this could be limited by (1.0-t))
 
@@ -2549,12 +2564,11 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
             @assert MEmiPFlux isa SparseMatrixCSC "MEmiPFlux must be a SparseMatrixCSC for linear terms"
 
-            copyto!(fold,fstep)
+            copyto!(fold,fstep_d)
 
             t = 0.0
 
             dt_local = dt_guess #/ 2 # initial guess for local time step, can adjust based on desired accuracy and problem stiffness
-
             dt_old = dt_local
 
             kE = 1.0
@@ -2563,10 +2577,10 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
             while t < 1.0
 
-                dtscale = Precision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
+                dtscale = HostPrecision(dt_local / method.dt0) # scale for Jacobian as `vol` is calculated using `dt0` then the time step dt is just k as k*dt_local
 
-                if dtscale < 1e-8 
-                    @warn "Time step small $dt_local in cell $off_space, injection = $has_injection, type: linear"
+                if dtscale < HostPrecision(1e-8) 
+                    @warn "Time step small $dt_local in cell $off_space, injection = $HasInjection, type: linear"
                 end
 
                 kold = k 
@@ -2582,64 +2596,79 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
                 # Form F
                 mul!(F,Jsparse,fold)
-                @. F += #=A *=# df_Inj * dtscale
-                if norm(F) < Precision(1e-30) # no change in distribution
+                @. F += df_Inj * dtscale
+                if norm(F) < HostPrecision(1e-30) # no change in distribution
                     break
                 end
 
-                Jsparse .*= D' # right mul
-                Jsparse .*= Dinv # left mul
-                F .*= Dinv # left mul
+                #Jsparse .*= D' .^ 2 # right mul
+                #Jsparse .*= Dinv .^ 2 # left mul
+                #F .*= Dinv .^ 2 # left mul
 
-                if has_injection
+                tau = 1e-8
+                JF = Jsparse * F
+                s = max.(abs.(F), abs.(k .* JF) ./ 2)
+                floor = tau * maximum(s)
+                s = max.(s, floor)
+                d = 1.0 ./ s
+
+                Jsparse .*= s' # right mul
+                Jsparse .*= d # left mul
+                F .*= d # left mul
+
+                if HasInjection
                     arnoldi!(KsL,Jsparse,F;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
                 else # no injection, just linear Jacobian so use exp over phi
-                    @. fscale = Dinv * fold # left mul
+                    #@. fscale = Dinv .^ 2 * fold # left mul
+                    @. fscale = d * fold # left mul
                     arnoldi!(KsL,Jsparse,fscale;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
                 end
 
                 V = @view(ExponentialUtilities.getV(KsL)[:,1:end-1])
-                #H = ExponentialUtilities.getH(Ks)[1:end-1,1:end]
 
                 norm_unscaled = norm(V' * V - I)
                 if isnan(norm_unscaled) # no J or F means no Krylov subspace generated, so just accept step as is and move on,
                     break
                 end
 
-                if iop == 0 && #=cond((I - dt_local*H)) > 1f3 ||=#  norm(V' * V - I) > 1f-5 
-                    dt_local = dt_local * 0.5
-                    @warn "Krylov subspace has poor orthogonalisation $(norm(V' * V - I)), reducing time step to $dt_local"
+                if iop == 0 && norm_unscaled > 1e-5 
+                    dt_local = ldexp(dt_local, -1) # reduce time step by factor of 2
+                    @warn "Krylov subspace has poor orthogonalisation $norm_unscaled), reducing time step to $dt_local"
                     continue
                 end
 
                 # Compute φ functions of H
-                if has_injection 
+                if HasInjection 
                     if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
                         phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                        @. δ = D * @view(ϕ[:,2]) * k
+                        #@. δ = D^2 * @view(ϕ[:,2]) * k
+                        @. δ = s * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
                     else
                         @. fout = fold + df_Inj * k * dtscale
                     end
                 else # no injection, just linear Jacobian so use exp over phi
-                    expv!(δ,k#=*invA=#,KsL) # TODO: add cache for expv to avoid repeated allocations, maybe replace with phiv! with dimension 0 to just return ϕ0=exp
-                    @. fout = D * δ
-                end
+                    #expv!(δ,k,KsL) # TODO: add cache for expv to avoid repeated allocations, maybe replace with phiv! with dimension 0 to just return ϕ0=exp
+                    #@. fout = D * δ
 
+                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                    #@. fout = D^2 * @view(ϕ[:,1])
+                    @. fout = s * @view(ϕ[:,1])
+                end
 
                 # adaptive time stepping
 
-                    @. fout = ifelse(fout < zero(Precision), zero(Precision),fout)
+                    @. fout = ifelse(fout < zero(HostPrecision), zero(HostPrecision),fout)
 
                     # energy error
-                    if has_injection
+                    if HasInjection
                         ΔE = dot(E, fout) - dot(E, fold .+ df_Inj * dtscale)
                         Eold = dot(E, fold .+ df_Inj * dtscale)
                     else
                         ΔE = dot(E, fout) - dot(E, fold)
                         Eold = dot(E, fold)
                     end
-                    ηE = abs(dot(E, fout) / Eold - one(Precision))
+                    ηE = abs(dot(E, fout) / Eold - one(HostPrecision))
                     #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
 
                     if isinf(ηE)
@@ -2652,7 +2681,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
                     order = 1.0 # energy error is order 1
 
                     kE = (ηEtarget/(ηE+eps(ηEtarget)))^(1.0/(order+1)) # k from energy error estimate
-                    if has_injection && KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
+                    if HasInjection && KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
                         kϕmax = kϕold < 1.0 ? 1.0 + kϕold : 2.0
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
@@ -2685,17 +2714,22 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
                     k = dt_local / dt_old
 
                 if k != 1.0
-                    if has_injection 
+                    if HasInjection 
                         if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
                             phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                            @. δ = D * @view(ϕ[:,2]) * k
+                            #@. δ = D^2 * @view(ϕ[:,2]) * k
+                            @. δ = s * @view(ϕ[:,2]) * k
                             @. fout = fold + δ
                         else
                             @. fout = fold + df_Inj * k * dtscale
                         end
                     else # no injection, just linear Jacobian so use exp over phi
-                        expv!(δ,k#=*invA=#,KsL)
-                        @. fout = D * δ
+                        #expv!(δ,k,KsL)
+                        #@. fout = D * δ
+
+                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                        #@. fout = D^2 * @view(ϕ[:,1])
+                        @. fout = s * @view(ϕ[:,1])
                     end
 
                     # energy after correction  
@@ -2715,7 +2749,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
                     
                 end
 
-                @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(Precision),fout)
+                @. fout = ifelse(fout < method.n_cut && fout * E < method.n_cut, zero(HostPrecision),fout)
 
                 #@. fold = ifelse(fout <= method.n_cut, zero(Precision),fout)
                 #@. fold = max(fout, zero(Precision))
@@ -2726,7 +2760,7 @@ function worker!(worker::Int,jobs::Channel{Tuple{Int,T,Channel{Nothing}}},method
 
             end # while not accurate
 
-            copyto!(fstep, fold)
+            copyto!(fstep_d, fold)
 
             @inbounds method.dt_guess[off_space+1] = dt_old # update dt_guess with last plus one dt (avoid last as this could be limited by (1.0-t))
 
