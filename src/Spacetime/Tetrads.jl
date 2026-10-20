@@ -714,9 +714,9 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 inve[2,2] = ρ0/sqrt(1 - ρ0^2*Ω(ρ0)^2)
                 # Y components Y^α = g^αβY_β
                 inve[3,3] = -sqrt(ρ0)
-                inve[4,3] = sqrt(ρ0)
+                inve[4,3] = -sqrt(ρ0)
                 # Z components Z^α = g^αβZ_β
-                inve[3,4] = -sqrt(ρ0)
+                inve[3,4] = sqrt(ρ0)
                 inve[4,4] = -sqrt(ρ0)
             end
 
