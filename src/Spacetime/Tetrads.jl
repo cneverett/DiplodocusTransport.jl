@@ -118,7 +118,7 @@ TetradComponents!(pos,e,metric::AbstractMetric,coordinates::AbstractCoordinates,
 """
     InverseTetradComponents!(pos,inve,::AbstractMetric,::AbstractCoordinates,::AbstractTetrad)
 
-Returns the inverse tetrad components ``inve=inve^α_{~a}`` at a given point `pos` in spacetime defined by the coordinates `pos=(t,x,y,z)`. The tetrad components are stored in the static matrix inve, which are modified in-place. The specific form of the tetrad components depends on the type of metric, coordinate basis, and tetrad being used.
+Returns the inverse tetrad components ``inve=inve_α^{~a}`` at a given point `pos` in spacetime defined by the coordinates `pos=(t,x,y,z)`. The tetrad components are stored in the static matrix inve, which are modified in-place. The specific form of the tetrad components depends on the type of metric, coordinate basis, and tetrad being used.
 
 For force-free electromagnetic fields, the tetrad is given by e=(T^α,X^α,Y^α,Z^α), with ``Z^α=B^α/B`` and ``Y^α=E^α/E`` being the magnetic and electric field directions as measured by a static observer ``n_α``. The timelike vector ``T`` is the vector of an observer moving with the "ExB" drift velocity ``T=γ(n-U_⟂)`` where ``U_⟂=*(n∧E∧B)/B^2`` and ``γ=\\frac{B^2}{B^2-E^2}``. The final spacelike vector ``X`` is given by the orthonormality condition ``X=*(T∧Y∧Z)``.
 
@@ -708,7 +708,7 @@ CoordinateFluxSpaceDIntegrand!(txyz,D,metric::AbstractMetric,coordinates::Abstra
                 ρ0 = u*v
                 # T components T^α = g^αβT_β
                 inve[1,1] = 1/sqrt(1 - ρ0^2*Ω(ρ0)^2)
-                inve[2,1] = -ρ0^2/sqrt(1 - ρ0^2*Ω(ρ0)^2)
+                inve[2,1] = -ρ0^2*Ω(ρ0)/sqrt(1 - ρ0^2*Ω(ρ0)^2)
                 # X components X^α = g^αβX_β
                 inve[1,2] = -ρ0*Ω(ρ0)/sqrt(1 - ρ0^2*Ω(ρ0)^2)
                 inve[2,2] = ρ0/sqrt(1 - ρ0^2*Ω(ρ0)^2)
