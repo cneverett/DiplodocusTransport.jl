@@ -26,9 +26,18 @@ function SparseArrays.sparse(::CUDABackend,Precision::Type{<:AbstractFloat},SA::
     return CUDA.CUSPARSE.CuSparseMatrixCSR(Precision.(SA))
 end
 
+# sparse conversion 
+function SparseArrays.sparse(::CPUBackend,Precision::Type{<:AbstractFloat},SA::SparseMatrixCSC{T,I}) where {T<:AbstractFloat,I<:Integer}
+    return SparseMatrixCSC{Precision}{Int32}(Precision.(SA))
+end
+
 # copy conversions
 function Base.copy(::CUDABackend,Precision::Type{<:AbstractFloat}, A::AbstractArray{T}) where {T<:AbstractFloat}
     return CUDA.CuArray{Precision}(Precision.(copy(A)))
+end
+
+function Base.copy(::CPUBackend,Precision::Type{<:AbstractFloat}, A::AbstractArray{T}) where {T<:AbstractFloat}
+    return Array{Precision}(Precision.(copy(A)))
 end
 
 

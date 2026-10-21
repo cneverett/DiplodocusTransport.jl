@@ -2115,7 +2115,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         tasks::Vector{Task}
     end
 
-    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{HT<:AbstractFloat,DT<:AbstractFloat,HVT<:Vector{HT},DVT<:CuArray{DT, 1, CUDACore.DeviceMemory},HMT<:Matrix{HT},DMT<:CuArray{DT, 2, CUDACore.DeviceMemory},HSMT<:SparseMatrixCSC{HT, Int32},DSMT<:CuSparseMatrixCSR{DT, Int32},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
+    mutable struct ExponentialRosenbrockEulerKrylovMixedStruct{HT<:AbstractFloat,DT<:AbstractFloat,HVT<:Vector{HT},DVT<:Union{Vector{DT},CuArray{DT, 1, CUDACore.DeviceMemory}},HMT<:Matrix{HT},DMT<:Union{Matrix{DT},CuArray{DT, 2, CUDACore.DeviceMemory}},HSMT<:SparseMatrixCSC{HT, Int32},DSMT<:Union{CuSparseMatrixCSR{DT, Int32},SparseMatrixCSC{DT,Int32}},BD<:Union{Vector{Int64},Nothing},FD<:Union{DVT,Nothing},DFD<:Union{DVT,Nothing}} <: ImplicitSteppingMethod
 
         # mixed backend so only MBin multiplication is done on GPU and then transfered back to CPU for the rest of the calculations
         # i.e. Jacobian and F are generated on GPU then transfered back if in a BinaryDomain, if not they are taken from the stored sparse arrays on CPU.
@@ -2171,11 +2171,12 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         df_Inj_d::DVT    # change in distribution function due to injection of particles on GPU
         df_tmp::HVT      # temporary array the size of f for CFL calculations
         df_tmp_d::DVT    # temporary array the size of f for CFL calculations on GPU
-        f_mask_d::FD     # mask for spatial domain f (1 for points in domain, 0 for points outside domain) 
+        f_mask_d::FD    # mask for spatial domain f (1 for points in domain, 0 for points outside domain) 
         df_mask_d::DFD   # mask for spatial domain df (1 for points in domain, 0 for points outside domain)  
 
         F::Vector{HVT}          # vector for implicit solve residuals
         J::Vector{HMT}          # Jacobian matrix for implicit solve 
+        JF::Vector{HVT}         # vector for J*F used for scaling
         F_d::Vector{DVT}        # vector for implicit solve residuals on GPU
         J_d::Vector{DMT}        # Jacobian matrix for implicit solve on GPU
         Jsparse::Vector{HSMT}   # sparse Jacobian matrix for implicit solve on CPU
@@ -2186,6 +2187,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
         D_d::DVT                # Diagonal scaling matrix on GPU
         Dinv::HVT               # Inverse of diagonal scaling matrix
         Dinv_d::DVT             # Inverse of diagonal scaling matrix on GPU
+        S::Vector{HVT}                  # Second scaling vector (mutable)
+        Sinv::Vector{HVT}               # Inverse of second scaling vector (mutable)
         ϕ::Vector{HMT}          # matrix of ϕ functions for exponential Rosenbrock method
 
         fold::Vector{HVT}       # local distribution function from previous step 
@@ -2287,7 +2290,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             if BinaryInteractions
                 MBinMulStep = zeros(Backend,DevicePrecision,n_momentum,n_momentum)
-                MBinMulStepReshape = reshape(M_Bin_Mul_Step,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
+                MBinMulStepReshape = reshape(MBinMulStep,n_momentum^2) # Thanks to Emma Godden for fixing a bug here
                 MBinMulStep_vec = Vector{device_array_type}(undef,nworkers)
                 MBinMulStepReshape_vec = Vector{device_vector_type}(undef,nworkers)
                 for i in 1:nworkers
@@ -2315,6 +2318,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             J = zeros(HostPrecision,n_momentum,n_momentum)
             J_d = device_array(Backend,DevicePrecision,J)
             Jsparse = sparse(zeros(HostPrecision,n_momentum,n_momentum))
+            JF = zeros(HostPrecision,n_momentum)
             fold = zeros(HostPrecision,n_momentum)
             fold_d = device_array(Backend,DevicePrecision,fold)
             fout = zeros(HostPrecision,n_momentum)
@@ -2323,12 +2327,14 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             fscale_d = device_array(Backend,DevicePrecision,fscale)
             δ = zeros(HostPrecision,n_momentum)
             δ_d = device_array(Backend,DevicePrecision,δ)
-            ϕ = zeros(HostPrecision,n_momentum,2)
+            ϕ = zeros(HostPrecision,n_momentum,3)
 
             D = one(HostPrecision) ./ copy(E)
             Dinv = copy(E)
             D_d = device_array(Backend,DevicePrecision,D)
             Dinv_d = device_array(Backend,DevicePrecision,Dinv)
+            S = similar(D)
+            Sinv = similar(Dinv)
 
             # Making invA = vector of diagonal entries of invA_Flux for each spatial point (used for scaling)
             invA = zeros(HostPrecision,n_space)
@@ -2347,6 +2353,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 end_idx = n_momentum*(off_space+1)
                 in_Binary = BinaryInteractions && in(off_space,BinaryDomain)
                 if in_Binary # dense matrix for binary cells as no default CUDA for dense + sparse matrix addition
+                    if Backend isa CUDABackend   
                     fill!(tmpmatrix,zero(HostPrecision))
                     tmpmatrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
                     if isassigned(EmiM.M_Emi,off_space+1)
@@ -2354,6 +2361,17 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                         tmpmatrix .+= EmiM.M_Emi[off_space+1]
                     end
                     MEmiPFlux[off_space+1] = copy(Backend,DevicePrecision,tmpmatrix)
+                    elseif Backend isa CPUBackend
+                        tmpsparsematrix.nzval .= zero(HostPrecision)
+                        dropzeros!(tmpsparsematrix)
+                        tmpsparsematrix .-= @view(FluxM.P_Flux[start_idx:end_idx,start_idx:end_idx])
+                        if isassigned(EmiM.M_Emi,off_space+1)
+                            @assert EmiM.M_Emi[off_space+1] isa Matrix "Emission matrix must be dense for binary interactions"
+                            tmpsparsematrix .+= EmiM.M_Emi[off_space+1]
+                        end
+                        dropzeros!(tmpsparsematrix)
+                        MEmiPFlux[off_space+1] = copy(tmpsparsematrix)
+                    end
                 else # sparse matrix for non-binary cells
                     tmpsparsematrix.nzval .= zero(HostPrecision)
                     dropzeros!(tmpsparsematrix)
@@ -2457,7 +2475,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             ###### Actually Build the Struct with Concrete Types ######
 
-            self = new{HostPrecision,DevicePrecision,Vector{HostPrecision},CuArray{DevicePrecision, 1, CUDACore.DeviceMemory},Matrix{HostPrecision},CuArray{DevicePrecision, 2, CUDACore.DeviceMemory},SparseMatrixCSC{HostPrecision, Int32},CuSparseMatrixCSR{DevicePrecision, Int32},typeof(BinaryDomain),typeof(f_mask_d),typeof(df_mask_d)}()
+            self = new{HostPrecision,DevicePrecision,Vector{HostPrecision},typeof(f),Matrix{HostPrecision},typeof(J_d),SparseMatrixCSC{HostPrecision, Int32},typeof(MBin),typeof(BinaryDomain),typeof(f_mask_d),typeof(df_mask_d)}()
 
             self.nworkers = nworkers
 
@@ -2518,6 +2536,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
 
             self.F = [similar(F) for _ in 1:nworkers]
             self.J = [similar(J) for _ in 1:nworkers]
+            self.JF = [similar(JF) for _ in 1:nworkers]
             self.F_d = [similar(F_d) for _ in 1:nworkers]
             self.J_d = [similar(J_d) for _ in 1:nworkers]
             self.Jsparse = [similar(Jsparse) for _ in 1:nworkers]
@@ -2528,6 +2547,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.D_d = D_d
             self.Dinv = Dinv
             self.Dinv_d = Dinv_d
+            self.S = [similar(S) for _ in 1:nworkers]
+            self.Sinv = [similar(Sinv) for _ in 1:nworkers]
 
             self.ϕ = [similar(ϕ) for _ in 1:nworkers]
 
@@ -2544,8 +2565,8 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             self.KsL = [KrylovSubspace{Float64,Float64,Array{Float64,2}}(n_momentum,mL) for _ in 1:nworkers]
             self.mB = mB
             self.mL = mL
-            self.ϕcacheB = [ExponentialUtilities.PhivCache(ϕ,mB,1) for _ in 1:nworkers]
-            self.ϕcacheL = [ExponentialUtilities.PhivCache(ϕ,mL,1) for _ in 1:nworkers]
+            self.ϕcacheB = [ExponentialUtilities.PhivCache(ϕ,mB,2) for _ in 1:nworkers]
+            self.ϕcacheL = [ExponentialUtilities.PhivCache(ϕ,mL,2) for _ in 1:nworkers]
 
             self.dt_guess = dt_guess
 

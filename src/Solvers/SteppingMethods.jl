@@ -2285,11 +2285,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
             tasks_this_step += 1
         end
         
-        #println("submitting $off_space")
-        
     end
-
-    #println("finished submitting")
 
     for task in WorkerPool.tasks
     if istaskfailed(task)
@@ -2304,6 +2300,7 @@ function update_momentum!(method::ExponentialRosenbrockEulerKrylovMixedStruct,dt
 
     if tasks_this_step > 0 # if there are tasks to do
         for i in 1:tasks_this_step
+
             #println("Waiting for worker to finish off_space $i")
             #flush(stdout)
             take!(done) # when worker is done it will put a value in the done channel, so we can wait for all workers to finish. take waits for a value to be available in the done channel and then removes if from the channel. This is a blocking operation, so it will wait until a worker is done before continuing.
@@ -2333,6 +2330,7 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
     Jsparse = method.Jsparse[worker]# on CPU
     F = method.F[worker]            # on CPU
     F_d = method.F_d[worker]        # on GPU
+    JF = method.JF[worker]          # on CPU
 
     MBin = method.MBin
     MBinMulStepReshape = method.MBinMulStepReshape[worker]
@@ -2360,14 +2358,17 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
     Dinv = method.Dinv              # on CPU
     Dinv_d = method.Dinv_d          # on GPU
 
+    S = method.S[worker]            # on CPU 
+    Sinv = method.Sinv[worker]      # on CPU
+
     E = method.E                    # on CPU 
     E_d = method.E_d                # on GPU
 
     # arnoldi settings and tolerances
     iop = 0
     reorthogonalize = true
-    arnoldi_tol = 1e-16
-    ηtarget = 1e-45
+    arnoldi_tol = 1e-8
+    ηtarget = 1e-8
     correct = true
 
     for (off_space, dt, done) in jobs # each job is a space index to be processed
@@ -2389,9 +2390,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
         end
 
         if HasInjection
-            ηEtarget = 1.0#HostPrecision(5e-4)
+            ηEtarget = 1e5#HostPrecision(5e-4)
         else
-            ηEtarget = 1.0#HostPrecision(1e-3)
+            ηEtarget = 1e5#HostPrecision(1e-3)
         end
 
         @inbounds Vol = method.Vol[off_space+1]
@@ -2405,7 +2406,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
 
         if method.BinaryInteractions && off_space in method.BinaryDomain # mix of CPU and GPU
 
-            @assert MEmiPFlux isa CuArray "MEmiPFlux must be a CuArray for binary interactions"
+            if method.J_d isa CuArray
+            @assert MEmiPFlux isa CuArray "MEmiPFlux must be a dense for binary interactions"
+            end
 
             copyto!(fold_d,fstep_d)
             copyto!(fold,fstep_d) # copy to CPU for Arnoldi
@@ -2454,12 +2457,23 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                     end
 
                     # Diagonal scaling of J and F to improve conditioning for Krylov subspace approximation
-                    J_d .*= (D_d') #.^2 # right mul
-                    J_d .*= (Dinv_d) #.^2 # left mul
-                    F_d .*= (Dinv_d) #.^2 # left mul
+                    J_d .*= (D_d') # right mul
+                    J_d .*= (Dinv_d) # left mul
+                    F_d .*= (Dinv_d) # left mul
 
-                    copyto!(J,J_d) # copy to CPU for Arnoldi
-                    copyto!(F,F_d) # copy to CPU for Arnoldi
+                    copyto!(J,J_d) # copy to CPU for Arnoldi and scaling
+                    copyto!(F,F_d) # copy to CPU for Arnoldi and scaling
+
+                    tau = 1e-8
+                    mul!(JF,J,F)
+                    @. S = max(abs(F),k*abs(JF)/2)
+                    floor = tau * maximum(S)
+                    @. S = max(S, floor)
+                    @. Sinv = 1.0 / S
+
+                    J .*= S' # right mul
+                    J .*= Sinv # left mul
+                    F .*= Sinv # left mul
 
                     arnoldi!(KsB, J, F;m=mB,reorthogonalize=reorthogonalize,remove_drift=false,tol=arnoldi_tol,iop=iop)
 
@@ -2473,8 +2487,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                     end
 
                     # Compute φ functions of H
-                    phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates                  
-                    @. δ = D #=^2=# * @view(ϕ[:,2]) * k
+                    phiv!(ϕ,k,KsB,2;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates                  
+                    @. δ = S * D * @view(ϕ[:,2]) * k
+                    #@. δ = s * @view(ϕ[:,2]) * k
                     @. fout = fold + δ
                     
                         @. fout = ifelse(fout < zero(HostPrecision), zero(HostPrecision),fout)
@@ -2485,10 +2500,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                         ηE = abs(dot(E, fout) / Eold - one(HostPrecision))
                         #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout), " inj E: ", dot(E, df_Inj * k * dtscale))
 
-                        if isnan(ηE) || ηE > 1e-2
-
+                        if !isfinite(ηE) #|| ηE > 1e-2
                             # reject step and reduce time step
-                            println("Rejecting first step due to large energy error: ", ηE, " reducing time step by 0.5")
+                            @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηtarget"
                             dt_local = ldexp(dt_local, -1)
                             continue
                         end
@@ -2501,7 +2515,7 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsB,1;cache=ϕcacheB,correct=correct,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsB,2;cache=ϕcacheB,correct=correct,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest, " m: ",m)
                             if errest > ηtarget
                                 kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
@@ -2528,8 +2542,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
 
 
                     if k != 1.0
-                        phiv!(ϕ,k,KsB,1;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates
-                        @. δ = D^2 * @view(ϕ[:,2]) * k
+                        phiv!(ϕ,k,KsB,2;cache=ϕcacheB,correct=correct,errest=false) # TODO: This allocates
+                        @. δ = S * D * @view(ϕ[:,2]) * k
+                        #@. δ = s * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
 
                         # energy after correction  
@@ -2594,35 +2609,34 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                 copyto!(Jsparse,MEmiPFlux)
                 @. Jsparse.nzval *= dtscale * invA
 
-                # Form F
-                mul!(F,Jsparse,fold)
-                @. F += df_Inj * dtscale
-                if norm(F) < HostPrecision(1e-30) # no change in distribution
-                    break
+                if HasInjection
+                    # Form F
+                    mul!(F,Jsparse,fold)
+                    @. F += df_Inj * dtscale
+                    if norm(F) < HostPrecision(1e-30) # no change in distribution
+                        break
+                    end
+                else 
+                    # no injection, just linear Jacobian so use exp over phi
+                    @. F = fold
                 end
 
-                #Jsparse .*= D' .^ 2 # right mul
-                #Jsparse .*= Dinv .^ 2 # left mul
-                #F .*= Dinv .^ 2 # left mul
+                Jsparse .*= D' # right mul
+                Jsparse .*= Dinv # left mul
+                F .*= Dinv # left mul
 
                 tau = 1e-8
-                JF = Jsparse * F
-                s = max.(abs.(F), abs.(k .* JF) ./ 2)
-                floor = tau * maximum(s)
-                s = max.(s, floor)
-                d = 1.0 ./ s
+                mul!(JF,Jsparse,F)
+                @. S = max(abs(F),k*abs(JF)/2)
+                floor = tau * maximum(S)
+                @. S = max(S, floor)
+                @. Sinv = 1.0 / S
 
-                Jsparse .*= s' # right mul
-                Jsparse .*= d # left mul
-                F .*= d # left mul
-
-                if HasInjection
-                    arnoldi!(KsL,Jsparse,F;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
-                else # no injection, just linear Jacobian so use exp over phi
-                    #@. fscale = Dinv .^ 2 * fold # left mul
-                    @. fscale = d * fold # left mul
-                    arnoldi!(KsL,Jsparse,fscale;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
-                end
+                Jsparse .*= S' # right mul
+                Jsparse .*= Sinv # left mul
+                F .*= Sinv # left mul
+            
+                arnoldi!(KsL,Jsparse,F;m=mL,reorthogonalize=reorthogonalize,tol=arnoldi_tol,iop=iop)
 
                 V = @view(ExponentialUtilities.getV(KsL)[:,1:end-1])
 
@@ -2640,9 +2654,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                 # Compute φ functions of H
                 if HasInjection 
                     if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                        #@. δ = D^2 * @view(ϕ[:,2]) * k
-                        @. δ = s * @view(ϕ[:,2]) * k
+                        phiv!(ϕ,k,KsL,2;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                        @. δ = S * D * @view(ϕ[:,2]) * k
+                        #@. δ = s * @view(ϕ[:,2]) * k
                         @. fout = fold + δ
                     else
                         @. fout = fold + df_Inj * k * dtscale
@@ -2650,10 +2664,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                 else # no injection, just linear Jacobian so use exp over phi
                     #expv!(δ,k,KsL) # TODO: add cache for expv to avoid repeated allocations, maybe replace with phiv! with dimension 0 to just return ϕ0=exp
                     #@. fout = D * δ
-
-                    phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                    #@. fout = D^2 * @view(ϕ[:,1])
-                    @. fout = s * @view(ϕ[:,1])
+                    phiv!(ϕ,k,KsL,2;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                    @. fout = S * D * @view(ϕ[:,1])
+                    #@. fout = s * @view(ϕ[:,1])
                 end
 
                 # adaptive time stepping
@@ -2671,8 +2684,8 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                     ηE = abs(dot(E, fout) / Eold - one(HostPrecision))
                     #println("Energy error before adaptive: ", ηE, " ΔE: ", ΔE, " Eold: ", Eold, " Enew: ", dot(method.E, fout))
 
-                    if isinf(ηE)
-                        @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηtarget"
+                    if !isfinite(ηE)
+                        @warn "Energy error is Inf or NaN, may be unstable, consider reducing time step or adjusting ηEtarget"
                         dt_local = ldexp(dt_local, -1)
                         continue
                     end
@@ -2686,7 +2699,7 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                         kϕ = min(kE,kϕmax) # max k is 2.0
                         errest = Inf
                         while errest > ηtarget # k from ϕv errestimate, can be more strict than energy error estimate
-                            _, errest = phiv!(ϕ,kϕ,KsL,1;cache=ϕcacheL,correct=correct,errest=true) # TODO: This allocates
+                            _, errest = phiv!(ϕ,kϕ,KsL,2;cache=ϕcacheL,correct=correct,errest=true) # TODO: This allocates
                             #println("ϕv error estimate during: ", errest)
                             if errest > ηtarget
                                 kϕ *= 0.77 * 0.5(tanh(log10(errest/ηtarget)+1)+1)
@@ -2716,9 +2729,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                 if k != 1.0
                     if HasInjection 
                         if KsL.m != 1 # only do ϕv error estimate if injection is present and J has entries
-                            phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                            #@. δ = D^2 * @view(ϕ[:,2]) * k
-                            @. δ = s * @view(ϕ[:,2]) * k
+                            phiv!(ϕ,k,KsL,2;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                            @. δ = S * D * @view(ϕ[:,2]) * k
+                            #@. δ = s * @view(ϕ[:,2]) * k
                             @. fout = fold + δ
                         else
                             @. fout = fold + df_Inj * k * dtscale
@@ -2727,9 +2740,9 @@ function worker!(method::ExponentialRosenbrockEulerKrylovMixedStruct,worker::Int
                         #expv!(δ,k,KsL)
                         #@. fout = D * δ
 
-                        phiv!(ϕ,k,KsL,1;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
-                        #@. fout = D^2 * @view(ϕ[:,1])
-                        @. fout = s * @view(ϕ[:,1])
+                        phiv!(ϕ,k,KsL,2;cache=ϕcacheL,correct=correct,errest=false) # TODO: This allocates
+                        @. fout = S * D * @view(ϕ[:,1])
+                        #@. fout = s * @view(ϕ[:,1])
                     end
 
                     # energy after correction  
