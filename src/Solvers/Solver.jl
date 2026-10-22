@@ -70,7 +70,7 @@ function Solve(method::AbstractSteppingMethod,dt_initial::T,t_save::Vector{T};pr
                 @warn "simulation end time is not a multiple of the largest advection timescale, may result in inaccuracy"
             end
             if dt != method.dt_min 
-                @error "For this method dt_Initial must equal dt_min"
+                @assert "For this method dt_Initial: $(dt) must equal dt_min: $(method.dt_min)"
             end
         end
     end
