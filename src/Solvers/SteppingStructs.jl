@@ -2407,7 +2407,6 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
                 invA_local = invA[off_space+1]
                 XdivA_local = X_Flux_diag_local .* invA_local
                 dt_min_local = nextpow2_float(minimum(PhaseSpace.Spacetime.dt0 ./ XdivA_local))
-                println("off_space: $off_space, dt_min = $dt_min_local")
                 dt_min = min(dt_min,dt_min_local)
             end
             # work out momentum_step 
