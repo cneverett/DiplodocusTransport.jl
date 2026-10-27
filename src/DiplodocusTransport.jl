@@ -50,8 +50,6 @@ module DiplodocusTransport
     using StaticArrays
     using ForwardDiff, Preferences
     set_preferences!(ForwardDiff, "nansafe_mode" => true) # safer 
-    using Krylov
-    using KrylovPreconditioners
     using ExponentialUtilities
     using KernelAbstractions
     using KernelAbstractions.Extras: @unroll
@@ -101,15 +99,13 @@ module DiplodocusTransport
     include("Collisions/EmissionCorrection.jl")
 
     # Solvers
-    include("Solvers/KIOPSnoview.jl")
-    include("Solvers/KIOPS.jl")
-    include("Solvers/Leja.jl")
-    include("Solvers/PadeExpm.jl")
     include("Solvers/Arnoldi.jl")
     include("Solvers/SteppingStructs.jl")
     include("Solvers/SteppingMethods.jl")
-    include("Solvers/Krylov.jl")
     include("Solvers/Solver.jl")
     include("DataReading.jl")
+
+    # Legacy conversion functions
+    include("LegacyConversions.jl")
 
 end
