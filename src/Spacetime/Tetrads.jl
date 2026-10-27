@@ -42,10 +42,10 @@ end
 
 The force-free field configuration as described by Blandford1976. This is an analytic field configuration for flat spacetime and an arbitrary field line rotation rate `Ω(ρ,z=0)=Ω(ρ0)` where ρ and z are cylindrical coordinates. 
 """
-@kwdef struct ParabolicForceFreeFieldTetrad{T} <: ForceFreeTetrad
+@kwdef struct ParabolicForceFreeFieldTetrad{T,F,B} <: ForceFreeTetrad
     B0::T = 1.0 # strength of the uniform magnetic field (Tesla)
-    Ω = ΩZero # field line rotation rate as a function of cylindrical radius ρ0 in the equatorial plane (z=0)
-    Bfunction = LocalParabolicForceFreeBField
+    Ω::F = ΩZero # field line rotation rate as a function of cylindrical radius ρ0 in the equatorial plane (z=0)
+    Bfunction::B = LocalParabolicForceFreeBField
 end
 
 struct KwFunc{F,K}
