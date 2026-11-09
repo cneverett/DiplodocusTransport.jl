@@ -1,3 +1,6 @@
+> [!WARNING]
+> Development of DiplodocusTransport.jl has moved to the Diplodocus.jl repository: https://github.com/cneverett/Diplodocus.jl. This repository is no longer under active development.
+
 # Diplodocus Transport
 
 [![Build Status](https://github.com/cneverett/DiplodocusTransport.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/cneverett/DiplodocusTransport.jl/actions/workflows/CI.yml?query=branch%3Amain)
