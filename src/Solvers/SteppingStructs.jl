@@ -541,7 +541,7 @@ abstract type ExplicitSteppingMethod <: AbstractSteppingMethod end
             invA = zeros(HostPrecision,n_space)
             for off_space in 0:n_space-1
                 start_idx = n_momentum*off_space + 1
-                invA[off_space+1] = 1 / FluxM.Ap_Flux[star  t_idx]
+                invA[off_space+1] = 1 / FluxM.Ap_Flux[start_idx]
             end
 
             # Build new MEmi
